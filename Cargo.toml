@@ -1,5 +1,5 @@
 [package]
-name = "OpenT5-rs"
+name = "OpenT5"
 version = "0.1.0"
 edition = "2021"
 
