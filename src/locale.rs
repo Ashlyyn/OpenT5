@@ -14,11 +14,9 @@ enum Language {
     POLISH,
     KOREAN,
     JAPANESE,
-    CZECH
+    CZECH,
 }
 
 fn init() -> Language {
-
-
     Language::ENGLISH
 }

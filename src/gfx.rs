@@ -13,13 +13,13 @@ struct GfxDrawSurf {
     reflection_probe_index: u8, // 3 bits
     hdr_bits: bool,             // 1 bit
     glight_render: bool,        // 1 bit
-    dlight_render: bool,        // 1 bit 
+    dlight_render: bool,        // 1 bit
     material_sorted_index: u16, // 12 bits
     primary_light_index: u8,    // 8 bits
     surf_type: u8,              // 4 bits
     prepass: u8,                // 2 bits
     no_dynamic_shadow: bool,    // 1 bit
-    primary_sort_key: u8        // 6 bits
+    primary_sort_key: u8,       // 6 bits
 }
 
 #[derive(Clone, Default)]
@@ -31,24 +31,22 @@ struct MaterialInfo {
     texture_atlas_column_count: u8,
     draw_surf: GfxDrawSurf,
     surface_type_bits: u32,
-    layered_surface_types: u32
+    layered_surface_types: u32,
 }
 
 #[derive(Copy, Clone, Default)]
 struct MaterialStreamRouting {
     source: u8,
-    dest: u8
+    dest: u8,
 }
 
 #[derive(Copy, Clone, Default)]
-struct VertexDeclaration {
-
-}
+struct VertexDeclaration {}
 
 #[derive(Clone, Default)]
 struct MaterialVertexStreamRouting {
     data: ArrayVec<MaterialStreamRouting, 16>,
-    decl: ArrayVec<VertexDeclaration,     18>
+    decl: ArrayVec<VertexDeclaration, 18>,
 }
 
 #[derive(Clone, Default)]
@@ -56,66 +54,58 @@ struct MaterialVertexDeclaration {
     stream_count: u8,
     has_optional_source: bool,
     is_loaded: bool,
-    routing: MaterialVertexStreamRouting
+    routing: MaterialVertexStreamRouting,
 }
 
 #[derive(Copy, Clone, Default)]
-struct VertexShaderProgram {
-
-}
+struct VertexShaderProgram {}
 
 #[derive(Copy, Clone, Default)]
 struct GfxVertexShaderLoadDef {
     program: VertexShaderProgram,
-    program_size: u16
+    program_size: u16,
 }
 
 #[derive(Copy, Clone, Default)]
-struct VertexShader {
-
-}
+struct VertexShader {}
 
 #[derive(Clone, Default)]
 struct MaterialVertexShaderProgram {
     vs: VertexShader,
-    load_def: GfxVertexShaderLoadDef
+    load_def: GfxVertexShaderLoadDef,
 }
 
 #[derive(Clone, Default)]
 struct MaterialVertexShader {
     name: String,
-    prog: MaterialVertexShaderProgram
+    prog: MaterialVertexShaderProgram,
 }
 
-struct PixelShaderProgram {
-
-}
+struct PixelShaderProgram {}
 
 struct GfxPixelShaderLoadDef {
     program: PixelShaderProgram,
-    program_size: u16
+    program_size: u16,
 }
 
-struct PixelShader {
-
-}
+struct PixelShader {}
 
 struct MaterialVertexPixelProgram {
     ps: VertexShader,
-    load_def: GfxPixelShaderLoadDef
+    load_def: GfxPixelShaderLoadDef,
 }
 
 #[derive(Clone, Default)]
 struct MaterialPixelShader {
     name: String,
-    prog: MaterialVertexShaderProgram
+    prog: MaterialVertexShaderProgram,
 }
 
 #[derive(Copy, Clone, Default)]
 struct MaterialArgumentCodeConst {
     index: u16,
     first_row: u8,
-    row_count: u8
+    row_count: u8,
 }
 
 #[derive(Clone)]
@@ -123,13 +113,13 @@ enum MaterialArgumentDef {
     LiteralConst(Vec4f32),
     CodeConst(MaterialArgumentCodeConst),
     CodeSample(u32),
-    NameHash(u32)
+    NameHash(u32),
 }
 
 #[derive(Clone)]
 struct MaterialShaderArgument {
     dest: u16,
-    material_argument_def: MaterialArgumentDef
+    material_argument_def: MaterialArgumentDef,
 }
 
 #[derive(Clone, Default)]
@@ -141,14 +131,14 @@ struct MaterialPass {
     per_obj_arg_count: u8,
     stable_arg_count: u8,
     custom_sampler_flags: u8,
-    args: Vec<MaterialShaderArgument>
+    args: Vec<MaterialShaderArgument>,
 }
 
 #[derive(Clone, Default)]
 struct MaterialTechnique {
     name: String,
     flags: u16,
-    pass_array: Vec<MaterialPass>
+    pass_array: Vec<MaterialPass>,
 }
 
 #[derive(Clone, Default)]
@@ -156,35 +146,27 @@ struct MaterialTechniqueSet {
     name: String,
     world_vert_format: u8,
     techset_flags: u16,
-    techniques: ArrayVec<MaterialTechnique, 130>
+    techniques: ArrayVec<MaterialTechnique, 130>,
 }
 
 #[derive(Clone)]
-struct BaseTexture {
-
-}
+struct BaseTexture {}
 
 #[derive(Clone)]
-struct Texture {
-
-}
+struct Texture {}
 
 #[derive(Clone)]
-struct VolumeTexture {
-    
-}
+struct VolumeTexture {}
 
 #[derive(Clone)]
-struct CubeTexture {
-
-}
+struct CubeTexture {}
 
 #[derive(Clone)]
 struct GfxImageLoadDef {
     level_count: u8,
     flags: u8,
     format: i32,
-    data: Vec<u8>
+    data: Vec<u8>,
 }
 
 #[derive(Clone)]
@@ -193,7 +175,7 @@ enum GfxTexture {
     Map(Texture),
     VolumeMap(VolumeTexture),
     CubeMap(CubeTexture),
-    LoadDef(GfxImageLoadDef)
+    LoadDef(GfxImageLoadDef),
 }
 
 #[derive(Clone)]
@@ -215,12 +197,12 @@ struct GfxImage {
     pixels: Vec<u8>,
     loaded_size: u32,
     skipped_mip_levels: u8,
-    name: String
+    name: String,
 }
 
 #[derive(Copy, Clone, Default)]
 struct WaterWritable {
-    float_time: f32
+    float_time: f32,
 }
 
 #[derive(Clone)]
@@ -237,13 +219,13 @@ struct Water {
     winddir: Vec2f32,
     amplitude: f32,
     code_constant: Vec4f32,
-    image: GfxImage
+    image: GfxImage,
 }
 
 #[derive(Clone)]
 enum MaterialTextureDefInfo {
     Image(GfxImage),
-    Water(Water)
+    Water(Water),
 }
 
 #[derive(Clone)]
@@ -253,18 +235,18 @@ struct MaterialTextureDef {
     sampler_state: u8,
     semantic: u8,
     is_mature_content: bool,
-    info: MaterialTextureDefInfo
+    info: MaterialTextureDefInfo,
 }
 
 #[derive(Copy, Clone, Default)]
 struct MaterialConstantDef {
     name: [char; 12],
-    literal: Vec4f32
+    literal: Vec4f32,
 }
 
 #[derive(Copy, Clone, Default)]
 struct GfxStateBits {
-    load_bits: [u32; 2]
+    load_bits: [u32; 2],
 }
 
 #[derive(Clone, Default)]
@@ -280,7 +262,7 @@ pub struct Material {
     technique_set: MaterialTechniqueSet,
     texture_table: Vec<MaterialTextureDef>,
     constant_table: Vec<MaterialConstantDef>,
-    state_bits_table: Vec<GfxStateBits>
+    state_bits_table: Vec<GfxStateBits>,
 }
 
 #[derive(Clone, Default)]
@@ -294,22 +276,22 @@ struct AnimParamsDef {
     outlineColor: Vec4f32,
     text_scale: f32,
     rotation: f32,
-    on_event: GenericEventHandler
+    on_event: GenericEventHandler,
 }
 
 impl AnimParamsDef {
     pub fn new() -> Self {
-        AnimParamsDef { 
-            name: "".to_string(), 
+        AnimParamsDef {
+            name: "".to_string(),
             rect_client: RectDef::new(),
-            border_size: 0.0, 
-            foreColor: (0.0, 0.0, 0.0, 0.0), 
-            backColor: (0.0, 0.0, 0.0, 0.0), 
-            borderColor: (0.0, 0.0, 0.0, 0.0), 
-            outlineColor: (0.0, 0.0, 0.0, 0.0), 
-            text_scale: 0.0, 
-            rotation: 0.0, 
-            on_event: GenericEventHandler::new() 
+            border_size: 0.0,
+            foreColor: (0.0, 0.0, 0.0, 0.0),
+            backColor: (0.0, 0.0, 0.0, 0.0),
+            borderColor: (0.0, 0.0, 0.0, 0.0),
+            outlineColor: (0.0, 0.0, 0.0, 0.0),
+            text_scale: 0.0,
+            rotation: 0.0,
+            on_event: GenericEventHandler::new(),
         }
     }
 }
@@ -322,19 +304,19 @@ pub struct UIAnimInfo {
     nextAnimState: AnimParamsDef,
     animating: i32,
     animStartTime: i32,
-    animDuration: i32
+    animDuration: i32,
 }
 
 impl<'a> UIAnimInfo {
     pub fn new() -> Self {
-        UIAnimInfo { 
-            animStateCount: 0, 
-            animStates: Vec::new(), 
-            currentAnimState: AnimParamsDef::new(), 
-            nextAnimState: AnimParamsDef::new(), 
-            animating: 0, 
-            animStartTime: 0, 
-            animDuration: 0 
+        UIAnimInfo {
+            animStateCount: 0,
+            animStates: Vec::new(),
+            currentAnimState: AnimParamsDef::new(),
+            nextAnimState: AnimParamsDef::new(),
+            animating: 0,
+            animStartTime: 0,
+            animDuration: 0,
         }
     }
 }
@@ -361,7 +343,7 @@ pub struct WindowDef {
     border_color: Vec4f32,
     outline_color: Vec4f32,
     rotation: f32,
-    background: Material
+    background: Material,
 }
 
 #[derive(Clone, Default)]
@@ -390,5 +372,5 @@ pub struct ListBoxDef {
     no_blinking_highlight: bool,
     rows: Vec<MenuRow>,
     max_rows: i32,
-    row_count: i32
+    row_count: i32,
 }

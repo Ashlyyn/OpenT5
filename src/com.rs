@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use lazy_static::lazy_static;
-use std::sync::RwLock;
 use std::fs::File;
+use std::sync::{Arc, RwLock};
 
 pub fn print(message: String) {
     print!("{}", message);
@@ -17,11 +17,11 @@ pub fn print_warning(message: String) {
 }
 
 lazy_static! {
-    static ref LOG_FILE: RwLock<Option<File>> = RwLock::new(None);
+    static ref LOG_FILE: Arc<RwLock<Option<File>>> = Arc::new(RwLock::new(None));
 }
 
 pub fn log_file_open() -> bool {
-    return LOG_FILE.read().unwrap().is_none();
+    return LOG_FILE.clone().read().unwrap().is_some();
 }
 
 pub fn error(err: String) {
@@ -30,4 +30,15 @@ pub fn error(err: String) {
 
 pub fn errorln(err: String) {
     error(format!("{}\n", err));
+}
+
+#[allow(unused_variables, unreachable_code)]
+pub fn filter(string: String, name: String, case_sensitive: bool) -> bool {
+    return true;
+
+    todo!("com::filter");
+}
+
+pub fn dvar_dump(_channel: i32, _param_2: String) {
+    todo!("com::dvar_dump");
 }
