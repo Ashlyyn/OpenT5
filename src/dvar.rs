@@ -899,29 +899,9 @@ impl Hash for Dvar {
 }
 
 impl Dvar {
-    pub fn new(
-        name: String,
-        description: Option<String>,
-        flags: Option<DvarFlags>,
-        loaded_from_save_game: Option<bool>,
-        value: DvarValue,
-        domain: DvarLimits,
-    ) -> Self {
-        Dvar {
-            name,
-            // default description to "" if none is provided
-            description: description.unwrap_or_else(|| "".to_string()),
-            // default flags to empty if none are provided
-            flags: flags.unwrap_or(DvarFlags::empty()),
-            modified: false,
-            // default loaded_from_save_game to false if no value is provided
-            loaded_from_save_game: loaded_from_save_game.unwrap_or(false),
-            domain,
-            current: value.clone(),
-            latched: value.clone(),
-            reset: value.clone(),
-            saved: value,
-        }
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> DvarBuilder {
+        DvarBuilder::new()
     }
 
     // Clamp a supplied value to the supplied domain if possible
@@ -1439,14 +1419,18 @@ pub struct DvarBuilder {
 impl DvarBuilder {
     pub fn new() -> Self {
         DvarBuilder {
-            dvar: Dvar::new(
-                "".to_string(),
-                None,
-                None,
-                None,
-                DvarValue::None,
-                DvarLimits::None,
-            ),
+            dvar: Dvar {
+                name: "".to_string(),
+                description: "".to_string(),
+                flags: DvarFlags::empty(),
+                modified: false,
+                loaded_from_save_game: false,
+                domain: DvarLimits::None,
+                current: DvarValue::None,
+                latched: DvarValue::None,
+                reset: DvarValue::None,
+                saved: DvarValue::None,
+            },
         }
     }
 
@@ -1485,9 +1469,11 @@ impl DvarBuilder {
     }
 }
 
+const DVAR_COUNT_MAX: usize = 4096;
+
 lazy_static! {
     pub static ref DVARS: Arc<RwLock<HashMap<String, Dvar>>> =
-        Arc::new(RwLock::new(HashMap::with_capacity(1024)));
+        Arc::new(RwLock::new(HashMap::with_capacity(DVAR_COUNT_MAX)));
 }
 
 pub fn find(name: String) -> Option<Dvar> {
@@ -1512,7 +1498,18 @@ fn register_new(
     {
         let writer_lock = DVARS.clone();
         let mut writer = writer_lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
-        let value = DvarBuilder::new()
+
+        if writer.len() + 1 > DVAR_COUNT_MAX {
+            com::errorln(
+                com::ErrorParm::FATAL,
+                format!(
+                    "Can\'t create dvar \'{}\': {} dvars already exist",
+                    name, DVAR_COUNT_MAX
+                ),
+            );
+        }
+
+        let value = Dvar::new()
             .name(name.clone())
             .flags(flags)
             .value(value)
@@ -1524,7 +1521,7 @@ fn register_new(
     }
 
     if b {
-        com::errorln(format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
     }
 }
 
@@ -2633,7 +2630,7 @@ fn setu_f() {
 lazy_static! {
     static ref RESTORE_DVARS_ON_LIVE: Arc<RwLock<Dvar>> =
         Arc::new(RwLock::new(
-            DvarBuilder::new()
+            Dvar::new()
                 .value(DvarValue::Bool(true))
                 .description(
                     "Enable to restore Dvars on entering the Xbox Live menu"
