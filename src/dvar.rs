@@ -11,6 +11,13 @@ use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::{Arc, RwLock};
 use std::vec::Vec;
 
+// DvarLimitsXXXXX hold the domain for each possible type of Dvar
+// Display is impl'ed to print said domain
+// Default is impl'ed where possible, and should always resolve to the largest
+// possible domain
+
+// bool has no custom-definable domain, it'll always be 0 or 1/true or false
+// DvarLimitsBool still needs to be defined for printing the domain
 #[derive(Copy, Clone, Default, PartialEq)]
 pub struct DvarLimitsBool {}
 
@@ -26,6 +33,8 @@ impl DvarLimitsBool {
     }
 }
 
+// The domain for a float consists of a min and a max
+// Min should never be greater than max, but they may be equal
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsFloat {
     pub min: f32,
@@ -58,11 +67,19 @@ impl Display for DvarLimitsFloat {
 }
 
 impl DvarLimitsFloat {
-    pub fn new(n: f32, m: f32) -> Self {
-        DvarLimitsFloat { min: n, max: m }
+    pub fn new(min: f32, max: f32) -> Self {
+        // Panic if max is greater than min
+        // (possibly implement better error handling in the future)
+        if min > max {
+            panic!("DvarLimitsFloat::new(): supplied min is greater than max");
+        }
+
+        DvarLimitsFloat { min, max }
     }
 }
 
+// The domain for a vector follows the same rules as a float
+// Each element is bound the same min/max
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsVector2 {
     pub min: f32,
@@ -107,11 +124,12 @@ impl Display for DvarLimitsVector2 {
 }
 
 impl DvarLimitsVector2 {
-    pub fn new(n: f32, m: f32) -> Self {
-        DvarLimitsVector2 { min: n, max: m }
+    pub fn new(min: f32, max: f32) -> Self {
+        DvarLimitsVector2 { min, max }
     }
 }
 
+// Same rules as Vector2
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsVector3 {
     pub min: f32,
@@ -161,6 +179,7 @@ impl DvarLimitsVector3 {
     }
 }
 
+// Same rules as Vector2/Vector3
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsVector4 {
     pub min: f32,
@@ -210,6 +229,7 @@ impl DvarLimitsVector4 {
     }
 }
 
+// Same rules as Float
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsInt {
     pub min: i32,
@@ -247,6 +267,8 @@ impl DvarLimitsInt {
     }
 }
 
+// String has no custom-definable domain
+// Still implemented for the same reason as Bool
 #[derive(Copy, Clone, Default, PartialEq)]
 pub struct DvarLimitsString {}
 
@@ -262,6 +284,7 @@ impl DvarLimitsString {
     }
 }
 
+// Domain for enumeration is a set of possible strings
 #[derive(Clone, Default, PartialEq)]
 pub struct DvarLimitsEnumeration {
     pub strings: Vec<String>,
@@ -287,6 +310,8 @@ impl DvarLimitsEnumeration {
     }
 }
 
+// Color has no custom-definable domain
+// All valid RGBA values are allowed
 #[derive(Copy, Clone, Default, PartialEq)]
 pub struct DvarLimitsColor {}
 
@@ -302,6 +327,7 @@ impl DvarLimitsColor {
     }
 }
 
+// Same rules as Int
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsInt64 {
     pub min: i64,
@@ -339,6 +365,7 @@ impl DvarLimitsInt64 {
     }
 }
 
+// Same rules as Vector3
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsLinearColorRGB {
     pub min: f32,
@@ -388,6 +415,7 @@ impl DvarLimitsLinearColorRGB {
     }
 }
 
+// Same rules as Vector3 and LinearColorRGB
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsColorXYZ {
     pub min: f32,
@@ -437,6 +465,7 @@ impl DvarLimitsColorXYZ {
     }
 }
 
+// Enum to tie all the DvarLimitsXXXX's together
 #[derive(Clone)]
 pub enum DvarLimits {
     None,
@@ -454,6 +483,7 @@ pub enum DvarLimits {
     ColorXYZ(DvarLimitsColorXYZ),
 }
 
+// Display should display the domain of the current value
 impl Display for DvarLimits {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -477,6 +507,9 @@ impl Display for DvarLimits {
 }
 
 impl DvarLimits {
+    // A bunch of helper functions to extract the domain
+    // Useful if a given Dvar is known to be a specific type
+    // Otherwise long match expressions would be required
     pub fn as_bool_limits(&self) -> Option<DvarLimitsBool> {
         match self {
             Self::Bool(b) => Some(*b),
@@ -564,6 +597,7 @@ impl DvarLimits {
     }
 }
 
+// Enum to hold all possible Dvar values
 #[derive(Clone, PartialEq)]
 pub enum DvarValue {
     None,
@@ -581,6 +615,7 @@ pub enum DvarValue {
     ColorXYZ(Vec3f32),
 }
 
+// Display should display the current value
 impl Display for DvarValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -604,6 +639,7 @@ impl Display for DvarValue {
 }
 
 impl DvarValue {
+    // Helper functions defined for the same reason as in DvarLimits
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Self::Bool(b) => Some(*b),
@@ -766,6 +802,7 @@ impl DvarValue {
     }
 }
 
+// Enum for the possible sources a Dvar may be set from
 #[derive(PartialEq)]
 pub enum SetSource {
     Internal,
@@ -774,6 +811,7 @@ pub enum SetSource {
     Devgui,
 }
 
+// Flags for Dvars
 bitflags! {
     pub struct DvarFlags: u32 {
         const UNKNOWN_00000001_A      = 0x00000001;
@@ -803,17 +841,35 @@ lazy_static! {
         Arc::new(RwLock::new(DvarFlags::empty()));
 }
 
+// Finally, the Dvar itself
 #[derive(Clone)]
 pub struct Dvar {
+    // Name of Dvar
     pub name: String,
+    // Description of Dvar (optional)
     pub description: String,
+    // Flags for Dvar (write-protected, cheat-protected, read-only, etc.)
     pub flags: DvarFlags,
+    // Flag to check if the Dvar has been modified
+    // Not included in the actual flags for some reason
     pub modified: bool,
+    // Flag to check if Dvar was loaded from a saved game
+    // Also not in the actual flags for some reason
     pub loaded_from_save_game: bool,
+    // Domain of Dvar
     pub domain: DvarLimits,
+    // Current value of Dvar
     pub current: DvarValue,
+    // Latched value of Dvar
+    // (seems to be the value it defaults to on restart)
     latched: DvarValue,
+    // Reset value of Dvar
+    // (seems to be used when a Dvar is manually reset,
+    //  or when the current value flags the Dvar as a cheat
+    //  and cheats are subsequently disabled)
     reset: DvarValue,
+    // Saved value of Dvar
+    // (value used on loading a save game?)
     saved: DvarValue,
 }
 
@@ -823,14 +879,19 @@ impl Display for Dvar {
     }
 }
 
+// Dvars should only be compared by name, to prevent multiple commands
+// with the same name but different remaining fields from being allowed in
+// associative containers
 impl PartialEq for Dvar {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
 
+// impl Eq to keep the compiler and clippy happy
 impl Eq for Dvar {}
 
+// Hash only the name for the same reason as PartialEq
 impl Hash for Dvar {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
@@ -848,15 +909,12 @@ impl Dvar {
     ) -> Self {
         Dvar {
             name,
-            description: match description {
-                Some(d) => d,
-                None => "".to_string(),
-            },
-            flags: match flags {
-                Some(f) => f,
-                None => DvarFlags::empty(),
-            },
+            // default description to "" if none is provided
+            description: description.unwrap_or_else(|| "".to_string()),
+            // default flags to empty if none are provided
+            flags: flags.unwrap_or(DvarFlags::empty()),
             modified: false,
+            // default loaded_from_save_game to false if no value is provided
             loaded_from_save_game: loaded_from_save_game.unwrap_or(false),
             domain,
             current: value.clone(),
@@ -866,6 +924,7 @@ impl Dvar {
         }
     }
 
+    // Clamp a supplied value to the supplied domain if possible
     fn clamp_value_to_domain(
         value: &mut DvarValue,
         domain: DvarLimits,
@@ -1081,6 +1140,7 @@ impl Dvar {
         self.latched = value;
     }
 
+    // Overwrite latched value with current
     pub fn clear_latched_value(&mut self) {
         if self.has_latched_value() {
             self.set_latched_value(self.current.clone())
@@ -1220,6 +1280,11 @@ impl Dvar {
         self.flags |= flags;
     }
 
+    pub fn clear_flags(&mut self, flags: DvarFlags) {
+        self.flags &= !flags;
+    }
+
+    // Helper function to check if supplied value is within supplied domain
     pub fn value_is_in_domain(domain: DvarLimits, value: DvarValue) -> bool {
         match value {
             DvarValue::None => {
@@ -1366,6 +1431,7 @@ impl Dvar {
     }
 }
 
+// Helper impl to make constructing Dvars easier
 pub struct DvarBuilder {
     dvar: Dvar,
 }
@@ -1421,7 +1487,7 @@ impl DvarBuilder {
 
 lazy_static! {
     pub static ref DVARS: Arc<RwLock<HashMap<String, Dvar>>> =
-        Arc::new(RwLock::new(HashMap::new()));
+        Arc::new(RwLock::new(HashMap::with_capacity(1024)));
 }
 
 pub fn find(name: String) -> Option<Dvar> {
@@ -1433,6 +1499,7 @@ pub fn find(name: String) -> Option<Dvar> {
     return reader.get(&name).cloned();
 }
 
+// Register new Dvar
 fn register_new(
     name: String,
     flags: DvarFlags,
@@ -1461,12 +1528,14 @@ fn register_new(
     }
 }
 
+// Reregister (update) existing Dvar
+#[allow(unused_variables)]
 fn reregister(
     dvar: &mut Dvar,
-    _name: String,
+    name: String,
     flags: DvarFlags,
-    _value: DvarValue,
-    _domain: DvarLimits,
+    value: DvarValue,
+    domain: DvarLimits,
     description: Option<String>,
 ) {
     dvar.add_flags(flags);
@@ -1493,6 +1562,8 @@ fn reregister(
     }
 }
 
+// Register new Dvar if no Dvar with name currently exists
+// Reregister otherwise
 fn register_variant(
     name: String,
     flags: DvarFlags,
@@ -1513,6 +1584,7 @@ fn register_variant(
     register_new(name, flags, value, domain, description);
 }
 
+// Helper functions to register Dvars of a specific type
 pub fn register_bool(
     name: String,
     value: bool,
@@ -1781,6 +1853,8 @@ fn get_bool(name: String) -> Option<bool> {
     };
 }
 
+// Helper function to check if Dvar name is valid
+// Valid names consist only of alphanumeric characters and underscores
 fn name_is_valid(name: String) -> bool {
     for c in name.chars() {
         if c.is_alphanumeric() || c == '_' {
@@ -1790,6 +1864,7 @@ fn name_is_valid(name: String) -> bool {
     true
 }
 
+// Toggle current value of Dvar if possible
 fn toggle_simple(dvar: &mut Dvar) -> bool {
     let value = dvar.value().clone();
     match value {
@@ -1989,6 +2064,7 @@ fn set_command(name: String, value: String) {
     }
 }
 
+// Get a single string from a command's argv entries
 fn get_combined_string(start_idx: usize) -> String {
     let argc = cmd::argc();
     let mut str = String::new();
@@ -2607,7 +2683,6 @@ macro_rules! todo_nopanic {
     };
 }
 
-#[allow(unreachable_code)]
 pub fn add_commands() {
     cmd::add_internal("toggle".to_string(), toggle_f);
     cmd::add_internal("togglep".to_string(), toggle_print);
