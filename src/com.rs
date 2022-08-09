@@ -4,6 +4,18 @@ use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::{Arc, RwLock};
 
+#[allow(non_camel_case_types, clippy::upper_case_acronyms)]
+#[derive(Debug)]
+pub enum ErrorParm {
+    FATAL,
+    DROP,
+    SERVERDISCONNECT,
+    DISCONNECT,
+    SCRIPT,
+    SCRIPT_DROP,
+    LOCALIZATION,
+}
+
 // Needs to be actually implemented
 // Just a wrapper around print! currently
 pub fn print(message: String) {
@@ -30,12 +42,12 @@ pub fn log_file_open() -> bool {
 
 // Also needs to be actually implemented
 // Currently just a wrapper for panic
-pub fn error(err: String) {
-    panic!("{}", err);
+pub fn error(err_type: ErrorParm, err: String) {
+    panic!("{} ({:?})", err, err_type);
 }
 
-pub fn errorln(err: String) {
-    error(format!("{}\n", err));
+pub fn errorln(err_type: ErrorParm, err: String) {
+    error(err_type, format!("{}\n", err));
 }
 
 // Implement these two later
