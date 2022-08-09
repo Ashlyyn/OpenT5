@@ -3,7 +3,7 @@
 use arrayvec::ArrayVec;
 use std::{
     cell::RefCell,
-    collections::HashSet,
+    collections::HashMap,
     hash::{Hash, Hasher},
     rc::Rc,
     sync::RwLock,
@@ -22,12 +22,16 @@ pub struct CmdFunction {
     function: fn(),
 }
 
+// CmdFunctions should only be compared by name, to prevent multiple commands
+// with the same name but different remaining fields from being allowed in
+// associative containers
 impl PartialEq for CmdFunction {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
 
+// Hash only the name for the same reason
 impl Hash for CmdFunction {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name.hash(state);
@@ -86,22 +90,14 @@ impl CmdFunction {
 }
 
 lazy_static! {
-    static ref CMD_FUNCTIONS: RwLock<HashSet<Option<CmdFunction>>> =
-        RwLock::new(HashSet::new());
+    static ref CMD_FUNCTIONS: Arc<RwLock<HashMap<String, CmdFunction>>> =
+        Arc::new(RwLock::new(HashMap::new()));
 }
 
 pub fn find(name: String) -> Option<CmdFunction> {
-    for c in CMD_FUNCTIONS.read().unwrap().iter() {
-        match c {
-            Some(f) => {
-                if f.name == name {
-                    return Some(f.clone());
-                }
-            }
-            None => {}
-        }
-    }
-    None
+    let lock = CMD_FUNCTIONS.clone();
+    let reader = lock.read().unwrap();
+    reader.get(&name).cloned()
 }
 
 pub fn add_internal(name: String, func: fn()) {
@@ -111,51 +107,61 @@ pub fn add_internal(name: String, func: fn()) {
             name
         )),
         None => {
-            CMD_FUNCTIONS.write().unwrap().insert(Some(CmdFunction::new(
-                name,
-                "".to_string(),
-                "".to_string(),
-                func,
-            )));
+            CMD_FUNCTIONS.write().unwrap().insert(
+                name.clone(),
+                CmdFunction::new(name, "".to_string(), "".to_string(), func),
+            );
         }
     }
 }
 
 thread_local! {
+    // Use Rc/RefCell instead of Arc/RwLock since ARGS is thread-local
     static ARGS: Rc<RefCell<CmdArgs>> = Rc::new(RefCell::new(CmdArgs::new()));
 }
 
 pub fn argc() -> usize {
+    // Temporary to take/replace ARGS
     let mut args = CmdArgs::new();
 
+    // Janky take/replace for ARGS/RefCell, try to fix later
     ARGS.with(|arg| {
         args = (*arg).take();
     });
 
+    // Get argc
     let argc = args.argc[args.nesting];
 
+    // Replace
     ARGS.with(|arg| {
         arg.replace(args);
     });
 
+    // And return argc
     argc
 }
 
 pub fn argv(idx: usize) -> String {
+    // Return "" if idx is out of range
     if idx >= argc() {
         return "".to_string();
     }
 
+    // Create temporary to use for take/replace
     let mut args = CmdArgs::new();
 
     ARGS.with(|arg| {
         args = (*arg).take();
     });
 
+    // Get actual arg
     let argv = args.argv[args.nesting][idx].clone();
+
+    // Replace ARGS
     ARGS.with(|arg| {
         arg.replace(args);
     });
 
+    // And return acquired arg
     argv
 }
