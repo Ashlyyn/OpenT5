@@ -17,7 +17,8 @@ pub fn print_warning(message: String) {
 }
 
 lazy_static! {
-    static ref LOG_FILE: Arc<RwLock<Option<File>>> = Arc::new(RwLock::new(None));
+    static ref LOG_FILE: Arc<RwLock<Option<File>>> =
+        Arc::new(RwLock::new(None));
 }
 
 pub fn log_file_open() -> bool {

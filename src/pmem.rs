@@ -9,7 +9,9 @@ use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
 
 #[cfg(target_os = "windows")]
-use windows::Win32::System::Memory::{VirtualAlloc, MEM_COMMIT, PAGE_READWRITE};
+use windows::Win32::System::Memory::{
+    VirtualAlloc, MEM_COMMIT, PAGE_READWRITE,
+};
 
 #[cfg(any(target_os = "unix", target_os = "linux"))]
 use nix::sys::mman::{mmap, MapFlags, ProtFlags};
@@ -137,7 +139,10 @@ impl<'a> PhysicalMemory<'a> {
 
 #[cfg(target_os = "windows")]
 fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
-    let p = unsafe { VirtualAlloc(core::ptr::null(), size, MEM_COMMIT, PAGE_READWRITE) as *mut u8 };
+    let p = unsafe {
+        VirtualAlloc(core::ptr::null(), size, MEM_COMMIT, PAGE_READWRITE)
+            as *mut u8
+    };
     match p.is_null() {
         true => None,
         false => unsafe { Some(core::slice::from_raw_parts_mut(p, size)) },
@@ -188,8 +193,11 @@ pub fn init() {
         G_PHYSICAL_MEMORY_INIT.store(true, Ordering::SeqCst);
 
         const SIZE: usize = 0x12C0_0000;
-        *G_MEM.write().unwrap() =
-            PhysicalMemory::new("main".to_string(), Some(alloc(SIZE).unwrap()), SIZE);
+        *G_MEM.write().unwrap() = PhysicalMemory::new(
+            "main".to_string(),
+            Some(alloc(SIZE).unwrap()),
+            SIZE,
+        );
         println!("Successfully allocated {} bytes.", SIZE);
     }
 }

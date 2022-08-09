@@ -86,7 +86,8 @@ impl CmdFunction {
 }
 
 lazy_static! {
-    static ref CMD_FUNCTIONS: RwLock<HashSet<Option<CmdFunction>>> = RwLock::new(HashSet::new());
+    static ref CMD_FUNCTIONS: RwLock<HashSet<Option<CmdFunction>>> =
+        RwLock::new(HashSet::new());
 }
 
 pub fn find(name: String) -> Option<CmdFunction> {
@@ -105,7 +106,10 @@ pub fn find(name: String) -> Option<CmdFunction> {
 
 pub fn add_internal(name: String, func: fn()) {
     match find(name.clone()) {
-        Some(_) => com::println(format!("cmd::add_internal: {} is already defined", name)),
+        Some(_) => com::println(format!(
+            "cmd::add_internal: {} is already defined",
+            name
+        )),
         None => {
             CMD_FUNCTIONS.write().unwrap().insert(Some(CmdFunction::new(
                 name,

@@ -269,7 +269,8 @@ pub struct DvarLimitsEnumeration {
 
 impl Display for DvarLimitsEnumeration {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Domain is any one of the following:").unwrap_or_else(|e| panic!("{}", e));
+        write!(f, "Domain is any one of the following:")
+            .unwrap_or_else(|e| panic!("{}", e));
         for (i, s) in self.strings.iter().enumerate() {
             write!(f, "\n  {:2}: {}", i, s).unwrap_or_else(|e| panic!("{}", e));
         }
@@ -546,7 +547,9 @@ impl DvarLimits {
         }
     }
 
-    pub fn as_linear_color_rgb_limits(&self) -> Option<DvarLimitsLinearColorRGB> {
+    pub fn as_linear_color_rgb_limits(
+        &self,
+    ) -> Option<DvarLimitsLinearColorRGB> {
         match self {
             Self::LinearColorRGB(v) => Some(*v),
             _ => None,
@@ -586,7 +589,9 @@ impl Display for DvarValue {
             Self::Float(v) => write!(f, "{}", v),
             Self::Vector2(v) => write!(f, "({}, {})", v.0, v.1),
             Self::Vector3(v) => write!(f, "({}, {}, {})", v.0, v.1, v.2),
-            Self::Vector4(v) => write!(f, "({}, {}, {}, {})", v.0, v.1, v.2, v.3),
+            Self::Vector4(v) => {
+                write!(f, "({}, {}, {}, {})", v.0, v.1, v.2, v.3)
+            }
             Self::Int(i) => write!(f, "{}", i),
             Self::String(s) => write!(f, "{}", s),
             Self::Enumeration(s) => write!(f, "{}", s),
@@ -792,8 +797,10 @@ bitflags! {
 }
 
 lazy_static! {
-    static ref DVAR_CHEATS: Arc<RwLock<Option<&'static Dvar>>> = Arc::new(RwLock::new(None));
-    static ref MODIFIED_FLAGS: Arc<RwLock<DvarFlags>> = Arc::new(RwLock::new(DvarFlags::empty()));
+    static ref DVAR_CHEATS: Arc<RwLock<Option<&'static Dvar>>> =
+        Arc::new(RwLock::new(None));
+    static ref MODIFIED_FLAGS: Arc<RwLock<DvarFlags>> =
+        Arc::new(RwLock::new(DvarFlags::empty()));
 }
 
 #[derive(Clone)]
@@ -859,7 +866,10 @@ impl Dvar {
         }
     }
 
-    fn clamp_value_to_domain(value: &mut DvarValue, domain: DvarLimits) -> DvarValue {
+    fn clamp_value_to_domain(
+        value: &mut DvarValue,
+        domain: DvarLimits,
+    ) -> DvarValue {
         match value {
             DvarValue::None => {
                 panic!("Dvar::clamp_value_to_domain: value is None")
@@ -1026,7 +1036,11 @@ impl Dvar {
         false
     }
 
-    pub fn can_change_value(&self, value: DvarValue, set_source: SetSource) -> bool {
+    pub fn can_change_value(
+        &self,
+        value: DvarValue,
+        set_source: SetSource,
+    ) -> bool {
         if value == self.reset {
             return true;
         }
@@ -1037,7 +1051,10 @@ impl Dvar {
         }
 
         if self.flags.contains(DvarFlags::WRITE_PROTECTED) {
-            com::println(format!("{} is write protected protected.", self.name));
+            com::println(format!(
+                "{} is write protected protected.",
+                self.name
+            ));
             return false;
         }
 
@@ -1102,7 +1119,10 @@ impl Dvar {
             if self.flags.contains(DvarFlags::LATCHED) {
                 self.set_latched_value(value.clone());
                 if self.current != self.latched {
-                    com::println(format!("{} will be changed upon restarting.", self.name));
+                    com::println(format!(
+                        "{} will be changed upon restarting.",
+                        self.name
+                    ));
                     return;
                 }
             }
@@ -1235,11 +1255,13 @@ impl Dvar {
                     || v.3 > domain.as_vector4_limits().unwrap().max
             }
             DvarValue::Int(i) => {
-                i < domain.as_int_limits().unwrap().min || i > domain.as_int_limits().unwrap().max
+                i < domain.as_int_limits().unwrap().min
+                    || i > domain.as_int_limits().unwrap().max
             }
             DvarValue::String(_) => true,
             DvarValue::Enumeration(v) => {
-                for s in domain.as_enumeration_limits().unwrap().strings.iter() {
+                for s in domain.as_enumeration_limits().unwrap().strings.iter()
+                {
                     if v == *s {
                         return true;
                     }
@@ -1276,7 +1298,10 @@ impl Dvar {
         }
 
         if com::log_file_open() && self.current != value {
-            com::println(format!("      dvar set {} {}", self.name, self.current));
+            com::println(format!(
+                "      dvar set {} {}",
+                self.name, self.current
+            ));
         }
 
         if !Self::value_is_in_domain(self.domain.clone(), value.clone()) {
@@ -1297,7 +1322,10 @@ impl Dvar {
             {
                 self.set_latched_value(value);
                 if self.latched != self.current {
-                    com::println(format!("{} will be changed upon restarting.", self.name))
+                    com::println(format!(
+                        "{} will be changed upon restarting.",
+                        self.name
+                    ))
                 }
             }
             return;
@@ -1485,7 +1513,12 @@ fn register_variant(
     register_new(name, flags, value, domain, description);
 }
 
-pub fn register_bool(name: String, value: bool, flags: DvarFlags, description: String) {
+pub fn register_bool(
+    name: String,
+    value: bool,
+    flags: DvarFlags,
+    description: String,
+) {
     register_variant(
         name,
         flags,
@@ -1580,7 +1613,12 @@ pub fn register_int(
     );
 }
 
-pub fn register_string(name: String, value: String, flags: DvarFlags, description: String) {
+pub fn register_string(
+    name: String,
+    value: String,
+    flags: DvarFlags,
+    description: String,
+) {
     register_variant(
         name,
         flags,
@@ -1764,7 +1802,9 @@ fn toggle_simple(dvar: &mut Dvar) -> bool {
             if dvar.domain.as_float_limits().unwrap().min > 0.0
                 || dvar.domain.as_float_limits().unwrap().max < 1.0
             {
-                if dvar.value().as_float().unwrap() == dvar.domain.as_float_limits().unwrap().min {
+                if dvar.value().as_float().unwrap()
+                    == dvar.domain.as_float_limits().unwrap().min
+                {
                     dvar.set_float(
                         dvar.domain.as_float_limits().unwrap().max,
                         SetSource::External,
@@ -1881,7 +1921,10 @@ fn toggle_simple(dvar: &mut Dvar) -> bool {
     }
 }
 
-fn index_string_to_enum_string(dvar: &Dvar, index_string: String) -> Option<String> {
+fn index_string_to_enum_string(
+    dvar: &Dvar,
+    index_string: String,
+) -> Option<String> {
     if dvar
         .domain
         .as_enumeration_limits()
@@ -1900,10 +1943,20 @@ fn index_string_to_enum_string(dvar: &Dvar, index_string: String) -> Option<Stri
 
     match index_string.parse::<usize>() {
         Ok(i) => {
-            if i == 0 || i >= dvar.domain.as_enumeration_limits().unwrap().strings.len() {
+            if i == 0
+                || i >= dvar
+                    .domain
+                    .as_enumeration_limits()
+                    .unwrap()
+                    .strings
+                    .len()
+            {
                 None
             } else {
-                Some(dvar.domain.as_enumeration_limits().unwrap().strings[i].clone())
+                Some(
+                    dvar.domain.as_enumeration_limits().unwrap().strings[i]
+                        .clone(),
+                )
             }
         }
         Err(_) => None,
@@ -1911,7 +1964,8 @@ fn index_string_to_enum_string(dvar: &Dvar, index_string: String) -> Option<Stri
 }
 
 lazy_static! {
-    static ref IS_LOADING_AUTO_EXEC_GLOBAL_FLAG: AtomicBool = AtomicBool::new(false);
+    static ref IS_LOADING_AUTO_EXEC_GLOBAL_FLAG: AtomicBool =
+        AtomicBool::new(false);
 }
 
 fn set_command(name: String, value: String) {
@@ -1954,19 +2008,20 @@ lazy_static! {
 
 fn list_single(dvar: &Dvar, name: String) {
     if !dvar.flags.contains(DvarFlags::UNKNOWN_00010000)
-        && get_bool("con_access_restricted".to_string()).unwrap_or(false) == true
+        && get_bool("con_access_restricted".to_string()).unwrap_or(false)
+            == true
     {
         return;
     }
 
-    if !name.is_empty() && com::filter(name, dvar.name.clone(), false) == false {
+    if !name.is_empty() && com::filter(name, dvar.name.clone(), false) == false
+    {
         return;
     }
 
-    let s: char = if dvar
-        .flags
-        .contains(DvarFlags::UNKNOWN_00000400.intersection(DvarFlags::UNKNOWN_00000004))
-    {
+    let s: char = if dvar.flags.contains(
+        DvarFlags::UNKNOWN_00000400.intersection(DvarFlags::UNKNOWN_00000004),
+    ) {
         'S'
     } else {
         ' '
@@ -2071,7 +2126,10 @@ fn toggle_internal_f() -> bool {
     let dvar = writer
         .get_mut(&name)
         .ok_or_else(|| {
-            com::println(format!("toggle failed: dvar \'{}\' not found.", name));
+            com::println(format!(
+                "toggle failed: dvar \'{}\' not found.",
+                name
+            ));
             false
         })
         .unwrap();
@@ -2199,7 +2257,10 @@ fn set_admin_f() {
         }
         None => {
             let name = cmd::argv(1);
-            com::println(format!("setadmindvar failed: dvar \'{}\' not found.", name));
+            com::println(format!(
+                "setadmindvar failed: dvar \'{}\' not found.",
+                name
+            ));
         }
     };
 }
@@ -2207,7 +2268,9 @@ fn set_admin_f() {
 fn set_from_dvar_f() {
     let argc = cmd::argc();
     if argc != 3 {
-        com::println("USAGE: setfromdvar <dest_dvar> <source_dvar>".to_string());
+        com::println(
+            "USAGE: setfromdvar <dest_dvar> <source_dvar>".to_string(),
+        );
         return;
     }
 
@@ -2306,7 +2369,10 @@ fn register_bool_f() {
                 }
             }
             _ => {
-                com::println(format!("dvar \'{}\' is not a boolean dvar", name));
+                com::println(format!(
+                    "dvar \'{}\' is not a boolean dvar",
+                    name
+                ));
             }
         },
     }
@@ -2361,7 +2427,10 @@ fn register_int_f() {
             DvarValue::Int(_) => {}
             DvarValue::Enumeration(_) => {}
             _ => {
-                com::println(format!("dvar \'{}\' is not an integer dvar", d.name));
+                com::println(format!(
+                    "dvar \'{}\' is not an integer dvar",
+                    d.name
+                ));
             }
         },
     }
@@ -2486,12 +2555,16 @@ fn setu_f() {
 }
 
 lazy_static! {
-    static ref RESTORE_DVARS_ON_LIVE: Arc<RwLock<Dvar>> = Arc::new(RwLock::new(
-        DvarBuilder::new()
-            .value(DvarValue::Bool(true))
-            .description("Enable to restore Dvars on entering the Xbox Live menu".to_string())
-            .build()
-    ));
+    static ref RESTORE_DVARS_ON_LIVE: Arc<RwLock<Dvar>> =
+        Arc::new(RwLock::new(
+            DvarBuilder::new()
+                .value(DvarValue::Bool(true))
+                .description(
+                    "Enable to restore Dvars on entering the Xbox Live menu"
+                        .to_string()
+                )
+                .build()
+        ));
 }
 
 fn restore_dvars() {

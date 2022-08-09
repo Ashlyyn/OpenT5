@@ -13,7 +13,9 @@ use windows::{
             LibraryLoader::GetModuleHandleA,
             Threading::{GetStartupInfoW, STARTUPINFOW},
         },
-        UI::WindowsAndMessaging::{GetSystemMetrics, MessageBoxA, MB_OK, SM_REMOTESESSION},
+        UI::WindowsAndMessaging::{
+            GetSystemMetrics, MessageBoxA, MB_OK, SM_REMOTESESSION,
+        },
     },
 };
 
