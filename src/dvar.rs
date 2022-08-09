@@ -14,7 +14,7 @@ use std::vec::Vec;
 #[derive(Copy, Clone, Default, PartialEq)]
 pub struct DvarLimitsBool {}
 
-impl<'a> Display for DvarLimitsBool {
+impl Display for DvarLimitsBool {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "Domain is 0 or 1")
     }
@@ -41,7 +41,7 @@ impl Default for DvarLimitsFloat {
     }
 }
 
-impl<'a> Display for DvarLimitsFloat {
+impl Display for DvarLimitsFloat {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.min == f32::MIN {
             if self.max == f32::MAX {
@@ -78,7 +78,7 @@ impl Default for DvarLimitsVector2 {
     }
 }
 
-impl<'a> Display for DvarLimitsVector2 {
+impl Display for DvarLimitsVector2 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.min == f32::MIN {
             if self.max == f32::MAX {
@@ -127,7 +127,7 @@ impl Default for DvarLimitsVector3 {
     }
 }
 
-impl<'a> Display for DvarLimitsVector3 {
+impl Display for DvarLimitsVector3 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.min == f32::MIN {
             if self.max == f32::MAX {
@@ -176,7 +176,7 @@ impl Default for DvarLimitsVector4 {
     }
 }
 
-impl<'a> Display for DvarLimitsVector4 {
+impl Display for DvarLimitsVector4 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.min == f32::MIN {
             if self.max == f32::MAX {
@@ -353,7 +353,7 @@ impl Default for DvarLimitsLinearColorRGB {
     }
 }
 
-impl<'a> Display for DvarLimitsLinearColorRGB {
+impl Display for DvarLimitsLinearColorRGB {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.min == f32::MIN {
             if self.max == f32::MAX {
@@ -402,7 +402,7 @@ impl Default for DvarLimitsColorXYZ {
     }
 }
 
-impl<'a> Display for DvarLimitsColorXYZ {
+impl Display for DvarLimitsColorXYZ {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.min == f32::MIN {
             if self.max == f32::MAX {
@@ -1043,8 +1043,8 @@ impl Dvar {
 
         if self.flags.contains(DvarFlags::CHEAT_PROTECTED)
             && (DVAR_CHEATS
-                .read()
-                .unwrap()
+                .try_read()
+                .expect("dvar::Dvar::can_change_value: failed to acquire reader lock. Probably still held by calling function.")
                 .unwrap()
                 .value()
                 .as_bool()
@@ -1309,10 +1309,10 @@ impl Dvar {
         }
 
         if self.current != value {
-            let modified_flags = *MODIFIED_FLAGS.read().unwrap();
+            let modified_flags = *MODIFIED_FLAGS.try_read().expect("dvar::Dvar::set_variant: failed to acquire reader lock. Probably still held by calling function.");
             MODIFIED_FLAGS
-                .write()
-                .unwrap()
+                .try_write()
+                .expect("dvar::Dvar::set_variant: failed to acquire writer lock. Probably still held by calling function.")
                 .insert(modified_flags.intersection(self.flags));
             self.current = value;
             self.modified = true;
@@ -1447,10 +1447,9 @@ fn reregister(
     }
 
     if dvar.flags.contains(DvarFlags::CHEAT_PROTECTED)
-        && DVAR_CHEATS.read().unwrap().is_some()
+        && DVAR_CHEATS.try_read().expect("dvar::register: failed to acquire reader lock. Probably still held by calling function.").is_some()
         && DVAR_CHEATS
-            .read()
-            .unwrap()
+            .try_read().expect("dvar::register: failed to acquire reader lock. Probably still held by calling function.")
             .unwrap()
             .value()
             .as_bool()
@@ -1607,11 +1606,59 @@ pub fn register_enum(
     );
 }
 
-pub fn register_color(name: String, value: Vec4f32, flags: DvarFlags, description: String) {
+pub fn register_color(
+    name: String,
+    red: f32,
+    green: f32,
+    blue: f32,
+    alpha: f32,
+    flags: DvarFlags,
+    description: String,
+) {
+    let r = if red < 0.0 {
+        0.0
+    } else if red > 1.0 {
+        1.0
+    } else {
+        red
+    } * 255.0
+        + 0.001
+        + 9.313226e-10;
+
+    let g = if green < 0.0 {
+        0.0
+    } else if green > 1.0 {
+        1.0
+    } else {
+        green
+    } * 255.0
+        + 0.001
+        + 9.313226e-10;
+
+    let b = if blue < 0.0 {
+        0.0
+    } else if blue > 1.0 {
+        1.0
+    } else {
+        blue
+    } * 255.0
+        + 0.001
+        + 9.313226e-10;
+
+    let a = if alpha < 0.0 {
+        0.0
+    } else if alpha > 1.0 {
+        1.0
+    } else {
+        alpha
+    } * 255.0
+        + 0.001
+        + 9.313226e-10;
+
     register_variant(
         name,
         flags,
-        DvarValue::Color(value),
+        DvarValue::Color((r, g, b, a)),
         DvarLimits::Color(DvarLimitsColor::new()),
         description,
     );
@@ -1846,7 +1893,7 @@ fn index_string_to_enum_string(dvar: &Dvar, index_string: String) -> Option<Stri
     }
 
     for c in index_string.chars() {
-        if c.is_digit(10) {
+        if c.is_ascii_digit() {
             return None;
         }
     }
@@ -1912,7 +1959,7 @@ fn list_single(dvar: &Dvar, name: String) {
         return;
     }
 
-    if name != "" && com::filter(name, dvar.name.clone(), false) == false {
+    if !name.is_empty() && com::filter(name, dvar.name.clone(), false) == false {
         return;
     }
 
@@ -2140,7 +2187,7 @@ fn set_admin_f() {
 
     let name = cmd::argv(1);
     let writer_lock = DVARS.clone();
-    let mut writer = writer_lock.write().expect(
+    let mut writer = writer_lock.try_write().expect(
         "dvar::set_admin: failed to acquire writer lock. Probably still held by calling function.",
     );
     match writer.get_mut(&name) {
@@ -2217,7 +2264,7 @@ fn list_f() {
     let argv_1 = cmd::argv(1);
     {
         let reader_lock = DVARS.clone();
-        let reader = reader_lock.read().expect(
+        let reader = reader_lock.try_read().expect(
             "dvar::list: failed to acquire reader lock. Probably still held by calling function.",
         );
         for (_, dvar) in reader.iter() {
@@ -2251,7 +2298,7 @@ fn register_bool_f() {
             DvarValue::String(_) => {
                 if d.flags.contains(DvarFlags::UNKNOWN_00004000_E) {
                     register_bool(
-                        name.clone(),
+                        name,
                         value,
                         DvarFlags::UNKNOWN_00004000_E,
                         "External Dvar".to_string(),
@@ -2265,10 +2312,257 @@ fn register_bool_f() {
     }
 }
 
+fn register_int_f() {
+    let argc = cmd::argc();
+    if argc != 5 {
+        let cmd = cmd::argv(0);
+        com::println(format!("USAGE: {} <name> <default> <min> <max>", cmd));
+        return;
+    }
+
+    let name = cmd::argv(1);
+    let default = cmd::argv(2).parse::<i32>().unwrap();
+    let min = cmd::argv(3).parse::<i32>().unwrap();
+    let max = cmd::argv(4).parse::<i32>().unwrap();
+
+    if min > max {
+        com::println(format!(
+            "dvar {}: min {} should not be greater than max {}i\n",
+            name, min, max
+        ));
+        return;
+    }
+
+    let dvar = find(name.clone());
+    match dvar {
+        None => {
+            register_int(
+                name,
+                default,
+                min,
+                max,
+                DvarFlags::UNKNOWN_00004000_E,
+                "External Dvar".to_string(),
+            );
+        }
+        Some(d) => match d.value() {
+            DvarValue::String(_) => {
+                if d.flags.contains(DvarFlags::UNKNOWN_00004000_E) {
+                    register_int(
+                        name,
+                        default,
+                        min,
+                        max,
+                        DvarFlags::UNKNOWN_00004000_E,
+                        "External Dvar".to_string(),
+                    );
+                }
+            }
+            DvarValue::Int(_) => {}
+            DvarValue::Enumeration(_) => {}
+            _ => {
+                com::println(format!("dvar \'{}\' is not an integer dvar", d.name));
+            }
+        },
+    }
+}
+
+fn register_float_f() {
+    let argc = cmd::argc();
+    if argc != 5 {
+        let cmd = cmd::argv(0);
+        com::println(format!("USAGE: {} <name> <default> <min> <max>", cmd));
+        return;
+    }
+
+    let name = cmd::argv(1);
+    let default = cmd::argv(2).parse::<f32>().unwrap();
+    let min = cmd::argv(3).parse::<f32>().unwrap();
+    let max = cmd::argv(4).parse::<f32>().unwrap();
+
+    if min > max {
+        com::println(format!(
+            "dvar {}: min {} should not be greater than max {}i\n",
+            name, min, max
+        ));
+        return;
+    }
+
+    let dvar = find(name.clone());
+    match dvar {
+        None => {
+            register_float(
+                name,
+                default,
+                min,
+                max,
+                DvarFlags::UNKNOWN_00004000_E,
+                "External Dvar".to_string(),
+            );
+        }
+        Some(d) => match d.value() {
+            DvarValue::String(_) => {
+                if d.flags.contains(DvarFlags::UNKNOWN_00004000_E) {
+                    register_float(
+                        name,
+                        default,
+                        min,
+                        max,
+                        DvarFlags::UNKNOWN_00004000_E,
+                        "External Dvar".to_string(),
+                    );
+                }
+            }
+            DvarValue::Float(_) => {}
+            _ => {
+                com::println(format!("dvar {} is not an integer dvar", d.name));
+            }
+        },
+    }
+}
+
+fn register_color_f() {
+    let argc = cmd::argc();
+    if argc != 5 && argc != 6 {
+        let cmd = cmd::argv(0);
+        com::println(format!("USAGE: {} <name> <r> <g> <b> [a]", cmd));
+        return;
+    }
+
+    let name = cmd::argv(1);
+    let r = cmd::argv(2).parse::<f32>().unwrap();
+    let g = cmd::argv(3).parse::<f32>().unwrap();
+    let b = cmd::argv(4).parse::<f32>().unwrap();
+    let a = if argc == 6 {
+        cmd::argv(5).parse::<f32>().unwrap()
+    } else {
+        1.0
+    };
+
+    let dvar = find(name.clone());
+    match dvar {
+        None => {
+            register_color(
+                name,
+                r,
+                g,
+                b,
+                a,
+                DvarFlags::UNKNOWN_00004000_E,
+                "External Dvar".to_string(),
+            );
+        }
+        Some(d) => {
+            if let DvarValue::String(_) = d.value() {
+                if d.flags.contains(DvarFlags::UNKNOWN_00004000_E) {
+                    register_color(
+                        name,
+                        r,
+                        g,
+                        b,
+                        a,
+                        DvarFlags::UNKNOWN_00004000_E,
+                        "External Dvar".to_string(),
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn setu_f() {
+    let argc = cmd::argc();
+    if argc < 3 {
+        com::println("USAGE: setu <variable> <value>".to_string());
+        return;
+    }
+
+    set_f();
+    let name = cmd::argv(1);
+    let dvar = find(name);
+    if let Some(..) = dvar {
+        dvar.unwrap().add_flags(DvarFlags::UNKNOWN_00000002_U);
+    }
+}
+
+lazy_static! {
+    static ref RESTORE_DVARS_ON_LIVE: Arc<RwLock<Dvar>> = Arc::new(RwLock::new(
+        DvarBuilder::new()
+            .value(DvarValue::Bool(true))
+            .description("Enable to restore Dvars on entering the Xbox Live menu".to_string())
+            .build()
+    ));
+}
+
+fn restore_dvars() {
+    if RESTORE_DVARS_ON_LIVE.read().expect("dvar::restore_dvars: failed to acquire reader lock. Probably still held by calling function.").value().as_bool().unwrap() == false {
+        return;
+    }
+
+    let writer_lock = DVARS.clone();
+    let mut writer = writer_lock.write().expect("dvar::restore_dvars: failed to acquire writer lock. Probably still held by calling function.");
+    for (_, dvar) in writer.iter_mut() {
+        if dvar.loaded_from_save_game == true {
+            dvar.loaded_from_save_game = false;
+            dvar.set_variant(dvar.saved.clone(), SetSource::Internal);
+        }
+    }
+}
+
+fn display_dvar(dvar: &Dvar, i: &mut i32) {
+    if dvar.flags.contains(DvarFlags::UNKNOWN_00001000_Y) {
+        *i += 1;
+        com::println(format!(" {} \"{}\"", dvar.name, dvar));
+    }
+}
+
+fn list_saved_dvars() {
+    let reader_lock = DVARS.clone();
+    let reader = reader_lock.write().expect("dvar::list_saved_dvars: failed to acquire reader lock. Probably still held by calling function.");
+
+    let mut i: i32 = 0;
+    for (_, dvar) in reader.iter() {
+        display_dvar(dvar, &mut i);
+    }
+
+    com::println(format!("\n{} total SAVED dvars", i));
+}
+
+macro_rules! todo_nopanic {
+    ($s:expr) => {
+        println!("TODO: {}", $s);
+    };
+}
+
 #[allow(unreachable_code)]
 pub fn add_commands() {
     cmd::add_internal("toggle".to_string(), toggle_f);
-    todo!("setmoddvar");
-    todo!("setfromlocString");
-    unimplemented!()
+    cmd::add_internal("togglep".to_string(), toggle_print);
+    cmd::add_internal("set".to_string(), set_f);
+    cmd::add_internal("sets".to_string(), sets_f);
+    cmd::add_internal("seta".to_string(), seta_f);
+    cmd::add_internal("setadminvar".to_string(), set_admin_f);
+    todo_nopanic!("setmoddvar");
+    cmd::add_internal("setfromdvar".to_string(), set_from_dvar_f);
+    todo_nopanic!("setfromlocString");
+    cmd::add_internal("reset".to_string(), reset_f);
+    cmd::add_internal("dvarlist".to_string(), list_f);
+    cmd::add_internal("dvardump".to_string(), dump_f);
+    cmd::add_internal("dvar_bool".to_string(), register_bool_f);
+    cmd::add_internal("dvar_int".to_string(), register_int_f);
+    cmd::add_internal("dvar_float".to_string(), register_float_f);
+    cmd::add_internal("dvar_color".to_string(), register_color_f);
+    cmd::add_internal("setu".to_string(), setu_f);
+    todo_nopanic!("setAllClientDvars");
+    cmd::add_internal("restoreDvars".to_string(), restore_dvars);
+    cmd::add_internal("dvarlist_saved".to_string(), list_saved_dvars);
+}
+
+lazy_static! {
+    static ref IS_DVAR_SYSTEM_ACTIVE: AtomicBool = AtomicBool::new(false);
+}
+
+pub fn init() {
+    IS_DVAR_SYSTEM_ACTIVE.store(true, Ordering::SeqCst);
+    add_commands();
 }
