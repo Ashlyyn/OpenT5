@@ -1,7 +1,11 @@
 #![allow(dead_code)]
 
-use std::sync::RwLock;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    RwLock,
+};
 
+use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
 
 #[cfg(target_os = "windows")]
@@ -77,54 +81,54 @@ enum MemTrack {
     COUNT = 0x36,
 }
 
-#[derive(Copy, Clone, Default)]
-struct PhysicalMemoryAllocation<'a> {
-    name: &'a str,
+#[derive(Clone, Default)]
+struct PhysicalMemoryAllocation {
+    name: String,
     pos: usize,
 }
 
-impl<'a> PhysicalMemoryAllocation<'a> {
-    fn new(n: &'a str, p: usize) -> Self {
+impl PhysicalMemoryAllocation {
+    fn new(n: String, p: usize) -> Self {
         PhysicalMemoryAllocation { name: n, pos: p }
     }
 }
 
-#[derive(Copy, Clone)]
-struct PhysicalMemoryPrim<'a, 'b> {
-    alloc_name: &'a str,
+#[derive(Clone)]
+struct PhysicalMemoryPrim {
+    alloc_name: String,
     alloc_list_count: usize,
     pos: usize,
-    alloc_list: [PhysicalMemoryAllocation<'b>; 32],
+    alloc_list: ArrayVec<PhysicalMemoryAllocation, 32>,
     mem_track: MemTrack,
 }
 
-impl<'a, 'b> PhysicalMemoryPrim<'a, 'b> {
-    fn new(n: &'a str, c: usize, p: usize, m: MemTrack) -> Self {
+impl PhysicalMemoryPrim {
+    fn new(n: String, c: usize, p: usize, m: MemTrack) -> Self {
         PhysicalMemoryPrim {
             alloc_name: n,
             alloc_list_count: c,
             pos: p,
-            alloc_list: [PhysicalMemoryAllocation::new("", 0); 32],
+            alloc_list: ArrayVec::new(),
             mem_track: m,
         }
     }
 }
 
-struct PhysicalMemory<'a, 'b, 'c, 'd> {
-    name: &'a str,
-    buf: Option<&'b mut [u8]>,
-    prim: [PhysicalMemoryPrim<'c, 'd>; 2],
+struct PhysicalMemory<'a> {
+    name: String,
+    buf: Option<&'a mut [u8]>,
+    prim: [PhysicalMemoryPrim; 2],
     size: usize,
 }
 
-impl<'a, 'b, 'c, 'd> PhysicalMemory<'a, 'b, 'c, 'd> {
-    fn new(n: &'a str, b: Option<&'b mut [u8]>, s: usize) -> Self {
+impl<'a> PhysicalMemory<'a> {
+    fn new(n: String, b: Option<&'a mut [u8]>, s: usize) -> Self {
         PhysicalMemory {
             name: n,
             buf: b,
             prim: [
-                PhysicalMemoryPrim::<'c, 'd>::new("", 0, 0, MemTrack::DEBUG),
-                PhysicalMemoryPrim::<'c, 'd>::new("", 0, s, MemTrack::DEBUG),
+                PhysicalMemoryPrim::new("".to_string(), 0, 0, MemTrack::DEBUG),
+                PhysicalMemoryPrim::new("".to_string(), 0, s, MemTrack::DEBUG),
             ],
             size: s,
         }
@@ -174,17 +178,18 @@ fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
 
 extern crate core;
 lazy_static! {
-    static ref G_PHYSICAL_MEMORY_INIT: RwLock<bool> = RwLock::new(false);
-    static ref G_MEM: RwLock<PhysicalMemory<'static, 'static, 'static, 'static>> =
-        RwLock::new(PhysicalMemory::new("", None, 0));
+    static ref G_PHYSICAL_MEMORY_INIT: AtomicBool = AtomicBool::new(false);
+    static ref G_MEM: RwLock<PhysicalMemory<'static>> =
+        RwLock::new(PhysicalMemory::new("".to_string(), None, 0));
 }
 
 pub fn init() {
-    if *G_PHYSICAL_MEMORY_INIT.read().unwrap() == false {
-        *G_PHYSICAL_MEMORY_INIT.write().unwrap() = true;
+    if G_PHYSICAL_MEMORY_INIT.load(Ordering::SeqCst) == false {
+        G_PHYSICAL_MEMORY_INIT.store(true, Ordering::SeqCst);
 
-        const SIZE: usize = 0x12C00000;
-        *G_MEM.write().unwrap() = PhysicalMemory::new("main", Some(alloc(SIZE).unwrap()), SIZE);
+        const SIZE: usize = 0x12C0_0000;
+        *G_MEM.write().unwrap() =
+            PhysicalMemory::new("main".to_string(), Some(alloc(SIZE).unwrap()), SIZE);
         println!("Successfully allocated {} bytes.", SIZE);
     }
 }
