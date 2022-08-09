@@ -19,8 +19,6 @@ use windows::{
 
 use libc::c_int;
 
-use crate::*;
-
 #[allow(dead_code)]
 #[derive(Default)]
 struct WinVars {
@@ -48,7 +46,7 @@ lazy_static! {
 }
 
 // Get info for WinMain (Rust doesn't do this automatically), then call it
-pub fn main() {
+pub fn main() -> String {
     // Get hInstance
     let hInstance: Option<HINSTANCE> = unsafe {
         match GetModuleHandleA(None) {
@@ -76,6 +74,7 @@ pub fn main() {
     // Call actual WinMain
     // hPrevInstance always NULL for Win32 platforms
     WinMain(hInstance, None, pCmdLine, nCmdShow);
+    unsafe { pCmdLine.unwrap().to_string().unwrap() }
 }
 
 #[allow(unused_variables)]
@@ -97,9 +96,11 @@ fn WinMain(
         return 0;
     }
 
-    G_WV.write().unwrap().hInstance = hInstance;
+    if hPrevInstance.is_some() {
+        return 0;
+    }
 
-    pmem::init();
+    G_WV.write().unwrap().hInstance = hInstance;
     unsafe { SetErrorMode(SEM_FAILCRITICALERRORS) };
 
     println!("Exiting WinMain()!");
