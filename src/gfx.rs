@@ -307,7 +307,7 @@ pub struct UIAnimInfo {
     animDuration: i32,
 }
 
-impl<'a> UIAnimInfo {
+impl UIAnimInfo {
     pub fn new() -> Self {
         UIAnimInfo {
             animStateCount: 0,
