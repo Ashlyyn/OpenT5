@@ -46,7 +46,7 @@ lazy_static! {
 }
 
 // Get info for WinMain (Rust doesn't do this automatically), then call it
-pub fn main() -> String {
+pub fn main() {
     // Get hInstance
     let hInstance: Option<HINSTANCE> = unsafe {
         match GetModuleHandleA(None) {
@@ -74,7 +74,6 @@ pub fn main() -> String {
     // Call actual WinMain
     // hPrevInstance always NULL for Win32 platforms
     WinMain(hInstance, None, pCmdLine, nCmdShow);
-    unsafe { pCmdLine.unwrap().to_string().unwrap() }
 }
 
 #[allow(unused_variables)]
