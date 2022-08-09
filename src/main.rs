@@ -1,6 +1,7 @@
 #![allow(non_snake_case, clippy::bool_comparison)]
 
 use lazy_static::lazy_static;
+use std::fmt::Write;
 use std::sync::{atomic::AtomicBool, Arc, RwLock};
 
 mod cmd;
@@ -24,7 +25,7 @@ fn main() {
 
     let mut cmd_line: String = String::new();
     for arg in std::env::args() {
-        cmd_line.push_str(&format!("{} ", &arg));
+        write!(&mut cmd_line, "{} ", &arg).unwrap();
     }
     cmd_line = cmd_line.trim().to_string();
 
