@@ -1492,9 +1492,38 @@ lazy_static! {
             ])));
 }
 
+/// Finds a previously-registered [`Dvar`] by name and returns a copy if present.
+///
+/// Since this function returns a copy, it is not useful for modifying an existing [`Dvar`].
+/// (See [`register_variant`] or [`reregister`] for modification purposes).
+/// Instead, it may be used to query if a [`Dvar`] exists, or to query the
+/// state of said [`Dvar`] at the point in time at which the copy is made.
+///
+/// # Arguments
+///
+/// * `name` - A [`String`] that holds the name of the [`Dvar`] to be searched for.
+///
+/// # Return Value
+///
+/// Returns [`Some`] if a Dvar with the name `name` exists,
+/// otherwise [`None`].
+///
+/// # Panics
+///
+/// Panics if the read lock for [`DVARS`] can't be acquired (usually because
+/// the write lock is held by a function farther up the call stack).
+///
+/// Example
+/// ```
+/// let dvar_name = "sv_test".to_string();
+/// match find(dvar_name.clone()) {
+///    Some(d) => println!("found dvar {} with value {}", d.name, d.value()),
+///    None => panic!("dvar {} not found", dvar_name)
+/// };
+/// ```
 pub fn find(name: String) -> Option<Dvar> {
-    let reader_lock = DVARS.clone();
-    let reader = reader_lock.try_read().expect(
+    let lock = DVARS.clone();
+    let reader = lock.try_read().expect(
         "dvar::find: failed to acquire reader lock. Probably still held by calling function.",
     );
 
@@ -1505,7 +1534,42 @@ pub fn find(name: String) -> Option<Dvar> {
     return Some(*reader.get(&name).unwrap().clone());
 }
 
-// Register new Dvar
+/// Registers a new [`Dvar`]
+///
+/// Uses the supplied parameters to register a new [`Dvar`]. Does nothing if a
+/// [`Dvar`] with `name` already exists. Calls [`com::errorln`] with
+/// [`com::ErrorParm::FATAL`] (potentially killing the program) if more
+/// than [`DVAR_COUNT_MAX`] Dvars already exist, or if a Dvar named `name`
+/// already exists (prefer to use [`register_variant`] for this reason).
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be (re)registered.
+/// * `flags` - The [`DvarFlags`] to (re)register the [`Dvar`] with.
+/// * `value` - The [`DvarValue`] to (re)register the [`Dvar`] with.
+/// Must be within the domain supplied by `domain`.
+/// * `domain` - A [`DvarLimits`] representing the [`Dvar`]'s domain
+/// Variant must be the same as `value`'s variant (i.e. if `value` is)
+/// [`DvarValue::Bool`], `domain` *must* be [`DvarLimits::Bool`].
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// Example
+/// ```
+/// let name = "sv_test".to_string();
+/// // Make sure Dvar doesn't currently exist
+/// if find(name.clone()).is_none() {
+///     let flags = DvarFlags::WRITE_PROTECTED | DvarFlags::CHEAT_PROTECTED;
+///     let value = DvarValue::Float(372.1);
+///     let domain = DvarLimits::Float(DvarLimitsFloat::new(62.0, 482.5));
+///     let description = "This is a test Dvar".to_string();
+///     register_variant(name, flags, value, domain, description);
+/// }
+/// ```
 fn register_new(
     name: String,
     flags: DvarFlags,
@@ -1513,6 +1577,10 @@ fn register_new(
     domain: DvarLimits,
     description: String,
 ) {
+    if DVARS.clone().read().unwrap().contains_key(&name) {
+        return;
+    }
+
     let b: bool;
     let other_name: String;
     {
@@ -1545,20 +1613,61 @@ fn register_new(
     }
 }
 
-// Reregister (update) existing Dvar
+/// Reregisters (updates) an existing [`Dvar`]
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name `name`.
+/// Does nothing if a [`Dvar`] with `name` already exists.
+/// Calls [`com::errorln`] with [`com::ErrorParm::FATAL`]
+/// (potentially killing the program) if more than [`DVAR_COUNT_MAX`]
+/// Dvars already exist, or if a Dvar named `name`
+/// already exists (prefer to use [`register_variant`] for this reason).
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be reregistered.
+/// * `flags` - The [`DvarFlags`] to reregister the [`Dvar`] with.
+/// * `value` - The [`DvarValue`] to reregister the [`Dvar`] with.
+/// Must be within the domain supplied by `domain`.
+/// * `domain` - A [`DvarLimits`] representing the [`Dvar`]'s domain
+/// Variant must be the same as `value`'s variant (i.e. if `value` is)
+/// [`DvarValue::Bool`], `domain` *must* be [`DvarLimits::Bool`].
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// Example
+/// ```
+/// let name = "sv_test".to_string();
+/// let dvar = find(name.clone());
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let flags = DvarFlags::WRITE_PROTECTED | DvarFlags::CHEAT_PROTECTED;
+///     let value = DvarValue::Float(372.1);
+///     let domain = DvarLimits::Float(DvarLimitsFloat::new(62.0, 482.5));
+///     let description = "This is a test Dvar".to_string();
+///     reregister(name, flags, value, domain, description);
+/// }
+/// ```
 #[allow(unused_variables)]
 fn reregister(
-    dvar: &mut Dvar,
     name: String,
     flags: DvarFlags,
     value: DvarValue,
     domain: DvarLimits,
-    description: Option<String>,
+    description: String,
 ) {
-    dvar.add_flags(flags);
-    if let Some(..) = description {
-        dvar.description = description.unwrap();
+    if find(name.clone()).is_none() {
+        return;
     }
+
+    let lock = DVARS.clone();
+    let mut writer_lock = lock.try_write().expect("dvar::reregister: failed to acquire writer lock. Probably still held by calling function.");
+    let dvar = writer_lock.get_mut(&name).unwrap();
+
+    dvar.description = description;
 
     if dvar.flags.contains(DvarFlags::CHEAT_PROTECTED)
         && find("sv_cheats".to_string())
@@ -1577,8 +1686,38 @@ fn reregister(
     }
 }
 
-// Register new Dvar if no Dvar with name currently exists
-// Reregister otherwise
+/// Reregisters an existing [`Dvar`], or registers a new one.
+///
+/// Checks if a [`Dvar`] with name `name` exists. Reregisters it with the
+/// supplied parameters if so, registers a new one with said parameters if not.
+/// (Essentially just a wrapper around [`register_new`] and [`reregister`]).
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be (re)registered.
+/// * `flags` - The [`DvarFlags`] to (re)register the [`Dvar`] with.
+/// * `value` - The [`DvarValue`] to (re)register the [`Dvar`] with.
+/// Must be within the domain supplied by `domain`.
+/// * `domain` - A [`DvarLimits`] representing the [`Dvar`]'s domain
+/// Variant must be the same as `value`'s variant (i.e. if `value` is)
+/// [`DvarValue::Bool`], `domain` *must* be [`DvarLimits::Bool`].
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Panics
+///
+/// Panics if the read lock for [`DVARS`] can't be acquired (usually because
+/// the write lock is held by a function farther up the call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// let flags = DvarFlags::WRITE_PROTECTED | DvarFlags::CHEAT_PROTECTED;
+/// let value = DvarValue::Float(372.1);
+/// let domain = DvarLimits::Float(DvarLimitsFloat::new(62.0, 482.5));
+/// let description = "This is a test Dvar".to_string();
+///
+/// register_variant(name, flags, value, domain, description);
+/// ```
 fn register_variant(
     name: String,
     flags: DvarFlags,
@@ -1586,20 +1725,37 @@ fn register_variant(
     domain: DvarLimits,
     description: String,
 ) {
-    {
-        let writer_lock = DVARS.clone();
-        let mut writer = writer_lock.try_write().expect("dvar::register_variant: failed to acquire writer lock. Probably still held by calling function.");
-        if writer.contains_key(&name) {
-            let dvar = writer.get_mut(&name).unwrap();
-            reregister(dvar, name, flags, value, domain, Some(description));
-            return;
-        }
+    if find(name.clone()).is_some() {
+        reregister(name, flags, value, domain, description);
+        return;
     }
 
     register_new(name, flags, value, domain, description);
 }
 
-// Helper functions to register Dvars of a specific type
+/// Registers a Dvar of type [`DvarValue::Bool`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::Bool`], using the provided name,
+/// value, flags, and description.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `value` - A [`bool`] representing the value to register the [`Dvar`] with
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let value = false;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type bool"
+///     register_bool(name, value, flags, description);
+/// }
+/// ```
 pub fn register_bool(
     name: String,
     value: bool,
@@ -1615,6 +1771,35 @@ pub fn register_bool(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::Float`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::Float`], using the provided name,
+/// value, domain, flags, and description.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `value` - An [`f32`] representing the value to register the [`Dvar`] with
+/// * `min` - An [`f32`] representing the lower bound
+/// of the domain for the [`Dvar`]
+/// * `max` - An [`f32`] representing the upper bound
+/// of the domain for the [`Dvar`]
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let value = 121.3;
+///     let min = -462.0;
+///     let max = 592.7;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type float"
+///     register_float(name, value, min, max, flags, description);
+/// }
+/// ```
 pub fn register_float(
     name: String,
     value: f32,
@@ -1632,6 +1817,37 @@ pub fn register_float(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::Vector2`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::Vector2`], using the provided name,
+/// value, domain, flags, and description. The domain applies to both elements
+/// of the value (i.e. `value.0` and `value.1` can't have separate domains).
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `value` - An ([`f32`], [`f32`]) representing the value
+/// to register the [`Dvar`] with
+/// * `min` - An [`f32`] representing the lower bound
+/// of the domain for all elements of `value`
+/// * `max` - An [`f32`] representing the upper bound
+/// of the domain for all elements of `value`
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let value = (121.3, -267.4);
+///     let min = -462.0;
+///     let max = 592.7;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type vector2"
+///     register_vector2(name, value, min, max, flags, description);
+/// }
+/// ```
 pub fn register_vector2(
     name: String,
     value: Vec2f32,
@@ -1649,6 +1865,37 @@ pub fn register_vector2(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::Vector3`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::Vector3`], using the provided name,
+/// value, domain, flags, and description. The domain applies to both elements
+/// of the value (i.e. `value.0` and `value.1` can't have separate domains).
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `value` - An ([`f32`], [`f32`], [`f32`]) representing the value
+/// to register the [`Dvar`] with
+/// * `min` - An [`f32`] representing the lower bound
+/// of the domain for all elements of `value`
+/// * `max` - An [`f32`] representing the upper bound
+/// of the domain for all elements of `value`
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let value = (121.3, -267.4, -143.0);
+///     let min = -462.0;
+///     let max = 592.7;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type vector3"
+///     register_vector3(name, value, min, max, flags, description);
+/// }
+/// ```
 pub fn register_vector3(
     name: String,
     value: Vec3f32,
@@ -1666,6 +1913,37 @@ pub fn register_vector3(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::Vector4`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::Vector4`], using the provided name,
+/// value, domain, flags, and description. The domain applies to both elements
+/// of the value (i.e. `value.0` and `value.1` can't have separate domains).
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `value` - An ([`f32`], [`f32`], [`f32`], [`f32`]) representing the value
+/// to register the [`Dvar`] with
+/// * `min` - An [`f32`] representing the lower bound
+/// of the domain for all elements of `value`
+/// * `max` - An [`f32`] representing the upper bound
+/// of the domain for all elements of `value`
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let value = (121.3, -267.4, -143.0, 71.2);
+///     let min = -462.0;
+///     let max = 592.7;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type vector4"
+///     register_vector4(name, value, min, max, flags, description);
+/// }
+/// ```
 pub fn register_vector4(
     name: String,
     value: Vec4f32,
@@ -1683,6 +1961,35 @@ pub fn register_vector4(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::Int`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::Int`], using the provided name,
+/// value, domain, flags, and description.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `value` - An [`i32`] representing the value to register the [`Dvar`] with
+/// * `min` - An [`i32`] representing the lower bound
+/// for the domain for `value`
+/// * `max` - An [`i32`] representing the upper bound
+/// for the domain for `value`
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let value = 64867969;
+///     let min = i32::MIN;
+///     let max = i32::MAX;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type int"
+///     register_int(name, value, min, max, flags, description);
+/// }
+/// ```
 pub fn register_int(
     name: String,
     value: i32,
@@ -1700,6 +2007,30 @@ pub fn register_int(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::String`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::String`], using the provided name,
+/// value, flags, and description.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `value` - A [`String`] representing the value
+/// to register the [`Dvar`] with
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let value = "this is a test".to_string();
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type string"
+///     register_string(name, value, flags, description);
+/// }
+/// ```
 pub fn register_string(
     name: String,
     value: String,
@@ -1715,6 +2046,33 @@ pub fn register_string(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::Enumeration`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::Enumeration`], using the provided
+/// name, value, domain, flags, and description.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `value` - A [`String`] representing the value
+/// to register the [`Dvar`] with
+/// * `domain` - A [`Vec`] of [`String`]s containing
+/// all valid values for `value`
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let value = "DEF".to_string();
+///     let domain = vec!\["ABC".to_string(), "DEF".to_string(), "GHI".to_string\];
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type string"
+///     register_enum(name, value, domain, flags, description);
+/// }
+/// ```
 pub fn register_enum(
     name: String,
     value: String,
@@ -1731,6 +2089,41 @@ pub fn register_enum(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::Color`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::Color`], using the provided name,
+/// values, flags, and description. Each color component is represented by
+/// an [`f32`] with a domain of (0.0, 1.0).
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `red` - An [`f32`] representing the R component of an RGBA-format color.
+/// Must be within the domain (0.0, 1.0).
+/// * `green` - An [`f32`] representing the G component of an RGBA-format color.
+/// Must be within the domain (0.0, 1.0).
+/// * `blue` - An [`f32`] representing the B component of an RGBA-format color.
+/// Must be within the domain (0.0, 1.0).
+/// * `alpha` - An [`f32`] representing the A component of an RGBA-format color.
+/// Must be within the domain (0.0, 1.0).
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let red = 1.0;
+///     let blue = 1.0;
+///     let green = 0.0;
+///     let alpha = 1.0;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type color"
+///     register_color(name, red, green, blue,
+///                    alpha, flags, description);
+/// }
+/// ```
 pub fn register_color(
     name: String,
     red: f32,
@@ -1789,6 +2182,35 @@ pub fn register_color(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::Int64`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::Int64`], using the provided name,
+/// value, domain, flags, and description.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `value` - An [`i64`] representing the value to register the [`Dvar`] with
+/// * `min` - An [`i64`] representing the lower bound
+/// for the domain for `value`
+/// * `max` - An [`i64`] representing the upper bound
+/// for the domain for `value`
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let value = 67894867969;
+///     let min = i64::MIN;
+///     let max = i64::MAX;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type int64"
+///     register_int64(name, value, min, max, flags, description);
+/// }
+/// ```
 pub fn register_int64(
     name: String,
     value: i64,
@@ -1806,9 +2228,50 @@ pub fn register_int64(
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::LinearColorRGB`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::LinearColorRGB`], using the provided name,
+/// values, flags, and description. Each color component is represented by
+/// an [`f32`] with a domain of (0.0, 1.0).
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `red` - An [`f32`] representing the R component of an RGB-format color.
+/// Must be within the domain (0.0, 1.0).
+/// * `green` - An [`f32`] representing the G component of an RGB-format color.
+/// Must be within the domain (0.0, 1.0).
+/// * `blue` - An [`f32`] representing the B component of an RGB-format color.
+/// Must be within the domain (0.0, 1.0).
+/// * `min` - An [`f32`] representing the lower bound
+/// of the domain for `red`, `green`, and `blue`.
+/// * `max` - An [`f32`] representing the upper bound
+/// of the domain for `red`, `green`, and `blue`.
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let red = 0.6;
+///     let blue = 0.2;
+///     let green = 0.3;
+///     let min = 0.1;
+///     let max = 0.7;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type color"
+///     register_linear_color_rgb(name, red, green, blue,
+///                               min, max flags, description);
+/// }
+/// ```
+#[allow(clippy::too_many_arguments)]
 pub fn register_linear_color_rgb(
     name: String,
-    value: Vec3f32,
+    red: f32,
+    green: f32,
+    blue: f32,
     min: f32,
     max: f32,
     flags: DvarFlags,
@@ -1817,15 +2280,52 @@ pub fn register_linear_color_rgb(
     register_variant(
         name,
         flags,
-        DvarValue::LinearColorRGB(value),
+        DvarValue::LinearColorRGB((red, green, blue)),
         DvarLimits::LinearColorRGB(DvarLimitsLinearColorRGB::new(min, max)),
         description,
     );
 }
 
+/// Registers a Dvar of type [`DvarValue::ColorXYZ`].
+///
+/// Essentially an easier-to-use wrapper around [`register_variant`] to
+/// register a Dvar with type [`DvarValue::ColorXYZ`], using the provided name,
+/// values, flags, and description. Each color component is represented by
+/// an [`f32`] with a domain of (0.0, 1.0).
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be registered.
+/// * `x` - An [`f32`] the x-value of the Dvar.
+/// * `y` - An [`f32`] the y-value of the Dvar.
+/// * `z` - An [`f32`] the z-value of the Dvar.
+/// * `min` - An [`f32`] representing the lower bound
+/// of the domain for `red`, `green`, and `blue`.
+/// * `max` - An [`f32`] representing the upper bound
+/// of the domain for `red`, `green`, and `blue`.
+/// * `flags` - The [`DvarFlags`] to register the [`Dvar`] with.
+/// * `description` - A [`String`] containing a description for the [`Dvar`].
+///
+/// # Example
+/// ```
+/// let name = "sv_test".to_string();
+/// if find(name.clone()).is_none {
+///     let x = 0.6;
+///     let y = 0.2;
+///     let z = 0.3;
+///     let min = 0.1;
+///     let max = 0.7;
+///     let flags = DvarFlags::empty();
+///     let description = "A test Dvar of type color"
+///     register_color_xyz(name, x, y, z, min, max, flags, description);
+/// }
+/// ```
+#[allow(clippy::too_many_arguments)]
 pub fn register_color_xyz(
     name: String,
-    value: Vec3f32,
+    x: f32,
+    y: f32,
+    z: f32,
     min: f32,
     max: f32,
     flags: DvarFlags,
@@ -1834,7 +2334,7 @@ pub fn register_color_xyz(
     register_variant(
         name,
         flags,
-        DvarValue::ColorXYZ(value),
+        DvarValue::ColorXYZ((x, y, z)),
         DvarLimits::ColorXYZ(DvarLimitsColorXYZ::new(min, max)),
         description,
     );
@@ -2110,9 +2610,10 @@ fn list_single(dvar: &Dvar, name: String) {
         return;
     }
 
-    let s: char = if dvar.flags.contains(
-        DvarFlags::UNKNOWN_00000400 | DvarFlags::UNKNOWN_00000004,
-    ) {
+    let s: char = if dvar
+        .flags
+        .contains(DvarFlags::UNKNOWN_00000400 | DvarFlags::UNKNOWN_00000004)
+    {
         'S'
     } else {
         ' '
@@ -2718,7 +3219,10 @@ lazy_static! {
     static ref IS_DVAR_SYSTEM_ACTIVE: AtomicBool = AtomicBool::new(false);
 }
 
+/// Initializes the Dvar subsystem
 pub fn init() {
-    IS_DVAR_SYSTEM_ACTIVE.store(true, Ordering::SeqCst);
-    add_commands();
+    if IS_DVAR_SYSTEM_ACTIVE.load(Ordering::SeqCst) == false {
+        IS_DVAR_SYSTEM_ACTIVE.store(true, Ordering::SeqCst);
+        add_commands();
+    }
 }
