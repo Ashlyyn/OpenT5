@@ -835,8 +835,6 @@ bitflags! {
 }
 
 lazy_static! {
-    static ref DVAR_CHEATS: Arc<RwLock<Option<&'static Dvar>>> =
-        Arc::new(RwLock::new(None));
     static ref MODIFIED_FLAGS: Arc<RwLock<DvarFlags>> =
         Arc::new(RwLock::new(DvarFlags::empty()));
 }
@@ -1098,9 +1096,7 @@ impl Dvar {
         }
 
         if self.flags.contains(DvarFlags::CHEAT_PROTECTED)
-            && (DVAR_CHEATS
-                .try_read()
-                .expect("dvar::Dvar::can_change_value: failed to acquire reader lock. Probably still held by calling function.")
+            && (find("sv_cheats".to_string())
                 .unwrap()
                 .value()
                 .as_bool()
@@ -1109,7 +1105,9 @@ impl Dvar {
         {
             true
         } else {
-            if (set_source == SetSource::External) || (set_source == SetSource::Script) {
+            if (set_source == SetSource::External)
+                || (set_source == SetSource::Script)
+            {
                 com::println(format!("{} is cheat protected.", self.name));
             }
             false
@@ -1386,7 +1384,7 @@ impl Dvar {
             MODIFIED_FLAGS
                 .try_write()
                 .expect("dvar::Dvar::set_variant: failed to acquire writer lock. Probably still held by calling function.")
-                .insert(modified_flags.intersection(self.flags));
+                .insert(modified_flags | self.flags);
             self.current = value;
             self.modified = true;
         } else {
@@ -1472,8 +1470,26 @@ impl DvarBuilder {
 const DVAR_COUNT_MAX: usize = 4096;
 
 lazy_static! {
-    pub static ref DVARS: Arc<RwLock<HashMap<String, Dvar>>> =
-        Arc::new(RwLock::new(HashMap::with_capacity(DVAR_COUNT_MAX)));
+    pub static ref DVARS: Arc<RwLock<HashMap<String, Box<Dvar>>>> =
+        Arc::new(RwLock::new(HashMap::from(
+            [
+                ("sv_restoreDvars".to_string(),
+                Box::new(Dvar::new()
+                    .name("sv_restoreDvars".to_string())
+                    .value(DvarValue::Bool(true))
+                    .description(
+                        "Enable to restore Dvars on entering the Xbox Live menu"
+                        .to_string()
+                    )
+                    .build())),
+                ("sv_cheats".to_string(),
+                Box::new(Dvar::new()
+                    .name("sv_cheats".to_string())
+                    .value(DvarValue::Bool(false))
+                    .description("External Dvar".to_string())
+                    .flags(DvarFlags::WRITE_PROTECTED | DvarFlags::UNKNOWN_00000008_Y)
+                    .build()))
+            ])));
 }
 
 pub fn find(name: String) -> Option<Dvar> {
@@ -1482,7 +1498,11 @@ pub fn find(name: String) -> Option<Dvar> {
         "dvar::find: failed to acquire reader lock. Probably still held by calling function.",
     );
 
-    return reader.get(&name).cloned();
+    if !reader.contains_key(&name) {
+        return None;
+    }
+
+    return Some(*reader.get(&name).unwrap().clone());
 }
 
 // Register new Dvar
@@ -1516,7 +1536,7 @@ fn register_new(
             .domain(domain)
             .description(description)
             .build();
-        b = writer.insert(name.clone(), value).is_some();
+        b = writer.insert(name.clone(), Box::new(value)).is_some();
         other_name = writer.get(&name).unwrap().name.clone();
     }
 
@@ -1541,9 +1561,7 @@ fn reregister(
     }
 
     if dvar.flags.contains(DvarFlags::CHEAT_PROTECTED)
-        && DVAR_CHEATS.try_read().expect("dvar::register: failed to acquire reader lock. Probably still held by calling function.").is_some()
-        && DVAR_CHEATS
-            .try_read().expect("dvar::register: failed to acquire reader lock. Probably still held by calling function.")
+        && find("sv_cheats".to_string())
             .unwrap()
             .value()
             .as_bool()
@@ -1837,7 +1855,7 @@ fn set_from_string_by_name_from_source(
         register_string(
             name,
             value,
-            flags.intersection(DvarFlags::UNKNOWN_00004000_E),
+            flags | DvarFlags::UNKNOWN_00004000_E,
             "External Dvar".to_string(),
         );
     }
@@ -2093,7 +2111,7 @@ fn list_single(dvar: &Dvar, name: String) {
     }
 
     let s: char = if dvar.flags.contains(
-        DvarFlags::UNKNOWN_00000400.intersection(DvarFlags::UNKNOWN_00000004),
+        DvarFlags::UNKNOWN_00000400 | DvarFlags::UNKNOWN_00000004,
     ) {
         'S'
     } else {
@@ -2627,21 +2645,14 @@ fn setu_f() {
     }
 }
 
-lazy_static! {
-    static ref RESTORE_DVARS_ON_LIVE: Arc<RwLock<Dvar>> =
-        Arc::new(RwLock::new(
-            Dvar::new()
-                .value(DvarValue::Bool(true))
-                .description(
-                    "Enable to restore Dvars on entering the Xbox Live menu"
-                        .to_string()
-                )
-                .build()
-        ));
-}
-
 fn restore_dvars() {
-    if RESTORE_DVARS_ON_LIVE.read().expect("dvar::restore_dvars: failed to acquire reader lock. Probably still held by calling function.").value().as_bool().unwrap() == false {
+    if find("sv_restoreDvars".to_string())
+        .unwrap()
+        .value()
+        .as_bool()
+        .unwrap()
+        == false
+    {
         return;
     }
 
