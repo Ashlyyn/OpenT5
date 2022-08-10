@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::{Arc, RwLock};
@@ -14,6 +15,73 @@ pub enum ErrorParm {
     SCRIPT,
     SCRIPT_DROP,
     LOCALIZATION,
+}
+
+#[allow(non_camel_case_types, clippy::upper_case_acronyms)]
+#[derive(Debug)]
+pub enum ParseTokenType {
+    UNKNOWN,
+    NUMBER,
+    STRING,
+    NAME,
+    HASH,
+    PUNCTUATION,
+}
+
+struct ParseInfo {
+    token: String,
+    token_type: ParseTokenType,
+    lines: i32,
+    unget_token: bool,
+    space_delimited: bool,
+    keep_string_quotes: bool,
+    csv: bool,
+    negative_numbers: bool,
+    error_prefix: String,
+    warning_prefix: String,
+    backup_lines: i32,
+    backup_text: String,
+    parse_file: String,
+}
+
+impl ParseInfo {
+    fn new() -> Self {
+        ParseInfo {
+            token: "".to_string(),
+            token_type: ParseTokenType::UNKNOWN,
+            lines: 1,
+            unget_token: false,
+            space_delimited: true,
+            keep_string_quotes: false,
+            csv: false,
+            negative_numbers: false,
+            error_prefix: "".to_string(),
+            warning_prefix: "".to_string(),
+            backup_lines: 0,
+            backup_text: String::new(),
+            parse_file: String::new(),
+        }
+    }
+}
+
+struct ParseThreadInfo {
+    parse_info: ArrayVec<ParseInfo, 16>,
+    parse_info_num: isize,
+    token_pos: isize,
+    prev_token_pos: isize,
+    line: String,
+}
+
+impl ParseThreadInfo {
+    fn new() -> Self {
+        ParseThreadInfo {
+            parse_info: ArrayVec::new(),
+            parse_info_num: 0,
+            token_pos: 0,
+            prev_token_pos: 0,
+            line: String::new(),
+        }
+    }
 }
 
 // Needs to be actually implemented
@@ -64,4 +132,9 @@ pub fn dvar_dump(channel: i32, param_2: String) {
     return;
 
     todo!("com::dvar_dump");
+}
+
+lazy_static! {
+    static ref G_PARSE: Arc<RwLock<ArrayVec<ParseThreadInfo, 16>>> =
+        Arc::new(RwLock::new(ArrayVec::new()));
 }
