@@ -2,12 +2,17 @@
 
 use lazy_static::lazy_static;
 use std::fmt::Write;
-use std::sync::{atomic::AtomicBool, Arc, RwLock};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+extern crate num_derive;
 
 mod cmd;
 mod com;
 mod common;
 mod dvar;
+mod fs;
 mod gfx;
 mod locale;
 mod platform;
@@ -17,33 +22,39 @@ mod sys;
 lazy_static! {
     #[allow(dead_code)]
     static ref G_ALLOW_MATURE: AtomicBool = AtomicBool::new(true);
-    static ref SYS_CMDLINE: Arc<RwLock<String>> = Arc::new(RwLock::new(String::new()));
+    static ref S_NOSND: AtomicBool = AtomicBool::new(false);
 }
 
 fn main() {
     platform::os::target::main();
-
-    let mut cmd_line: String = String::new();
-    for arg in std::env::args() {
-        write!(&mut cmd_line, "{} ", &arg).unwrap();
-    }
-    cmd_line = cmd_line.trim().to_string();
-
-    {
-        let lock = SYS_CMDLINE.clone();
-        let mut writer = lock.write().unwrap();
-        writer.clear();
-        writer.insert_str(0, &cmd_line);
+    let cmdline = sys::get_cmdline();
+    if cmdline.contains("autominidump") {
+        sys::start_minidump(false);
+    } else {
+        if cmdline.contains("minidump") {
+            sys::start_minidump(true);
+        } else {
+            // Windows top-level exception handler bullshit
+        }
     }
 
     pmem::init();
+
+    /*
+    if &cmdline[0..9] != "allowdupe" || cmdline.chars().nth(9).unwrap_or(' ') > ' ' {
+        if !cmdline.contains("g_connectpaths 3") {
+            if sys::check_crash_or_rerun() == false {
+                return;
+            }
+        }
+    }
+    */
+
+    if cmdline.contains("nosnd") {
+        S_NOSND.store(true, Ordering::SeqCst)
+    }
+
     dvar::init();
-    dvar::register_string(
-        "test".to_string(),
-        "abcd".to_string(),
-        dvar::DvarFlags::empty(),
-        "Testing 123...".to_string(),
-    );
-    let d = dvar::find("test".to_string()).unwrap();
-    com::println(format!("{}", d));
+
+    sys::milliseconds();
 }
