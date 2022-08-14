@@ -3,6 +3,7 @@
 use num_derive::FromPrimitive;
 use std::sync::atomic::{AtomicIsize, Ordering};
 
+use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 
 pub fn init() {
@@ -19,10 +20,13 @@ enum RenderApi {
     Metal,
 }
 
-#[cfg(target_os = "windows")]
-const RENDER_API_DEFAULT: RenderApi = RenderApi::Dx12;
-#[cfg(not(target_os = "windows"))]
-const RENDER_API_DEFAULT: RenderApi = RenderApi::Vulkan;
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        const RENDER_API_DEFAULT: RenderApi = RenderApi::Dx12;
+    } else {
+        const RENDER_API_DEFAULT: RenderApi = RenderApi::Vulkan;
+    }
+}
 
 lazy_static! {
     static ref RENDER_API: AtomicIsize =

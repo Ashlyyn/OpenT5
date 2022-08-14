@@ -6,22 +6,20 @@ use std::sync::{
 };
 
 use arrayvec::ArrayVec;
+use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 
-#[cfg(target_os = "windows")]
-use windows::Win32::System::Memory::{
-    VirtualAlloc, MEM_COMMIT, PAGE_READWRITE,
-};
-
-#[cfg(any(target_os = "unix", target_os = "linux"))]
-use nix::sys::mman::{mmap, MapFlags, ProtFlags};
-
-#[cfg(all(
-    not(target_os = "windows"),
-    not(target_os = "unix"),
-    not(target_os = "linux")
-))]
-use libc::malloc;
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        use windows::Win32::System::Memory::{
+            VirtualAlloc, MEM_COMMIT, PAGE_READWRITE,
+        };
+    } else if #[cfg(any(target_os = "unix", target_os = "linux"))] {
+        use nix::sys::mman::{mmap, MapFlags, ProtFlags};
+    } else {
+        use libc::malloc;
+    }
+}
 
 #[derive(Copy, Clone)]
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
@@ -137,47 +135,43 @@ impl<'a> PhysicalMemory<'a> {
     }
 }
 
-#[cfg(target_os = "windows")]
-fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
-    let p = unsafe {
-        VirtualAlloc(core::ptr::null(), size, MEM_COMMIT, PAGE_READWRITE)
-            as *mut u8
-    };
-    match p.is_null() {
-        true => None,
-        false => unsafe { Some(core::slice::from_raw_parts_mut(p, size)) },
-    }
-}
-
-#[cfg(any(target_os = "unix", target_os = "linux"))]
-fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
-    let p = unsafe {
-        mmap(
-            core::ptr::null_mut(),
-            size,
-            ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
-            MapFlags::MAP_PRIVATE | MapFlags::MAP_ANON,
-            0,
-            0,
-        )
-        .unwrap() as *mut u8
-    };
-    match p.is_null() {
-        true => None,
-        false => unsafe { Some(core::slice::from_raw_parts_mut(p, size)) },
-    }
-}
-
-#[cfg(all(
-    not(target_os = "windows"),
-    not(target_os = "unix"),
-    not(target_os = "linux")
-))]
-fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
-    let p = malloc(size);
-    match p.is_null() {
-        true => None,
-        false => Some(p),
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
+            let p = unsafe {
+                VirtualAlloc(core::ptr::null(), size, MEM_COMMIT, PAGE_READWRITE)
+                    as *mut u8
+            };
+            match p.is_null() {
+                true => None,
+                false => unsafe { Some(core::slice::from_raw_parts_mut(p, size)) },
+            }
+        }
+    } else if #[cfg(any(target_os = "unix", target_os = "linux"))] {
+        fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
+            let p = unsafe {
+                mmap(
+                core::ptr::null_mut(),
+                size,
+                ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
+                MapFlags::MAP_PRIVATE | MapFlags::MAP_ANON,
+                0,
+                0,
+                ).unwrap() as *mut u8
+            };
+            match p.is_null() {
+                true => None,
+                false => unsafe { Some(core::slice::from_raw_parts_mut(p, size)) },
+            }
+        }
+    } else {
+        fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
+            let p = malloc(size);
+            match p.is_null() {
+                true => None,
+                false => Some(p),
+            }
+        }
     }
 }
 

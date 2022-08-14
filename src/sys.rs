@@ -5,6 +5,7 @@ use sysinfo::{CpuExt, SystemExt};
 
 mod gpu;
 
+use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 use std::path::Path;
 use std::{
@@ -13,11 +14,12 @@ use std::{
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
     time::SystemTime,
 };
-#[cfg(target_os = "windows")]
-use windows::Win32::Foundation::MAX_PATH;
-#[cfg(target_os = "windows")]
-use windows::Win32::System::LibraryLoader::GetModuleFileNameA;
-//#[cfg(not(target_os="windows"))]
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        use windows::Win32::Foundation::MAX_PATH;
+        use windows::Win32::System::LibraryLoader::GetModuleFileNameA;
+    }
+}
 
 lazy_static! {
     static ref BASE_TIME_ACQUIRED: AtomicBool = AtomicBool::new(false);
@@ -47,91 +49,85 @@ pub fn milliseconds() -> isize {
     time - TIME_BASE.load(SeqCst)
 }
 
-#[cfg(target_os = "windows")]
-#[allow(unreachable_code)]
-pub fn get_executable_name() -> String {
-    todo!("Not working correctly on Windows (path can't be stripped)");
-    let mut buf: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
-    unsafe { GetModuleFileNameA(None, &mut buf) };
-    let s = String::from_utf8(buf.to_vec()).unwrap().to_string();
-    println!("\"{}\"", s);
-    let s = s.strip_suffix(".exe").unwrap().to_string();
-    match s.rfind("\\.:") {
-        Some(pos) => s[pos + 1..].to_string(),
-        None => s,
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        #[allow(unreachable_code)]
+        pub fn get_executable_name() -> String {
+            todo!("Not working correctly on Windows (path can't be stripped)");
+            let mut buf: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
+            unsafe { GetModuleFileNameA(None, &mut buf) };
+            let s = String::from_utf8(buf.to_vec()).unwrap().to_string();
+            println!("\"{}\"", s);
+            let s = s.strip_suffix(".exe").unwrap().to_string();
+            match s.rfind("\\.:") {
+            Some(pos) => s[pos + 1..].to_string(),
+            None => s,
+        }
     }
-}
+} else if #[cfg(target_os = "linux")] {
+    pub fn get_executable_name() -> String {
+       let pid = std::process::id();
 
-#[cfg(target_os = "linux")]
-pub fn get_executable_name() -> String {
-    let pid = std::process::id();
-
-    let proc_path = format!("/proc/{}/exe", pid);
-    let path = std::fs::read_link(proc_path)
-        .expect("sys::get_executable_name: readlink() failed")
-        .to_str()
-        .unwrap()
-        .to_string();
-    let s = if path.ends_with('/') {
-        &path[..path.len() - 1]
-    } else {
-        &path
-    };
-    let pos = s.rfind('/').unwrap();
-    s[pos + 1..].to_string()
-}
-
-#[cfg(any(
+        let proc_path = format!("/proc/{}/exe", pid);
+        let path = std::fs::read_link(proc_path)
+            .expect("sys::get_executable_name: readlink() failed")
+            .to_str()
+            .unwrap()
+            .to_string();
+        let s = if path.ends_with('/') {
+            &path[..path.len() - 1]
+        } else {
+            &path
+        };
+        let pos = s.rfind('/').unwrap();
+        s[pos + 1..].to_string()
+    }
+} else if #[cfg(any(
     target_os = "freebsd",
     target_os = "dragonfly",
     target_os = "openbsd",
     target_os = "netbsd"
-))]
-pub fn get_executable_name() -> String {
-    #[cfg(target_os = "netbsd")]
-    const PROC_PATH: String = "/proc/curproc/exe";
-    #[cfg(any(
-        target_os = "freebsd",
-        target_os = "dragonfly",
-        target_os = "openbsd"
-    ))]
-    const PROC_PATH: String = "/proc/curproc/file";
-
-    // TODO - implement kinfo_getproc method if procfs method fails
-    let path = std::fs::read_link(proc_path)
-        .expect("sys::get_executable_name: readlink() failed")
-        .to_str()
-        .unwrap()
-        .to_string();
-    let s = if path.ends_with('/') {
-        &path[..path.len() - 1]
-    } else {
-        &path
-    };
-    let pos = s.rfind('/').unwrap();
-    s[pos + 1..].to_string()
+))] {
+    pub fn get_executable_name() -> String {
+        cfg_if! {
+            if #[cfg(target_os = "netbsd")] {
+                const PROC_PATH: String = "/proc/curproc/exe";
+            }
+            else {
+                const PROC_PATH: String = "/proc/curproc/file";
+            }
+        }
+        // TODO - implement kinfo_getproc method if procfs method fails
+        let path = std::fs::read_link(proc_path)
+            .expect("sys::get_executable_name: readlink() failed")
+            .to_str()
+            .unwrap()
+            .to_string();
+        let s = if path.ends_with('/') {
+            &path[..path.len() - 1]
+        } else {
+            &path
+        };
+        let pos = s.rfind('/').unwrap();
+        s[pos + 1..].to_string()
+    }
 }
 
 // TODO - implement for macOS
 
 // Fallback method - if no platform-specific method is used, try to get the executable name from argv[0]
-#[cfg(not(any(
-    target_os = "freebsd",
-    target_os = "dragonfly",
-    target_os = "openbsd",
-    target_os = "netbsd",
-    target_os = "linux",
-    target_os = "windows"
-)))]
-pub fn get_executable_name() -> String {
-    let s = if path.ends_with('/') {
-        &path[..path.len() - 1]
-    } else {
-        &path
-    };
-    let s = std::env::args().to_string();
-    let pos = s.rfind('/').unwrap();
-    s[pos + 1..].to_string()
+    else {
+        pub fn get_executable_name() -> String {
+            let s = if path.ends_with('/') {
+                &path[..path.len() - 1]
+            } else {
+                &path
+            };
+            let s = std::env::args().to_string();
+            let pos = s.rfind('/').unwrap();
+            s[pos + 1..].to_string()
+        }
+    }
 }
 
 pub fn get_semaphore_file_path() -> PathBuf {
@@ -231,7 +227,7 @@ pub struct SysInfo {
 impl Display for SysInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f,
-            "GPU Description: {}\nCPU: {} ({})\nCores: {} ({} physical)\nSystem RAM: {}MiB\n",
+            "GPU Description: {}\nCPU: {} ({})\nCores: {} ({} physical)\nSystem RAM: {}MiB",
             self.gpu_description, self.cpu_name, self.cpu_vendor,
             self.logical_cpu_count, self.physical_cpu_count, self.sys_mb)
     }
