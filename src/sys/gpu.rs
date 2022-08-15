@@ -138,11 +138,9 @@ impl Surface {
 
 #[derive(FromPrimitive, PartialEq, Debug)]
 pub enum DeviceType {
-    Other,
     IntegratedGpu,
     DiscreteGpu,
-    VirtualGpu,
-    Cpu,
+    Unknown,
 }
 
 pub struct AdapterInfo {
@@ -215,7 +213,7 @@ impl Adapter {
             AdapterInfo::new(
                 info.name,
                 num::FromPrimitive::from_isize(info.device_type as isize)
-                    .unwrap(),
+                    .unwrap_or(DeviceType::Unknown),
             )
         } else {
             todo!("gpu::Instance not yet implemented for {:?}.", render_api!());
