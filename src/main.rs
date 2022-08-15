@@ -55,6 +55,7 @@ fn main() {
     }
 
     dvar::init();
+    println!("{}", pollster::block_on(sys::find_info()));
 
     sys::milliseconds();
 }
