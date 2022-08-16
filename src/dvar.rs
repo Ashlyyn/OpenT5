@@ -813,6 +813,7 @@ pub enum SetSource {
 
 // Flags for Dvars
 bitflags! {
+    #[derive(Default)]
     pub struct DvarFlags: u32 {
         const UNKNOWN_00000001_A      = 0x00000001;
         const UNKNOWN_00000002_U      = 0x00000002;
@@ -1760,14 +1761,14 @@ pub fn register_bool(
     name: String,
     value: bool,
     flags: DvarFlags,
-    description: String,
+    description: Option<String>,
 ) {
     register_variant(
         name,
         flags,
         DvarValue::Bool(value),
         DvarLimits::Bool(DvarLimitsBool::new()),
-        description,
+        description.unwrap_or_default(),
     );
 }
 
@@ -2340,6 +2341,81 @@ pub fn register_color_xyz(
     );
 }
 
+pub fn set_bool_from_source(
+    name: String,
+    value: bool,
+    source: SetSource,
+) -> bool {
+    match find(name.clone()) {
+        Some(_) => {
+            let lock = DVARS.clone();
+            let mut writer = lock.try_write().expect("");
+            writer.get_mut(&name).unwrap().set_bool(value, source);
+            true
+        }
+        None => false,
+    }
+}
+
+pub fn set_bool(name: String, value: bool) -> bool {
+    set_bool_from_source(name, value, SetSource::Internal)
+}
+
+pub fn set_or_register_bool(
+    name: String,
+    value: bool,
+    flags: Option<DvarFlags>,
+    description: Option<String>,
+) {
+    if find(name.clone()).is_some() {
+        set_bool(name, value);
+    } else {
+        register_bool(name, value, flags.unwrap_or_default(), description);
+    }
+}
+
+pub fn set_int_from_source(
+    name: String,
+    value: i32,
+    source: SetSource,
+) -> bool {
+    match find(name.clone()) {
+        Some(_) => {
+            let lock = DVARS.clone();
+            let mut writer = lock.try_write().expect("");
+            writer.get_mut(&name).unwrap().set_int(value, source);
+            true
+        }
+        None => false,
+    }
+}
+
+pub fn set_int(name: String, value: i32) -> bool {
+    set_int_from_source(name, value, SetSource::Internal)
+}
+
+pub fn set_or_register_int(
+    name: String,
+    value: i32,
+    min: Option<i32>,
+    max: Option<i32>,
+    flags: Option<DvarFlags>,
+    description: Option<String>,
+) {
+    if find(name.clone()).is_some() {
+        set_int(name, value);
+    } else {
+        register_int(
+            name,
+            value,
+            min.unwrap_or_default(),
+            max.unwrap_or_default(),
+            flags.unwrap_or_default(),
+            description.unwrap_or_default(),
+        );
+    }
+}
+
 fn set_from_string_by_name_from_source(
     name: String,
     value: String,
@@ -2361,9 +2437,25 @@ fn set_from_string_by_name_from_source(
     }
 }
 
-fn get_bool(name: String) -> Option<bool> {
+pub fn clear_modified(name: String) {
+    let lock = DVARS.clone();
+    let mut writer = lock.try_write().expect("");
+    match writer.get_mut(&name) {
+        Some(d) => d.modified = false,
+        None => (),
+    }
+}
+
+pub fn get_bool(name: String) -> Option<bool> {
     return match find(name) {
         Some(d) => d.value().as_bool(),
+        None => None,
+    };
+}
+
+pub fn get_int(name: String) -> Option<i32> {
+    return match find(name) {
+        Some(d) => d.value().as_int(),
         None => None,
     };
 }
@@ -2956,7 +3048,7 @@ fn register_bool_f() {
                         name,
                         value,
                         DvarFlags::UNKNOWN_00004000_E,
-                        "External Dvar".to_string(),
+                        Some("External Dvar".to_string()),
                     );
                 }
             }
