@@ -7,7 +7,9 @@ mod gpu;
 
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
+use std::collections::VecDeque;
 use std::path::Path;
+use std::sync::RwLock;
 use std::{
     fmt::Display,
     path::PathBuf,
@@ -255,4 +257,46 @@ impl SysInfo {
 
 pub async fn find_info() -> SysInfo {
     SysInfo::new().await
+}
+
+pub enum EventType {
+    None,
+    Key(input::keyboard::KeyScancode, bool),
+    Mouse(input::mouse::Scancode, bool),
+    Console,
+}
+
+pub struct Event {
+    time: isize,
+    event_type: EventType,
+    data: Vec<u8>,
+}
+
+impl Event {
+    pub fn new(
+        time: Option<isize>,
+        event_type: EventType,
+        data: Option<Vec<u8>>,
+    ) -> Self {
+        Event {
+            time: time.unwrap_or_default(),
+            event_type,
+            data: data.unwrap_or_default(),
+        }
+    }
+}
+
+lazy_static! {
+    static ref EVENT_QUEUE: Arc<RwLock<VecDeque<Event>>> =
+        Arc::new(RwLock::new(VecDeque::new()));
+}
+
+pub fn enqueue_event(mut event: Event) {
+    if event.time == 0 {
+        event.time = milliseconds();
+    }
+
+    let lock = EVENT_QUEUE.clone();
+    let mut writer = lock.try_write().expect("");
+    writer.push_back(event);
 }
