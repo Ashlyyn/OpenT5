@@ -374,3 +374,25 @@ pub struct ListBoxDef {
     max_rows: i32,
     row_count: i32,
 }
+
+#[derive(Default)]
+pub struct WindowParms {
+    pub window_handle: platform::WindowHandle,
+    pub hz: u16,
+    pub fullscreen: bool,
+    pub x: u16,
+    pub y: u16,
+    pub scene_width: u16,
+    pub scene_height: u16,
+    pub display_width: u16,
+    pub display_height: u16,
+    pub aa_samples: u32,
+}
+
+impl WindowParms {
+    pub fn new() -> Self {
+        WindowParms {
+            ..Default::default()
+        }
+    }
+}
