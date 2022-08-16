@@ -1,12 +1,8 @@
 #![allow(non_snake_case)]
-use std::sync::RwLock;
-
-use lazy_static::lazy_static;
-
 use windows::{
     core::*,
     Win32::{
-        Foundation::{HINSTANCE, HWND},
+        Foundation::HINSTANCE,
         System::{
             Diagnostics::Debug::{SetErrorMode, SEM_FAILCRITICALERRORS},
             Environment::GetCommandLineA,
@@ -20,32 +16,6 @@ use windows::{
 };
 
 use libc::c_int;
-
-#[allow(dead_code)]
-#[derive(Default)]
-struct WinVars {
-    reflib_library: Option<HINSTANCE>, // seems to be unused
-    reflib_active: i32,                // also seems to be unused
-    hWnd: Option<HWND>,
-    hInstance: Option<HINSTANCE>,
-    activeApp: i32,
-    isMinimized: i32,
-    recenterMouse: i32,
-    sysMsgTime: u32,
-}
-
-lazy_static! {
-    static ref G_WV: RwLock<WinVars> = RwLock::new(WinVars {
-        reflib_library: None,
-        reflib_active: 0,
-        hWnd: None,
-        hInstance: None,
-        activeApp: 0,
-        isMinimized: 0,
-        recenterMouse: 0,
-        sysMsgTime: 0
-    });
-}
 
 // Get info for WinMain (Rust doesn't do this automatically), then call it
 pub fn main() {
@@ -101,7 +71,6 @@ fn WinMain(
         return 0;
     }
 
-    G_WV.write().unwrap().hInstance = hInstance;
     unsafe { SetErrorMode(SEM_FAILCRITICALERRORS) };
 
     println!("Exiting WinMain()!");
