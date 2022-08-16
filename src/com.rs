@@ -138,3 +138,17 @@ lazy_static! {
     static ref G_PARSE: Arc<RwLock<ArrayVec<ParseThreadInfo, 16>>> =
         Arc::new(RwLock::new(ArrayVec::new()));
 }
+
+pub fn get_official_build_name_r() -> String {
+    "Call of Duty: BlackOps".to_string()
+}
+
+pub fn init() {}
+
+pub fn touch_memory() {
+    todo!("com::touch_memory");
+}
+
+pub fn get_icon_rgba() -> Option<winit::window::Icon> {
+    None
+}
