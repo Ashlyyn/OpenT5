@@ -8,16 +8,20 @@ use std::sync::{
 };
 extern crate num_derive;
 
+mod cbuf;
 mod cmd;
 mod com;
 mod common;
 mod dvar;
 mod fs;
 mod gfx;
+mod input;
 mod locale;
 mod platform;
 mod pmem;
+mod render;
 mod sys;
+mod vid;
 
 lazy_static! {
     #[allow(dead_code)]
@@ -57,5 +61,20 @@ fn main() {
     dvar::init();
     println!("{}", pollster::block_on(sys::find_info()));
 
-    sys::milliseconds();
+    // std::thread::spawn(|| {
+    let mut window_parms = gfx::WindowParms {
+        window_handle: platform::WindowHandle::new(),
+        hz: 60,
+        fullscreen: false,
+        x: 0,
+        y: 0,
+        scene_height: 480,
+        scene_width: 640,
+        display_width: 1920,
+        display_height: 1080,
+        aa_samples: 0,
+    };
+
+    render::create_window(&mut window_parms);
+    // });
 }
