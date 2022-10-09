@@ -379,10 +379,9 @@ fn melee_breath_up() {
 fn mlook_down() {
     let lock = KEYBINDS.clone();
     let mut writer = lock.try_write().expect("");
-    match writer.get_mut(&KeybindCode::MLook) {
-        Some(r) => r.active = true,
-        None => (),
-    }
+    if let Some(r) = writer.get_mut(&KeybindCode::MLook) {
+        r.active = true
+    };
 }
 
 fn mlook_up() {
@@ -658,15 +657,7 @@ fn vehicle_swap_pickup_up() {
 }
 
 fn is_talk_key_held() -> bool {
-    dvar::find("cl_talking".to_string())
-        .unwrap_or_else(|| {
-            dvar::Dvar::new()
-                .value(dvar::DvarValue::Bool(false))
-                .build()
-        })
-        .value()
-        .as_bool()
-        .unwrap_or(false)
+    dvar::get_bool("cl_talking").unwrap_or(false)
         && KEYBINDS
             .clone()
             .try_read()
