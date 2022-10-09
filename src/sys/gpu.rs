@@ -140,7 +140,7 @@ impl Surface {
     }
 }
 
-#[derive(FromPrimitive, PartialEq, Debug)]
+#[derive(FromPrimitive, PartialEq, Eq, Debug)]
 pub enum DeviceType {
     IntegratedGpu,
     DiscreteGpu,
@@ -225,7 +225,7 @@ impl Adapter {
     }
 }
 
-struct Device {
+pub struct Device {
     wgpu_device: Option<wgpu::Device>,
 }
 
