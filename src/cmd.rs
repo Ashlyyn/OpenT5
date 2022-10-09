@@ -102,7 +102,7 @@ pub fn find(name: String) -> Option<CmdFunction> {
 
 pub fn add_internal(name: String, func: fn()) {
     match find(name.clone()) {
-        Some(_) => com::println(format!(
+        Some(_) => com::println(&format!(
             "cmd::add_internal: {} is already defined",
             name
         )),

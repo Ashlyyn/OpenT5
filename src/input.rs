@@ -26,15 +26,15 @@ pub fn activate(app_active: isize) {
 fn startup() {
     mouse::startup();
     gamepad::startup();
-    dvar::clear_modified("in_mouse".to_string());
+    dvar::clear_modified("in_mouse");
 }
 
 fn init() {
     dvar::register_bool(
-        "in_mouse".to_string(),
+        "in_mouse",
         true,
-        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED,
-        Some("Initialize the mouse drivers".to_string()),
+        Some(dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED),
+        Some("Initialize the mouse drivers"),
     );
     startup();
 }
