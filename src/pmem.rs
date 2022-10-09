@@ -139,7 +139,7 @@ cfg_if! {
     if #[cfg(target_os = "windows")] {
         fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
             let p = unsafe {
-                VirtualAlloc(core::ptr::null(), size, MEM_COMMIT, PAGE_READWRITE)
+                VirtualAlloc(None, size, MEM_COMMIT, PAGE_READWRITE)
                     as *mut u8
             };
             match p.is_null() {
