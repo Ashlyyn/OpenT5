@@ -90,7 +90,7 @@ pub fn print(message: String) {
     print!("{}", message);
 }
 
-pub fn println(message: String) {
+pub fn println(message: &str) {
     print(format!("{}\n", message));
 }
 
@@ -121,7 +121,7 @@ pub fn errorln(err_type: ErrorParm, err: String) {
 // Implement these two later
 // (not integral to the program, look annoying to implement)
 #[allow(unused_variables, unreachable_code)]
-pub fn filter(string: String, name: String, case_sensitive: bool) -> bool {
+pub fn filter(string: &str, name: &str, case_sensitive: bool) -> bool {
     return true;
 
     todo!("com::filter");
