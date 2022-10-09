@@ -2133,12 +2133,10 @@ pub fn exists(name: &str) -> bool {
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
-///     let value = false;
-///     let flags = DvarFlags::empty();
-///     let description = "A test Dvar of type bool"
-///     register_bool(name, value, Some(flags), Some(description));
-/// }
+/// let value = false;
+/// let flags = DvarFlags::empty();
+/// let description = "A test Dvar of type bool"
+/// register_bool(name, value, Some(flags), Some(description));
 /// ```
 pub fn register_bool(
     name: &str,
@@ -2201,7 +2199,7 @@ pub fn register_bool(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_none() {
 ///     let value = false;
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type bool"
@@ -2239,7 +2237,7 @@ pub fn register_new_bool(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_some() {
 ///     let value = false;
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type bool"
@@ -2282,15 +2280,13 @@ pub fn reregister_bool(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
-///     let value = 121.3;
-///     let min = -462.0;
-///     let max = 592.7;
-///     let flags = DvarFlags::empty();
-///     let description = "A test Dvar of type float"
-///     register_float(name, value, Some(min), Some(max), 
-///                                 Some(flags), Some(description));
-/// }
+/// let value = 121.3;
+/// let min = -462.0;
+/// let max = 592.7;
+/// let flags = DvarFlags::empty();
+/// let description = "A test Dvar of type float"
+/// register_float(name, value, Some(min), Some(max), 
+///                             Some(flags), Some(description));
 /// ```
 pub fn register_float(
     name: &str,
@@ -2360,7 +2356,7 @@ pub fn register_float(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_none() {
 ///     let value = 121.3;
 ///     let min = -462.0;
 ///     let max = 592.7;
@@ -2409,7 +2405,7 @@ pub fn register_new_float(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_some() {
 ///     let value = 121.3;
 ///     let min = -462.0;
 ///     let max = 592.7;
@@ -2459,15 +2455,13 @@ pub fn reregister_float(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
-///     let value = (121.3, -267.4);
-///     let min = -462.0;
-///     let max = 592.7;
-///     let flags = DvarFlags::empty();
-///     let description = "A test Dvar of type vector2"
-///     register_vector2(name, value, Some(min), Some(max), 
-///                                   Some(flags), Some(description));
-/// }
+/// let value = (121.3, -267.4);
+/// let min = -462.0;
+/// let max = 592.7;
+/// let flags = DvarFlags::empty();
+/// let description = "A test Dvar of type vector2"
+/// register_vector2(name, value, Some(min), Some(max), 
+///                               Some(flags), Some(description));
 /// ```
 pub fn register_vector2(
     name: &str,
@@ -2537,7 +2531,7 @@ pub fn register_vector2(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_none() {
 ///     let value = (121.3, -267.4);
 ///     let min = -462.0;
 ///     let max = 592.7;
@@ -2587,6 +2581,7 @@ pub fn register_new_vector2(
 /// # Example
 /// ```
 /// let name = "sv_test";
+/// if find(name).is_some() {
 ///     let value = (121.3, -267.4);
 ///     let min = -462.0;
 ///     let max = 592.7;
@@ -2636,15 +2631,13 @@ pub fn reregister_vector2(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
-///     let value = (121.3, -267.4, 462.32);
-///     let min = -462.0;
-///     let max = 592.7;
-///     let flags = DvarFlags::empty();
-///     let description = "A test Dvar of type vector2"
-///     register_vector3(name, value, Some(min), Some(max), 
-///                                   Some(flags), Some(description));
-/// }
+/// let value = (121.3, -267.4, 462.32);
+/// let min = -462.0;
+/// let max = 592.7;
+/// let flags = DvarFlags::empty();
+/// let description = "A test Dvar of type vector2"
+/// register_vector3(name, value, Some(min), Some(max), 
+///                               Some(flags), Some(description));
 /// ```
 pub fn register_vector3(
     name: &str,
@@ -2714,7 +2707,7 @@ pub fn register_vector3(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_none() {
 ///     let value = (121.3, -267.4, 462.32);
 ///     let min = -462.0;
 ///     let max = 592.7;
@@ -2764,6 +2757,7 @@ pub fn register_new_vector3(
 /// # Example
 /// ```
 /// let name = "sv_test";
+/// if find(name).is_some() {
 ///     let value = (121.3, -267.4, 462.32);
 ///     let min = -462.0;
 ///     let max = 592.7;
@@ -2813,15 +2807,13 @@ pub fn reregister_vector3(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
-///     let value = (121.3, -267.4, -143.0, 71.2);
-///     let min = -462.0;
-///     let max = 592.7;
-///     let flags = DvarFlags::empty();
-///     let description = "A test Dvar of type vector4"
-///     register_vector4(name, value, Some(min), Some(max), 
+/// let value = (121.3, -267.4, -143.0, 71.2);
+/// let min = -462.0;
+/// let max = 592.7;
+/// let flags = DvarFlags::empty();
+/// let description = "A test Dvar of type vector4"
+/// register_vector4(name, value, Some(min), Some(max), 
 ///                                   Some(flags), Some(description));
-/// }
 /// ```
 pub fn register_vector4(
     name: &str,
@@ -2891,7 +2883,7 @@ pub fn register_vector4(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_none() {
 ///     let value = (121.3, -267.4, -143.0, 71.2);
 ///     let min = -462.0;
 ///     let max = 592.7;
@@ -2941,6 +2933,7 @@ pub fn register_new_vector4(
 /// # Example
 /// ```
 /// let name = "sv_test";
+/// if find(name).is_some() {
 ///     let value = (121.3, -267.4, -143.0, 71.2);
 ///     let min = -462.0;
 ///     let max = 592.7;
@@ -2990,15 +2983,13 @@ pub fn reregister_vector4(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
-///     let value = 64867969;
-///     let min = i32::MIN;
-///     let max = i32::MAX;
-///     let flags = DvarFlags::empty();
-///     let description = "A test Dvar of type int"
-///     register_int(name, value, Some(min), Some(max), 
-///                               Some(flags), Some(description));
-/// }
+/// let value = 64867969;
+/// let min = i32::MIN;
+/// let max = i32::MAX;
+/// let flags = DvarFlags::empty();
+/// let description = "A test Dvar of type int"
+/// register_int(name, value, Some(min), Some(max), 
+///                           Some(flags), Some(description));
 /// ```
 pub fn register_int(
     name: &str,
@@ -3067,7 +3058,7 @@ pub fn register_int(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_none() {
 ///     let value = 64867969;
 ///     let min = i32::MIN;
 ///     let max = i32::MAX;
@@ -3117,6 +3108,7 @@ pub fn register_new_int(
 /// # Example
 /// ```
 /// let name = "sv_test";
+/// if find(name).is_some() {
 ///     let value = 64867969;
 ///     let min = i32::MIN;
 ///     let max = i32::MAX;
@@ -3305,13 +3297,11 @@ pub fn reregister_string(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
-///     let value = "DEF";
-///     let domain = vec!["ABC".to_string(), "DEF".to_string(), "GHI".to_string()];
-///     let flags = DvarFlags::empty();
-///     let description = "A test Dvar of type string"
-///     register_enumeration(name, value, Some(domain), Some(flags), Some(description));
-/// }
+/// let value = "DEF";
+/// let domain = vec!["ABC".to_string(), "DEF".to_string(), "GHI".to_string()];
+/// let flags = DvarFlags::empty();
+/// let description = "A test Dvar of type string"
+/// register_enumeration(name, value, Some(domain), Some(flags), Some(description));
 /// ```
 pub fn register_enumeration(
     name: &str,
@@ -3817,6 +3807,7 @@ pub fn register_new_int64(
 /// # Example
 /// ```
 /// let name = "sv_test";
+/// if find(name).is_some() {
 ///     let value = 67894867969;
 ///     let min = i64::MIN;
 ///     let max = i64::MAX;
@@ -3867,18 +3858,16 @@ pub fn reregister_int64(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
-///     let red = 0.6;
-///     let blue = 0.2;
-///     let green = 0.3;
-///     let min = 0.1;
-///     let max = 0.7;
-///     let flags = DvarFlags::empty();
-///     let description = "A test Dvar of type color"
-///     register_linear_color_rgb(name, red, green, blue,
-///                               Some(min), Some(max), Some(flags),
-///                               Some(description));
-/// }
+/// let red = 0.6;
+/// let blue = 0.2;
+/// let green = 0.3;
+/// let min = 0.1;
+/// let max = 0.7;
+/// let flags = DvarFlags::empty();
+/// let description = "A test Dvar of type color"
+/// register_linear_color_rgb(name, red, green, blue,
+///                           Some(min), Some(max), Some(flags),
+///                           Some(description));
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn register_linear_color_rgb(
@@ -3953,7 +3942,7 @@ pub fn register_linear_color_rgb(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_none() {
 ///     let red = 0.6;
 ///     let blue = 0.2;
 ///     let green = 0.3;
@@ -4020,7 +4009,7 @@ pub fn register_new_linear_color_rgb(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_some() {
 ///     let red = 0.6;
 ///     let blue = 0.2;
 ///     let green = 0.3;
@@ -4084,16 +4073,14 @@ pub fn reregister_linear_color_rgb(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
-///     let x = 0.6;
-///     let y = 0.2;
-///     let z = 0.3;
-///     let min = 0.1;
-///     let max = 0.7;
-///     let flags = DvarFlags::empty();
-///     let description = "A test Dvar of type color XYZ"
-///     register_color_xyz(name, x, y, z, Some(min), Some(max), Some(flags), Some(description));
-/// }
+/// let x = 0.6;
+/// let y = 0.2;
+/// let z = 0.3;
+/// let min = 0.1;
+/// let max = 0.7;
+/// let flags = DvarFlags::empty();
+/// let description = "A test Dvar of type color XYZ"
+/// register_color_xyz(name, x, y, z, Some(min), Some(max), Some(flags), Some(description));
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn register_color_xyz(
@@ -4167,7 +4154,7 @@ pub fn register_color_xyz(
 /// # Example
 /// ```
 /// let name = "sv_test";
-/// if find(name).is_none {
+/// if find(name).is_none() {
 ///     let x = 0.6;
 ///     let y = 0.2;
 ///     let z = 0.3;
