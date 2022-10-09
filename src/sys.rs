@@ -3,7 +3,7 @@
 use crate::*;
 use sysinfo::{CpuExt, SystemExt};
 
-mod gpu;
+pub mod gpu;
 
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
@@ -168,8 +168,8 @@ pub fn get_cmdline() -> String {
 }
 
 pub fn start_minidump(b: bool) {
-    com::println(format!("Starting minidump with b = {}...", b));
-    com::println("TODO: implement.".to_string());
+    com::println(&format!("Starting minidump with b = {}...", b));
+    com::println("TODO: implement.");
 }
 
 // Abstracted out in case a certain platform needs an implementation using
