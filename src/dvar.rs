@@ -33,6 +33,12 @@ impl Display for DvarLimitsBool {
 }
 
 impl DvarLimitsBool {
+    /// Creates a new [`DvarLimitsBool`].
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsBool::new();
+    /// ```
     pub fn new() -> Self {
         DvarLimitsBool {}
     }
@@ -47,6 +53,8 @@ pub struct DvarLimitsFloat {
 }
 
 impl Default for DvarLimitsFloat {
+    /// Returns a [`DvarLimitsFloat`] with `min` field set to [`f32::MIN`]
+    /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
         DvarLimitsFloat {
             min: f32::MIN,
@@ -72,6 +80,21 @@ impl Display for DvarLimitsFloat {
 }
 
 impl DvarLimitsFloat {
+    /// Creates a new [`DvarLimitsFloat`] with the supplied `min` and `max`.
+    ///
+    /// # Parameters
+    /// * `min` - The minimum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `max`, cannot be greater.
+    /// * `max` - The maximum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `min`, cannot be less.
+    ///
+    /// # Panics
+    /// Currently will panic if `min` > `max`. Should be changed at some point.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsFloat::new(0.0, 10.0);
+    /// ```
     pub fn new(min: f32, max: f32) -> Self {
         // Panic if max is greater than min
         // (possibly implement better error handling in the future)
@@ -92,6 +115,8 @@ pub struct DvarLimitsVector2 {
 }
 
 impl Default for DvarLimitsVector2 {
+    /// Returns a [`DvarLimitsVector2`] with `min` field set to [`f32::MIN`]
+    /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
         DvarLimitsVector2 {
             min: f32::MIN,
@@ -129,7 +154,28 @@ impl Display for DvarLimitsVector2 {
 }
 
 impl DvarLimitsVector2 {
+    /// Creates a new [`DvarLimitsVector2`] with the supplied `min` and `max`.
+    ///
+    /// # Parameters
+    /// * `min` - The minimum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `max`, cannot be greater.
+    /// * `max` - The maximum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `min`, cannot be less.
+    ///
+    /// # Panics
+    /// Currently will panic if `min` > `max`. Should be changed at some point.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsVector2::new(0.0, 10.0);
+    /// ```
     pub fn new(min: f32, max: f32) -> Self {
+        if min > max {
+            panic!(
+                "DvarLimitsVector2::new(): supplied min is greater than max"
+            );
+        }
+
         DvarLimitsVector2 { min, max }
     }
 }
@@ -142,6 +188,8 @@ pub struct DvarLimitsVector3 {
 }
 
 impl Default for DvarLimitsVector3 {
+    /// Returns a [`DvarLimitsVector3`] with `min` field set to [`f32::MIN`]
+    /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
         DvarLimitsVector3 {
             min: f32::MIN,
@@ -179,8 +227,29 @@ impl Display for DvarLimitsVector3 {
 }
 
 impl DvarLimitsVector3 {
-    pub fn new(n: f32, m: f32) -> Self {
-        DvarLimitsVector3 { min: n, max: m }
+    /// Creates a new [`DvarLimitsVector3`] with the supplied `min` and `max`.
+    ///
+    /// # Parameters
+    /// * `min` - The minimum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `max`, cannot be greater.
+    /// * `max` - The maximum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `min`, cannot be less.
+    ///
+    /// # Panics
+    /// Currently will panic if `min` > `max`. Should be changed at some point.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsVector3::new(0.0, 10.0);
+    /// ```
+    pub fn new(min: f32, max: f32) -> Self {
+        if min > max {
+            panic!(
+                "DvarLimitsVector3::new(): supplied min is greater than max"
+            );
+        }
+
+        DvarLimitsVector3 { min, max }
     }
 }
 
@@ -192,6 +261,8 @@ pub struct DvarLimitsVector4 {
 }
 
 impl Default for DvarLimitsVector4 {
+    /// Returns a [`DvarLimitsVector4`] with `min` field set to [`f32::MIN`]
+    /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
         DvarLimitsVector4 {
             min: f32::MIN,
@@ -229,8 +300,29 @@ impl Display for DvarLimitsVector4 {
 }
 
 impl DvarLimitsVector4 {
-    pub fn new(n: f32, m: f32) -> Self {
-        DvarLimitsVector4 { min: n, max: m }
+    /// Creates a new [`DvarLimitsVector4`] with the supplied `min` and `max`.
+    ///
+    /// # Parameters
+    /// * `min` - The minimum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `max`, cannot be greater.
+    /// * `max` - The maximum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `min`, cannot be less.
+    ///
+    /// # Panics
+    /// Currently will panic if `min` > `max`. Should be changed at some point.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsVector4::new(0.0, 10.0);
+    /// ```
+    pub fn new(min: f32, max: f32) -> Self {
+        if min > max {
+            panic!(
+                "DvarLimitsVector4::new(): supplied min is greater than max"
+            );
+        }
+
+        DvarLimitsVector4 { min, max }
     }
 }
 
@@ -242,6 +334,8 @@ pub struct DvarLimitsInt {
 }
 
 impl Default for DvarLimitsInt {
+    /// Returns a [`DvarLimitsInt`] with `min` field set to [`i32::MIN`]
+    /// and `max` field set to [`i32::MAX`].
     fn default() -> Self {
         DvarLimitsInt {
             min: i32::MIN,
@@ -267,8 +361,27 @@ impl Display for DvarLimitsInt {
 }
 
 impl DvarLimitsInt {
-    pub fn new(n: i32, m: i32) -> Self {
-        DvarLimitsInt { min: n, max: m }
+    /// Creates a new [`DvarLimitsInt`] with the supplied `min` and `max`.
+    ///
+    /// # Parameters
+    /// * `min` - The minimum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `max`, cannot be greater.
+    /// * `max` - The maximum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `min`, cannot be less.
+    ///
+    /// # Panics
+    /// Currently will panic if `min` > `max`. Should be changed at some point.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsInt::new(0, 10);
+    /// ```
+    pub fn new(min: i32, max: i32) -> Self {
+        if min > max {
+            panic!("DvarLimitsInt::new(): supplied min is greater than max");
+        }
+
+        DvarLimitsInt { min, max }
     }
 }
 
@@ -284,6 +397,12 @@ impl Display for DvarLimitsString {
 }
 
 impl DvarLimitsString {
+    /// Creates a new [`DvarLimitsString`].
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsString::new(0, 10);
+    /// ```
     pub fn new() -> Self {
         DvarLimitsString {}
     }
@@ -308,9 +427,26 @@ impl Display for DvarLimitsEnumeration {
 }
 
 impl DvarLimitsEnumeration {
-    pub fn new(s: &[String]) -> Self {
+    /// Creates a new [`DvarLimitsEnumeration`] with the supplied domain.
+    ///
+    /// # Parameters
+    /// * `domain` - A slice of [`String`]s containing the valid values for
+    /// the [`Dvar`]. The [`Dvar`]'s initial value *must* be included in this domain.
+    ///
+    /// # Panics
+    /// Currently will panic if [`domain.is_empty()`]. Might be changed at some point.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsEnumeration::new(vec!["test".to_string()]);
+    /// ```
+    pub fn new(domain: &[String]) -> Self {
+        if domain.is_empty() {
+            panic!("DvarLimitsEnumeration::new(): domain is empty.");
+        }
+
         DvarLimitsEnumeration {
-            strings: s.to_vec(),
+            strings: domain.to_vec(),
         }
     }
 }
@@ -327,6 +463,12 @@ impl Display for DvarLimitsColor {
 }
 
 impl DvarLimitsColor {
+    /// Creates a new [`DvarLimitsColor`] with the supplied domain.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsColor::new();
+    /// ```
     pub fn new() -> Self {
         DvarLimitsColor {}
     }
@@ -340,6 +482,8 @@ pub struct DvarLimitsInt64 {
 }
 
 impl Default for DvarLimitsInt64 {
+    /// Returns a [`DvarLimitsInt64`] with `min` field set to [`i64::MIN`]
+    /// and `max` field set to [`i64::MAX`].
     fn default() -> Self {
         DvarLimitsInt64 {
             min: i64::MIN,
@@ -365,8 +509,27 @@ impl Display for DvarLimitsInt64 {
 }
 
 impl DvarLimitsInt64 {
-    pub fn new(n: i64, m: i64) -> Self {
-        DvarLimitsInt64 { min: n, max: m }
+    /// Creates a new [`DvarLimitsInt64`] with the supplied `min` and `max`.
+    ///
+    /// # Parameters
+    /// * `min` - The minimum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `max`, cannot be greater.
+    /// * `max` - The maximum value allowed for the [`Dvar`]'s values.
+    /// Can be equal to `min`, cannot be less.
+    ///
+    /// # Panics
+    /// Currently will panic if `min` > `max`. Should be changed at some point.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsInt64::new(0i64, 10i64);
+    /// ```
+    pub fn new(min: i64, max: i64) -> Self {
+        if min > max {
+            panic!("DvarLimitsInt64::new(): supplied min is greater than max");
+        }
+
+        DvarLimitsInt64 { min, max }
     }
 }
 
@@ -378,6 +541,8 @@ pub struct DvarLimitsLinearColorRGB {
 }
 
 impl Default for DvarLimitsLinearColorRGB {
+    /// Returns a [`DvarLimitsLinearColorRGB`] with `min` field set to [`f32::MIN`]
+    /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
         DvarLimitsLinearColorRGB {
             min: f32::MIN,
@@ -415,8 +580,35 @@ impl Display for DvarLimitsLinearColorRGB {
 }
 
 impl DvarLimitsLinearColorRGB {
-    pub fn new(n: f32, m: f32) -> Self {
-        DvarLimitsLinearColorRGB { min: n, max: m }
+    /// Creates a new [`DvarLimitsLinearColorRGB`] with
+    /// the supplied `min` and `max`.
+    ///
+    /// # Parameters
+    /// * `min` - The minimum value allowed for the [`Dvar`]'s values.
+    /// 0.0 <= min <= max <= 1.0 must hold true.
+    /// * `max` - The maximum value allowed for the [`Dvar`]'s values.
+    /// 0.0 <= min <= max <= 1.0 must hold true.
+    /// Can be equal to `min`, cannot be less.
+    ///
+    /// # Panics
+    /// Currently will panic if `min` > `max` or
+    /// if 0 <= min <= max <= 1.0 does not hold true.
+    /// Should be changed at some point.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsLinearColorRGB::new(0.3, 0.7);
+    /// ```
+    pub fn new(min: f32, max: f32) -> Self {
+        if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
+            panic!(
+                "DvarLimitsLinearColorRGB::new(): \
+            supplied min is greater than max,\
+            or min and/or max are not within [0.0, 1.0]"
+            );
+        }
+
+        DvarLimitsLinearColorRGB { min, max }
     }
 }
 
@@ -428,6 +620,8 @@ pub struct DvarLimitsColorXYZ {
 }
 
 impl Default for DvarLimitsColorXYZ {
+    /// Returns a [`DvarLimitsColorXYZ`] with `min` field set to [`f32::MIN`]
+    /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
         DvarLimitsColorXYZ {
             min: f32::MIN,
@@ -465,8 +659,35 @@ impl Display for DvarLimitsColorXYZ {
 }
 
 impl DvarLimitsColorXYZ {
-    pub fn new(n: f32, m: f32) -> Self {
-        DvarLimitsColorXYZ { min: n, max: m }
+    /// Creates a new [`DvarLimitsColorXYZ`] with
+    /// the supplied `min` and `max`.
+    ///
+    /// # Parameters
+    /// * `min` - The minimum value allowed for the [`Dvar`]'s values.
+    /// 0.0 <= min <= max <= 1.0 must hold true.
+    /// * `max` - The maximum value allowed for the [`Dvar`]'s values.
+    /// 0.0 <= min <= max <= 1.0 must hold true.
+    /// Can be equal to `min`, cannot be less.
+    ///
+    /// # Panics
+    /// Currently will panic if `min` > `max` or
+    /// if 0 <= min <= max <= 1.0 does not hold true.
+    /// Should be changed at some point.
+    ///
+    /// # Example
+    /// ```
+    /// let domain = DvarLimitsColorXYZ::new(0.3, 0.7);
+    /// ```
+    pub fn new(min: f32, max: f32) -> Self {
+        if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
+            panic!(
+                "DvarLimitsLinearColorRGB::new(): \
+            supplied min is greater than max,\
+            or min and/or max are not within [0.0, 1.0]"
+            );
+        }
+
+        DvarLimitsColorXYZ { min, max }
     }
 }
 
@@ -2026,7 +2247,7 @@ lazy_static! {
 ///
 /// Example
 /// ```
-/// let dvar_name = "sv_test".to_string();
+/// let dvar_name = "sv_test";
 /// match find(dvar_name) {
 ///    Some(d) => println!("found dvar {} with value {}", d.name, d.current),
 ///    None => panic!("dvar {} not found", dvar_name)
@@ -2062,7 +2283,7 @@ pub fn find(name: &str) -> Option<Dvar> {
 ///
 /// Example
 /// ```
-/// let dvar_name = "sv_test".to_string();
+/// let dvar_name = "sv_test";
 /// match exists(dvar_name) {
 ///    Some(d) => println!("found dvar {}", d.name),
 ///    None => panic!("dvar {} not found", dvar_name)
@@ -3125,7 +3346,7 @@ pub fn reregister_int(
 /// ```
 pub fn register_string(
     name: &str,
-    value: String,
+    value: &str,
     flags: Option<DvarFlags>,
     description: Option<&str>,
 ) -> bool {
@@ -3151,7 +3372,7 @@ pub fn register_string(
             .description(description.unwrap_or_default().to_string())
             .flags(flags.unwrap_or_default())
             .type_string()
-            .value(value)
+            .value(value.to_string())
             .build();
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
@@ -3192,7 +3413,7 @@ pub fn register_string(
 /// ```
 pub fn register_new_string(
     name: &str,
-    value: String,
+    value: &str,
     flags: Option<DvarFlags>,
     description: Option<&str>,
 ) -> bool {
@@ -3231,7 +3452,7 @@ pub fn register_new_string(
 /// ```
 pub fn reregister_string(
     name: &str,
-    value: String,
+    value: &str,
     flags: Option<DvarFlags>,
     description: Option<&str>,
 ) -> bool {
@@ -4224,8 +4445,8 @@ pub fn reregister_color_xyz(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = DvarValue::Float(372.1);
@@ -4272,8 +4493,8 @@ fn set_variant_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = false;
@@ -4281,11 +4502,7 @@ fn set_variant_from_source(
 ///     set_bool_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_bool_from_source(
-    name: &str,
-    value: bool,
-    source: SetSource,
-) -> bool {
+fn set_bool_from_source(name: &str, value: bool, source: SetSource) -> bool {
     set_variant_from_source(name, DvarValue::Bool(value), source)
 }
 
@@ -4311,8 +4528,42 @@ pub fn set_bool_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = false;
+///     set_bool_internal(name, value);
+/// }
+/// ```
+pub fn set_bool_internal(name: &str, value: bool) -> bool {
+    set_bool_from_source(name, value, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = false;
@@ -4320,7 +4571,7 @@ pub fn set_bool_from_source(
 /// }
 /// ```
 pub fn set_bool(name: &str, value: bool) -> bool {
-    set_bool_from_source(name, value, SetSource::Internal)
+    set_bool_from_source(name, value, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -4349,11 +4600,11 @@ pub fn set_bool(name: &str, value: bool) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = false;
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_bool(name, value, Some(flags), Some(description));
 /// ```
 pub fn set_or_register_bool(
@@ -4363,7 +4614,7 @@ pub fn set_or_register_bool(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_bool(name, value)
+        set_bool_internal(name, value)
     } else {
         register_bool(name, value, flags, description)
     }
@@ -4392,8 +4643,8 @@ pub fn set_or_register_bool(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = 420.49f32;
@@ -4401,11 +4652,7 @@ pub fn set_or_register_bool(
 ///     set_float_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_float_from_source(
-    name: &str,
-    value: f32,
-    source: SetSource,
-) -> bool {
+fn set_float_from_source(name: &str, value: f32, source: SetSource) -> bool {
     set_variant_from_source(name, DvarValue::Float(value), source)
 }
 
@@ -4431,8 +4678,42 @@ pub fn set_float_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = 420.49f;
+///     set_float_internal(name, value);
+/// }
+/// ```
+pub fn set_float_internal(name: &str, value: f32) -> bool {
+    set_float_from_source(name, value, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = 420.49f;
@@ -4440,7 +4721,7 @@ pub fn set_float_from_source(
 /// }
 /// ```
 pub fn set_float(name: &str, value: f32) -> bool {
-    set_float_from_source(name, value, SetSource::Internal)
+    set_float_from_source(name, value, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -4469,13 +4750,13 @@ pub fn set_float(name: &str, value: f32) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = 420.69f32;
 /// let min = 400.0f32;
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_float(name, value, Some(min), Some(max), Some(flags), Some(description));
 /// ```
 pub fn set_or_register_float(
@@ -4487,7 +4768,7 @@ pub fn set_or_register_float(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_float(name, value)
+        set_float_internal(name, value)
     } else {
         register_float(name, value, min, max, flags, description)
     }
@@ -4516,8 +4797,8 @@ pub fn set_or_register_float(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (420.49f32, 694.20f32);
@@ -4525,7 +4806,7 @@ pub fn set_or_register_float(
 ///     set_vector2_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_vector2_from_source(
+fn set_vector2_from_source(
     name: &str,
     value: Vec2f32,
     source: SetSource,
@@ -4555,8 +4836,42 @@ pub fn set_vector2_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = (420.69f, 694.20f32);
+///     set_vector2_internal(name, value);
+/// }
+/// ```
+fn set_vector2_internal(name: &str, value: Vec2f32) -> bool {
+    set_vector2_from_source(name, value, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (420.69f, 694.20f32);
@@ -4564,7 +4879,7 @@ pub fn set_vector2_from_source(
 /// }
 /// ```
 pub fn set_vector2(name: &str, value: Vec2f32) -> bool {
-    set_vector2_from_source(name, value, SetSource::Internal)
+    set_vector2_from_source(name, value, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -4593,13 +4908,13 @@ pub fn set_vector2(name: &str, value: Vec2f32) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = (420.69f32, 694.20f32);
 /// let min = 400.0f32;
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_vector2(name, value, Some(min), Some(max), Some(flags), Some(description));
 /// ```
 pub fn set_or_register_vector2(
@@ -4611,7 +4926,7 @@ pub fn set_or_register_vector2(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_vector2(name, value)
+        set_vector2_internal(name, value)
     } else {
         register_vector2(name, value, min, max, flags, description)
     }
@@ -4640,8 +4955,8 @@ pub fn set_or_register_vector2(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (420.49f32, 694.20f32, -165.0f32);
@@ -4649,7 +4964,7 @@ pub fn set_or_register_vector2(
 ///     set_vector3_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_vector3_from_source(
+fn set_vector3_from_source(
     name: &str,
     value: Vec3f32,
     source: SetSource,
@@ -4679,8 +4994,42 @@ pub fn set_vector3_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = (420.69f, 694.20f32, -165.0f32);
+///     set_vector3_internal(name, value);
+/// }
+/// ```
+fn set_vector3_internal(name: &str, value: Vec3f32) -> bool {
+    set_vector3_from_source(name, value, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (420.69f, 694.20f32, -165.0f32);
@@ -4688,7 +5037,7 @@ pub fn set_vector3_from_source(
 /// }
 /// ```
 pub fn set_vector3(name: &str, value: Vec3f32) -> bool {
-    set_vector3_from_source(name, value, SetSource::Internal)
+    set_vector3_from_source(name, value, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -4717,13 +5066,13 @@ pub fn set_vector3(name: &str, value: Vec3f32) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = (420.69f32, 694.20f32, -165.0f32);
 /// let min = -200.0f32;
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_vector3(name, value, Some(min), Some(max), Some(flags), Some(description));
 /// ```
 pub fn set_or_register_vector3(
@@ -4764,8 +5113,8 @@ pub fn set_or_register_vector3(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (420.49f32, 694.20f32, -165.0f32, 196.23f32);
@@ -4773,7 +5122,7 @@ pub fn set_or_register_vector3(
 ///     set_vector4_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_vector4_from_source(
+fn set_vector4_from_source(
     name: &str,
     value: Vec4f32,
     source: SetSource,
@@ -4803,8 +5152,42 @@ pub fn set_vector4_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = (420.69f, 694.20f32, -165.0f32, 196.23f32);
+///     set_vector4_internal(name, value);
+/// }
+/// ```
+fn set_vector4_internal(name: &str, value: Vec4f32) -> bool {
+    set_vector4_from_source(name, value, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (420.69f, 694.20f32, -165.0f32, 196.23f32);
@@ -4812,7 +5195,7 @@ pub fn set_vector4_from_source(
 /// }
 /// ```
 pub fn set_vector4(name: &str, value: Vec4f32) -> bool {
-    set_vector4_from_source(name, value, SetSource::Internal)
+    set_vector4_from_source(name, value, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -4841,13 +5224,13 @@ pub fn set_vector4(name: &str, value: Vec4f32) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = (420.69f32, 694.20f32, -165.0f32, 196.23f32);
 /// let min = -400.0f32;
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_vector4(name, value, Some(min), Some(max), Some(flags), Some(description));
 /// ```
 pub fn set_or_register_vector4(
@@ -4888,8 +5271,8 @@ pub fn set_or_register_vector4(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = 420i32;
@@ -4897,7 +5280,7 @@ pub fn set_or_register_vector4(
 ///     set_int_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_int_from_source(name: &str, value: i32, source: SetSource) -> bool {
+fn set_int_from_source(name: &str, value: i32, source: SetSource) -> bool {
     set_variant_from_source(name, DvarValue::Int(value), source)
 }
 
@@ -4923,8 +5306,42 @@ pub fn set_int_from_source(name: &str, value: i32, source: SetSource) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = 420;
+///     set_int(name, value);
+/// }
+/// ```
+pub fn set_int_internal(name: &str, value: i32) -> bool {
+    set_int_from_source(name, value, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = 420;
@@ -4932,7 +5349,7 @@ pub fn set_int_from_source(name: &str, value: i32, source: SetSource) -> bool {
 /// }
 /// ```
 pub fn set_int(name: &str, value: i32) -> bool {
-    set_int_from_source(name, value, SetSource::Internal)
+    set_int_from_source(name, value, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -4961,13 +5378,13 @@ pub fn set_int(name: &str, value: i32) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = 420i32;
 /// let min = 200i32;
 /// let max = 400i32;
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar");
 /// set_or_register_int(name, value, Some(min), Some(max), Some(flags), Some(description));
 /// ```
 pub fn set_or_register_int(
@@ -4979,7 +5396,7 @@ pub fn set_or_register_int(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_int(name, value)
+        set_int_internal(name, value)
     } else {
         register_int(name, value, min, max, flags, description)
     }
@@ -5008,21 +5425,17 @@ pub fn set_or_register_int(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
-///     let value = "test".to_string();
+///     let value = "test";
 ///     let source = SetSource::Internal;
 ///     set_string_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_string_from_source(
-    name: &str,
-    value: String,
-    source: SetSource,
-) -> bool {
-    set_variant_from_source(name, DvarValue::String(value), source)
+fn set_string_from_source(name: &str, value: &str, source: SetSource) -> bool {
+    set_variant_from_source(name, DvarValue::String(value.to_string()), source)
 }
 
 /// Sets the value of an existing [`Dvar`].
@@ -5047,16 +5460,50 @@ pub fn set_string_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
-///     let value = "test".to_string();
+///     let value = "test";
 ///     set_string(name, value);
 /// }
 /// ```
-fn set_string(name: &str, value: String) -> bool {
+fn set_string_internal(name: &str, value: &str) -> bool {
     set_string_from_source(name, value, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = "test";
+///     set_string(name, value);
+/// }
+/// ```
+pub fn set_string(name: &str, value: &str) -> bool {
+    set_string_from_source(name, value, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -5085,21 +5532,21 @@ fn set_string(name: &str, value: String) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
-/// let value = "test".to_string();
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// let value = "test";
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_string(name, value, Some(flags), Some(description));
 /// ```
-pub fn set_or_register_string(
+fn set_or_register_string(
     name: &str,
-    value: String,
+    value: &str,
     flags: Option<DvarFlags>,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_string(name, value)
+        set_string_internal(name, value)
     } else {
         register_string(name, value, flags, description)
     }
@@ -5128,11 +5575,11 @@ pub fn set_or_register_string(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
-///     let value = "test".to_string();
+///     let value = "test";
 ///     let source = SetSource::Internal;
 ///     set_enumeration_from_source(name, value, source);
 /// }
@@ -5167,16 +5614,50 @@ pub fn set_enumeration_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
-///     let value = "test".to_string();
+///     let value = "test";
+///     set_enumeration(name, value);
+/// }
+/// ```
+fn set_enumeration_internal(name: &str, value: String) -> bool {
+    set_enumeration_from_source(name, value, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = "test";
 ///     set_enumeration(name, value);
 /// }
 /// ```
 fn set_enumeration(name: &str, value: String) -> bool {
-    set_enumeration_from_source(name, value, SetSource::Internal)
+    set_enumeration_from_source(name, value, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -5205,12 +5686,12 @@ fn set_enumeration(name: &str, value: String) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
-/// let value = "test".to_string();
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// let value = "test";
 /// let domain = vec!["test".to_string(), "test2".to_string()];
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_enumeration(name, value, Some(domain), Some(flags), Some(description));
 /// ```
 pub fn set_or_register_enumeration(
@@ -5221,7 +5702,7 @@ pub fn set_or_register_enumeration(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_enumeration(name, value)
+        set_enumeration_internal(name, value)
     } else {
         register_enumeration(name, value, domain, flags, description)
     }
@@ -5250,8 +5731,8 @@ pub fn set_or_register_enumeration(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (0.957f32, 0.66f32, 0.71875f32, 1.0f);
@@ -5259,7 +5740,7 @@ pub fn set_or_register_enumeration(
 ///     set_color_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_color_from_source(
+fn set_color_from_source(
     name: &str,
     red: f32,
     green: f32,
@@ -5296,8 +5777,48 @@ pub fn set_color_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = (0.957f32, 0.66f32, 0.71875f32, 1.0f);
+///     set_color(name, value);
+/// }
+/// ```
+fn set_color_internal(
+    name: &str,
+    red: f32,
+    green: f32,
+    blue: f32,
+    alpha: f32,
+) -> bool {
+    set_color_from_source(name, red, green, blue, alpha, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (0.957f32, 0.66f32, 0.71875f32, 1.0f);
@@ -5311,7 +5832,7 @@ pub fn set_color(
     blue: f32,
     alpha: f32,
 ) -> bool {
-    set_color_from_source(name, red, green, blue, alpha, SetSource::Internal)
+    set_color_from_source(name, red, green, blue, alpha, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -5340,11 +5861,11 @@ pub fn set_color(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = (0.957f32, 0.66f32, 0.71875f32, 1.0f);
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_color(name, value, Some(flags), Some(description));
 /// ```
 pub fn set_or_register_color(
@@ -5357,7 +5878,7 @@ pub fn set_or_register_color(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_color(name, red, green, blue, alpha)
+        set_color_internal(name, red, green, blue, alpha)
     } else {
         register_color(name, red, green, blue, alpha, flags, description)
     }
@@ -5386,8 +5907,8 @@ pub fn set_or_register_color(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (18_446_744_073_709_551_616 / 2) - 1;
@@ -5395,11 +5916,7 @@ pub fn set_or_register_color(
 ///     set_int64_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_int64_from_source(
-    name: &str,
-    value: i64,
-    source: SetSource,
-) -> bool {
+fn set_int64_from_source(name: &str, value: i64, source: SetSource) -> bool {
     set_variant_from_source(name, DvarValue::Int64(value), source)
 }
 
@@ -5425,8 +5942,42 @@ pub fn set_int64_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = (18_446_744_073_709_551_616 / 2) - 1;
+///     set_int64(name, value);
+/// }
+/// ```
+fn set_int64_internal(name: &str, value: i64) -> bool {
+    set_int64_from_source(name, value, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (18_446_744_073_709_551_616 / 2) - 1;
@@ -5434,7 +5985,7 @@ pub fn set_int64_from_source(
 /// }
 /// ```
 pub fn set_int64(name: &str, value: i64) -> bool {
-    set_int64_from_source(name, value, SetSource::Internal)
+    set_int64_from_source(name, value, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -5463,13 +6014,13 @@ pub fn set_int64(name: &str, value: i64) -> bool {
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = (18_446_744_073_709_551_616 / 2) - 1;
 /// let min = 0;
 /// let max = i64::MAX;
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_int64(name, value, Some(min), Some(max), Some(flags), Some(description));
 /// ```
 pub fn set_or_register_int64(
@@ -5481,7 +6032,7 @@ pub fn set_or_register_int64(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_int64(name, value)
+        set_int64_internal(name, value)
     } else {
         register_int64(name, value, min, max, flags, description)
     }
@@ -5510,8 +6061,8 @@ pub fn set_or_register_int64(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (0.957f32, 0.66f32, 0.71875f32);
@@ -5519,7 +6070,7 @@ pub fn set_or_register_int64(
 ///     set_linear_color_rgb_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_linear_color_rgb_from_source(
+fn set_linear_color_rgb_from_source(
     name: &str,
     red: f32,
     green: f32,
@@ -5555,8 +6106,53 @@ pub fn set_linear_color_rgb_from_source(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = (0.957f32, 0.66f32, 0.71875f32);
+///     set_linear_color_rgb(name, value);
+/// }
+/// ```
+fn set_linear_color_rgb_internal(
+    name: &str,
+    red: f32,
+    green: f32,
+    blue: f32,
+) -> bool {
+    set_linear_color_rgb_from_source(
+        name,
+        red,
+        green,
+        blue,
+        SetSource::Internal,
+    )
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (0.957f32, 0.66f32, 0.71875f32);
@@ -5574,7 +6170,7 @@ pub fn set_linear_color_rgb(
         red,
         green,
         blue,
-        SetSource::Internal,
+        SetSource::External,
     )
 }
 
@@ -5604,13 +6200,13 @@ pub fn set_linear_color_rgb(
 ///
 /// # Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = (0.957f32, 0.66f32, 0.71875f32);
 /// let min = 0.5f32;
 /// let max = 0.97f32;
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_linear_color_rgb(name, value, Some(min), Some(max), Some(flags), Some(description));
 /// ```
 #[allow(clippy::too_many_arguments)]
@@ -5625,7 +6221,7 @@ pub fn set_or_register_linear_color_rgb(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_linear_color_rgb(name, red, green, blue)
+        set_linear_color_rgb_internal(name, red, green, blue)
     } else {
         register_linear_color_rgb(
             name,
@@ -5663,8 +6259,8 @@ pub fn set_or_register_linear_color_rgb(
 ///
 /// Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (0.957f32, 0.66f32, 0.71875f32);
@@ -5672,7 +6268,7 @@ pub fn set_or_register_linear_color_rgb(
 ///     set_color_xyz_from_source(name, value, source);
 /// }
 /// ```
-pub fn set_color_xyz_from_source(
+fn set_color_xyz_from_source(
     name: &str,
     x: f32,
     y: f32,
@@ -5704,8 +6300,42 @@ pub fn set_color_xyz_from_source(
 ///
 /// Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     let value = (0.957f32, 0.66f32, 0.71875f32);
+///     set_color_xyz(name, value);
+/// }
+/// ```
+fn set_color_xyz_internal(name: &str, x: f32, y: f32, z: f32) -> bool {
+    set_color_xyz_from_source(name, x, y, z, SetSource::Internal)
+}
+
+/// Sets the value of an existing [`Dvar`].
+///
+/// Uses the supplied parameters to update an existing [`Dvar`] with name
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
+/// doesn't exist.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be updated.
+/// * `value` - The value to set the [`Dvar`]'s value to.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// // Make sure Dvar currently exists
 /// if dvar.is_some() {
 ///     let value = (0.957f32, 0.66f32, 0.71875f32);
@@ -5713,7 +6343,7 @@ pub fn set_color_xyz_from_source(
 /// }
 /// ```
 pub fn set_color_xyz(name: &str, x: f32, y: f32, z: f32) -> bool {
-    set_color_xyz_from_source(name, x, y, z, SetSource::Internal)
+    set_color_xyz_from_source(name, x, y, z, SetSource::External)
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -5742,13 +6372,13 @@ pub fn set_color_xyz(name: &str, x: f32, y: f32, z: f32) -> bool {
 ///
 /// Example
 /// ```
-/// let name = "sv_test".to_string();
-/// let dvar = find(&name);
+/// let name = "sv_test";
+/// let dvar = find(name);
 /// let value = (0.957f32, 0.66f32, 0.71875f32);
 /// let min = 0.5f32;
 /// let max = 0.97f32;
 /// let flags = DvarFlags::External;
-/// let description = "External Dvar".to_string();
+/// let description = "External Dvar";
 /// set_or_register_color_xyz(name, value, Some(min), Some(max), Some(flags), Some(description));
 /// ```
 #[allow(clippy::too_many_arguments)]
@@ -5763,7 +6393,7 @@ pub fn set_or_register_color_xyz(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_color_xyz(name, x, y, z)
+        set_color_xyz_internal(name, x, y, z)
     } else {
         register_color_xyz(name, x, y, z, min, max, flags, description)
     }
@@ -5787,7 +6417,7 @@ pub fn set_or_register_color_xyz(
 ///
 /// Example
 /// ```
-/// let b = get_bool("sv_test".to_string()).unwrap();
+/// let b = get_bool("sv_test").unwrap();
 /// ```
 pub fn get_bool(name: &str) -> Option<bool> {
     match find(name) {
@@ -5856,7 +6486,7 @@ pub fn get_or_register_bool(
 ///
 /// Example
 /// ```
-/// let f = get_float("sv_test".to_string()).unwrap();
+/// let f = get_float("sv_test").unwrap();
 /// ```
 pub fn get_float(name: &str) -> Option<f32> {
     match find(name) {
@@ -5931,7 +6561,7 @@ pub fn get_or_register_float(
 ///
 /// Example
 /// ```
-/// let v2 = get_vector2("sv_test".to_string()).unwrap();
+/// let v2 = get_vector2("sv_test").unwrap();
 /// ```
 pub fn get_vector2(name: &str) -> Option<Vec2f32> {
     match find(name) {
@@ -6006,7 +6636,7 @@ pub fn get_or_register_vector2(
 ///
 /// Example
 /// ```
-/// let v3 = get_vector3("sv_test".to_string()).unwrap();
+/// let v3 = get_vector3("sv_test").unwrap();
 /// ```
 pub fn get_vector3(name: &str) -> Option<Vec3f32> {
     match find(name) {
@@ -6081,7 +6711,7 @@ pub fn get_or_register_vector3(
 ///
 /// Example
 /// ```
-/// let v4 = get_vector4("sv_test".to_string()).unwrap();
+/// let v4 = get_vector4("sv_test").unwrap();
 /// ```
 pub fn get_vector4(name: &str) -> Option<Vec4f32> {
     match find(name) {
@@ -6156,7 +6786,7 @@ pub fn get_or_register_vector4(
 ///
 /// Example
 /// ```
-/// let v2 = get_int("sv_test".to_string()).unwrap();
+/// let v2 = get_int("sv_test").unwrap();
 /// ```
 pub fn get_int(name: &str) -> Option<i32> {
     match find(name) {
@@ -6231,7 +6861,7 @@ pub fn get_or_register_int(
 ///
 /// Example
 /// ```
-/// let v2 = get_string("sv_test".to_string()).unwrap();
+/// let v2 = get_string("sv_test").unwrap();
 /// ```
 pub fn get_string(name: &str) -> Option<String> {
     match find(name) {
@@ -6270,15 +6900,15 @@ pub fn get_string(name: &str) -> Option<String> {
 /// ```
 pub fn get_or_register_string(
     name: &str,
-    value: String,
+    value: &str,
     flags: Option<DvarFlags>,
     description: Option<&str>,
 ) -> Option<String> {
     get_string(name).or_else(|| {
-        if !register_string(name, value.clone(), flags, description) {
+        if !register_string(name, value, flags, description) {
             return None;
         }
-        Some(value)
+        Some(value.to_string())
     })
 }
 
@@ -6300,7 +6930,7 @@ pub fn get_or_register_string(
 ///
 /// Example
 /// ```
-/// let v2 = get_enumeration("sv_test".to_string()).unwrap();
+/// let v2 = get_enumeration("sv_test").unwrap();
 /// ```
 pub fn get_enumeration(name: &str) -> Option<String> {
     match find(name) {
@@ -6378,7 +7008,7 @@ pub fn get_or_register_enumeration(
 ///
 /// Example
 /// ```
-/// let c = get_color("sv_test".to_string()).unwrap();
+/// let c = get_color("sv_test").unwrap();
 /// ```
 pub fn get_color(name: &str) -> Option<Vec4f32> {
     match find(name) {
@@ -6456,7 +7086,7 @@ pub fn get_or_register_color(
 ///
 /// Example
 /// ```
-/// let i = get_int64("sv_test".to_string()).unwrap();
+/// let i = get_int64("sv_test").unwrap();
 /// ```
 pub fn get_int64(name: &str) -> Option<i64> {
     match find(name) {
@@ -6531,7 +7161,7 @@ pub fn get_or_register_int64(
 ///
 /// Example
 /// ```
-/// let lc = get_linear_color_rgb("sv_test".to_string()).unwrap();
+/// let lc = get_linear_color_rgb("sv_test").unwrap();
 /// ```
 pub fn get_linear_color_rgb(name: &str) -> Option<Vec3f32> {
     match find(name) {
@@ -6622,7 +7252,7 @@ pub fn get_or_register_linear_color_rgb(
 ///
 /// Example
 /// ```
-/// let cxyz = get_color_xyz("sv_test".to_string()).unwrap();
+/// let cxyz = get_color_xyz("sv_test").unwrap();
 /// ```
 pub fn get_color_xyz(name: &str) -> Option<Vec3f32> {
     match find(name) {
@@ -6924,7 +7554,7 @@ lazy_static! {
         AtomicBool::new(false);
 }
 
-fn set_command(name: &str, value: String) {
+fn set_command(name: &str, value: &str) {
     set_string_from_source(name, value, SetSource::External);
     let lock = DVARS.clone();
     let mut writer = lock.try_write().expect("dvar::set_command: failed to acquire writer lock. Probably still held by calling function.");
@@ -7081,7 +7711,7 @@ fn toggle_internal_f() -> bool {
             }
         }
         if get_enumeration(&name).unwrap() == argv_i {
-            set_command(&cmd::argv(1), cmd::argv(i + 1));
+            set_command(&cmd::argv(1), &cmd::argv(i + 1));
             return true;
         }
     }
@@ -7094,7 +7724,7 @@ fn toggle_internal_f() -> bool {
             }
         }
     }
-    set_command(&argv_1, argv_2);
+    set_command(&argv_1, &argv_2);
     true
 }
 
@@ -7129,7 +7759,7 @@ fn set_f() {
     }
 
     let string = get_combined_string(2);
-    set_command(&name, string);
+    set_command(&name, &string);
 }
 
 fn sets_f() {
@@ -7211,7 +7841,7 @@ fn set_from_dvar_f() {
     let lock = DVARS.clone();
     let mut writer = lock.try_write().expect("dvar::set_from_dvar: failed to acquire writer lock. Probably still held by calling function.");
     if let Some(d) = writer.get_mut(&source_dvar_name) {
-        set_command(&dest_dvar_name, d.current.to_string());
+        set_command(&dest_dvar_name, &d.current.to_string());
     } else {
         com::println(&format!(
             "dvar \'{}\' doesn\'t exist\n",
@@ -7237,7 +7867,7 @@ fn set_to_time_f() {
 
     let time = sys::milliseconds();
     let name = cmd::argv(1);
-    set_command(&name, format!("{}", time));
+    set_command(&name, &format!("{}", time));
 }
 
 fn reset_f() {
