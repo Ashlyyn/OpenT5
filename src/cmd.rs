@@ -75,15 +75,15 @@ impl CmdArgs {
 
 impl CmdFunction {
     fn new(
-        name: String,
-        auto_complete_dir: String,
-        auto_complete_ext: String,
+        name: &str,
+        auto_complete_dir: &str,
+        auto_complete_ext: &str,
         function: fn(),
     ) -> Self {
         CmdFunction {
-            name,
-            auto_complete_dir,
-            auto_complete_ext,
+            name: name.to_string(),
+            auto_complete_dir: auto_complete_dir.to_string(),
+            auto_complete_ext: auto_complete_ext.to_string(),
             function,
         }
     }
@@ -94,22 +94,22 @@ lazy_static! {
         Arc::new(RwLock::new(HashMap::new()));
 }
 
-pub fn find(name: String) -> Option<CmdFunction> {
+pub fn find(name: &str) -> Option<CmdFunction> {
     let lock = CMD_FUNCTIONS.clone();
     let reader = lock.read().unwrap();
-    reader.get(&name).cloned()
+    reader.get(name).cloned()
 }
 
-pub fn add_internal(name: String, func: fn()) {
-    match find(name.clone()) {
+pub fn add_internal(name: &str, function: fn()) {
+    match find(name) {
         Some(_) => com::println(&format!(
             "cmd::add_internal: {} is already defined",
             name
         )),
         None => {
             CMD_FUNCTIONS.write().unwrap().insert(
-                name.clone(),
-                CmdFunction::new(name, "".to_string(), "".to_string(), func),
+                name.to_string(),
+                CmdFunction::new(name, "", "", function),
             );
         }
     }
