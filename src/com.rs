@@ -149,6 +149,11 @@ pub fn touch_memory() {
     todo!("com::touch_memory");
 }
 
+// TODO - implement
 pub fn get_icon_rgba() -> Option<winit::window::Icon> {
     None
+}
+
+pub fn startup_variable(name: &str) {
+    println(&format!("com::startup_variable: {}", name));
 }
