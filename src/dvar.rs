@@ -1202,12 +1202,9 @@ impl Dvar {
     }
 
     fn any_latched_values() -> bool {
-        for (_, d) in DVARS.try_read().expect("dvar::any_latched_values: failed to acquire reader lock. Probably still held by calling function.").iter() {
-            if d.has_latched_value() {
-                return true;
-            }
-        }
-        false
+        let lock = DVARS.clone();
+        let reader = lock.try_read().expect("dvar::any_latched_values: failed to acquire reader lock. Probably still held by calling function.");
+        reader.values().find(|&d| d.has_latched_value()).is_some()
     }
 
     fn can_change_value(
@@ -1329,13 +1326,7 @@ impl Dvar {
             }
             DvarValue::String(_) => true,
             DvarValue::Enumeration(v) => {
-                for s in domain.as_enumeration_limits().unwrap().strings.iter()
-                {
-                    if v == *s {
-                        return true;
-                    }
-                }
-                false
+                domain.as_enumeration_limits().unwrap().strings.iter().find(|&s| *s == v).is_some()
             }
             DvarValue::Color(_) => true,
             DvarValue::Int64(i) => {
@@ -1484,6 +1475,7 @@ pub struct DvarBuilder<T> {
 impl DvarBuilder<DvarBuilderStartState> {
     pub fn new() -> DvarBuilder<DvarBuilderDataState> {
         unsafe {
+            #[allow(clippy::uninit_assumed_init)]
             DvarBuilder::<DvarBuilderDataState> {
                 dvar: Dvar {
                     name: "".to_string(),
@@ -7334,7 +7326,8 @@ pub fn get_or_register_color_xyz(
 ///
 /// Example
 /// ```
-/// let c = get_or_register_color_xyz("sv_test", 0.1f, 0.3f, 0.5f, None, None).unwrap();
+/// let name = "sv_test";
+/// clear_modified(name);
 /// ```
 pub fn clear_modified(name: &str) -> bool {
     let lock = DVARS.clone();
@@ -7347,15 +7340,78 @@ pub fn clear_modified(name: &str) -> bool {
     false
 }
 
+/// Adds flags to an existing [`Dvar`].
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to add the flags to.
+/// * `flags` - The [`DvarFlags`] to add to the [`Dvar`].
+///
+/// # Return Value
+///
+/// Returns true if the [`Dvar`] exists and the flags were successfully added,
+/// false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// Example
+/// ```
+/// let name = "sv_test";
+/// let flags = DvarFlags::empty();
+/// add_flags(name, flags);
+/// ```
+pub fn add_flags(name: &str, flags: DvarFlags) -> bool {
+    let lock = DVARS.clone();
+    let mut writer = lock.try_write().expect("");
+    if let Some(d) = writer.get_mut(name) {
+        d.add_flags(flags);
+        return true;
+    };
+
+    false
+}
+
+/// Clears flags from an existing [`Dvar`].
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to add the flags to.
+/// * `flags` - The [`DvarFlags`] to clear from the [`Dvar`].
+///
+/// # Return Value
+///
+/// Returns true if the [`Dvar`] exists and the flags were successfully added,
+/// false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// Example
+/// ```
+/// let name = "sv_test";
+/// let flags = DvarFlags::EXTERNAL;
+/// clear_flags(name, flags);
+/// ```
+pub fn clear_flags(name: &str, flags: DvarFlags) -> bool {
+    let lock = DVARS.clone();
+    let mut writer = lock.try_write().expect("");
+    if let Some(d) = writer.get_mut(name) {
+        d.clear_flags(flags);
+        return true;
+    };
+
+    false
+}
+
 // Helper function to check if Dvar name is valid
 // Valid names consist only of alphanumeric characters and underscores
 fn name_is_valid(name: &str) -> bool {
-    for c in name.chars() {
-        if !c.is_alphanumeric() && c != '_' {
-            return false;
-        }
-    }
-    true
+    name.chars().find(|&c| !c.is_alphanumeric() && c != '_').is_none()
 }
 
 // Toggle current value of Dvar if possible
@@ -7521,10 +7577,8 @@ fn index_string_to_enum_string(
         return None;
     }
 
-    for c in index_string.chars() {
-        if c.is_ascii_digit() {
-            return None;
-        }
+    if index_string.chars().find(|&c| c.is_ascii_digit()).is_some() {
+        return None;
     }
 
     match index_string.parse::<usize>() {
@@ -7811,7 +7865,8 @@ fn set_admin_f() {
     let mut writer = lock.try_write().expect(
         "dvar::set_admin: failed to acquire writer lock. Probably still held by calling function.",
     );
-    match writer.get_mut(&name) {
+    let dvar = writer.get_mut(&name);
+    match dvar {
         Some(d) => {
             if d.flags.contains(DvarFlags::CON_ACCESS) {
                 d.add_flags(DvarFlags::UNKNOWN_00000001_A);
@@ -7894,9 +7949,8 @@ fn list_f() {
         let reader = lock.try_read().expect(
             "dvar::list: failed to acquire reader lock. Probably still held by calling function.",
         );
-        for (_, dvar) in reader.iter() {
-            list_single(dvar, &argv_1);
-        }
+        let iter = reader.values();
+        iter.for_each(|d| list_single(d, &argv_1));
     }
     com::println(&format!(
         "\n{} total dvars",
@@ -8063,6 +8117,13 @@ fn register_float_f() {
 
 fn register_color_f() {
     let argc = cmd::argc();
+    // The command will be argv[0]. The name of the Dvar will be argv[1].
+    // The R, G, B, and A components will be argv[2]-argv[6].
+    // However, the A componenet is optional. Thus, argc may be 5 (if the A
+    // component is not included), or 6 (if it is).
+
+    // If argc isn't 5 or 6, the command is malformed. Print the correct usage
+    // and return
     if argc != 5 && argc != 6 {
         let cmd = cmd::argv(0);
         com::println(&format!("USAGE: {} <name> <r> <g> <b> [a]", cmd));
@@ -8070,18 +8131,16 @@ fn register_color_f() {
     }
 
     let name = cmd::argv(1);
-    let r = cmd::argv(2).parse::<f32>().unwrap();
-    let g = cmd::argv(3).parse::<f32>().unwrap();
-    let b = cmd::argv(4).parse::<f32>().unwrap();
-    let a = if argc == 6 {
-        cmd::argv(5).parse::<f32>().unwrap()
-    } else {
-        1.0
-    };
-
+    // Default the R, G, and B components to 0.0 if they're malformed
+    let r = cmd::argv(2).parse::<f32>().unwrap_or(0.0);
+    let g = cmd::argv(3).parse::<f32>().unwrap_or(0.0);
+    let b = cmd::argv(4).parse::<f32>().unwrap_or(0.0);
+    // Default the A component to 1.0 if it's missing or malformed.
+    let a = cmd::argv(5).parse::<f32>().unwrap_or(1.0);
     let dvar = find(&name);
     match dvar {
         None => {
+            // If the Dvar doesn't exist, register it.
             register_color(
                 &name,
                 r,
@@ -8093,6 +8152,8 @@ fn register_color_f() {
             );
         }
         Some(d) => {
+            // Else if it does exist, the type is String, and the External flag is
+            // set, register it
             if let DvarValue::String(_) = d.current {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
                     register_color(
@@ -8108,6 +8169,7 @@ fn register_color_f() {
             }
         }
     }
+    // Otherwise do nothing and continue
 }
 
 fn setu_f() {
@@ -8119,10 +8181,7 @@ fn setu_f() {
 
     set_f();
     let name = cmd::argv(1);
-    let dvar = find(&name);
-    if let Some(..) = dvar {
-        dvar.unwrap().add_flags(DvarFlags::UNKNOWN_00000002_U);
-    }
+    dvar::add_flags(&name, DvarFlags::UNKNOWN_00000002_U);
 }
 
 fn restore_dvars() {
@@ -8132,12 +8191,13 @@ fn restore_dvars() {
 
     let lock = DVARS.clone();
     let mut writer = lock.write().expect("dvar::restore_dvars: failed to acquire writer lock. Probably still held by calling function.");
-    for (_, dvar) in writer.iter_mut() {
-        if dvar.loaded_from_save_game == true {
-            dvar.loaded_from_save_game = false;
-            dvar.set_variant(dvar.saved.clone(), SetSource::Internal);
+    let iter = writer.values_mut();
+    iter.for_each(|d| {
+        if d.loaded_from_save_game == true {
+            d.loaded_from_save_game = false;
+            d.set_variant(d.saved.clone(), SetSource::Internal);
         }
-    }
+    });
 }
 
 fn display_dvar(dvar: &Dvar, i: &mut i32) {
@@ -8151,10 +8211,12 @@ fn list_saved_dvars() {
     let lock = DVARS.clone();
     let reader = lock.write().expect("dvar::list_saved_dvars: failed to acquire reader lock. Probably still held by calling function.");
 
-    let mut i: i32 = 0;
-    for (_, dvar) in reader.iter() {
-        display_dvar(dvar, &mut i);
-    }
+    let iter = reader.values();
+    let mut i = 0;
+    iter.enumerate().for_each(|(j, d)| {
+        display_dvar(d, &mut (j as _));
+        i = j;
+    });
 
     com::println(&format!("\n{} total SAVED dvars", i));
 }
