@@ -30,35 +30,35 @@ pub fn init_language() {
         Language::ENGLISH as _,
         Some(Language::ENGLISH as _),
         Some(Language::MAX as _),
-        Some(dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED),
+        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED,
         Some("Language"),
     );
 
     dvar::register_bool(
         "loc_forceEnglish",
         false,
-        Some(dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED),
+        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED,
         Some("Force english localized strings"),
     );
 
     dvar::register_bool(
         "loc_translate",
         true,
-        Some(dvar::DvarFlags::LATCHED),
+        dvar::DvarFlags::LATCHED,
         Some("Enable translations"),
     );
 
     dvar::register_bool(
         "loc_warnings",
         false,
-        None,
+        dvar::DvarFlags::empty(),
         Some("Enable localization warnings"),
     );
 
     dvar::register_bool(
         "loc_warningsAsErrors",
         false,
-        None,
+        dvar::DvarFlags::empty(),
         Some("Throw an error for any unlocalized string"),
     );
 
