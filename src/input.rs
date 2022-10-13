@@ -33,7 +33,7 @@ fn init() {
     dvar::register_bool(
         "in_mouse",
         true,
-        Some(dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED),
+        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED,
         Some("Initialize the mouse drivers"),
     );
     startup();

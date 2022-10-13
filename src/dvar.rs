@@ -2314,12 +2314,12 @@ pub fn exists(name: &str) -> bool {
 /// let value = false;
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type bool"
-/// register_bool(name, value, Some(flags), Some(description));
+/// register_bool(name, value, flags, Some(description));
 /// ```
 pub fn register_bool(
     name: &str,
     value: bool,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -2342,7 +2342,7 @@ pub fn register_bool(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_bool()
             .value(value)
             .build();
@@ -2381,13 +2381,13 @@ pub fn register_bool(
 ///     let value = false;
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type bool"
-///     register_new_bool(name, value, Some(flags), Some(description));
+///     register_new_bool(name, value, flags, Some(description));
 /// }
 /// ```
 pub fn register_new_bool(
     name: &str,
     value: bool,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -2419,13 +2419,13 @@ pub fn register_new_bool(
 ///     let value = false;
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type bool"
-///     reregister_bool(name, value, Some(flags), Some(description));
+///     reregister_bool(name, value, flags, Some(description));
 /// }
 /// ```
 pub fn reregister_bool(
     name: &str,
     value: bool,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -2464,14 +2464,14 @@ pub fn reregister_bool(
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type float"
 /// register_float(name, value, Some(min), Some(max),
-///                             Some(flags), Some(description));
+///                             flags, Some(description));
 /// ```
 pub fn register_float(
     name: &str,
     value: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -2494,7 +2494,7 @@ pub fn register_float(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_float()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value(value)
@@ -2541,7 +2541,7 @@ pub fn register_float(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type float"
 ///     register_new_float(name, value, Some(min), Some(max),
-///                                     Some(flags), Some(description));
+///                                     flags, Some(description));
 /// }
 /// ```
 pub fn register_new_float(
@@ -2549,7 +2549,7 @@ pub fn register_new_float(
     value: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -2590,7 +2590,7 @@ pub fn register_new_float(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type float"
 ///     reregister_float(name, value, Some(min), Some(max),
-///                                   Some(flags), Some(description));
+///                                   flags, Some(description));
 /// }
 /// ```
 pub fn reregister_float(
@@ -2598,7 +2598,7 @@ pub fn reregister_float(
     value: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -2639,14 +2639,14 @@ pub fn reregister_float(
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type vector2"
 /// register_vector2(name, value, Some(min), Some(max),
-///                               Some(flags), Some(description));
+///                               flags, Some(description));
 /// ```
 pub fn register_vector2(
     name: &str,
     value: Vec2f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -2669,7 +2669,7 @@ pub fn register_vector2(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_vector2()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value(value)
@@ -2716,7 +2716,7 @@ pub fn register_vector2(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type vector2"
 ///     register_new_vector2(name, value, Some(min), Some(max),
-///                                       Some(flags), Some(description));
+///                                       flags, Some(description));
 /// }
 /// ```
 pub fn register_new_vector2(
@@ -2724,7 +2724,7 @@ pub fn register_new_vector2(
     value: Vec2f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -2766,7 +2766,7 @@ pub fn register_new_vector2(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type vector2"
 ///     reregister_vector2(name, value, Some(min), Some(max),
-///                                     Some(flags), Some(description));
+///                                     flags, Some(description));
 /// }
 /// ```
 pub fn reregister_vector2(
@@ -2774,7 +2774,7 @@ pub fn reregister_vector2(
     value: Vec2f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -2815,14 +2815,14 @@ pub fn reregister_vector2(
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type vector2"
 /// register_vector3(name, value, Some(min), Some(max),
-///                               Some(flags), Some(description));
+///                               flags, Some(description));
 /// ```
 pub fn register_vector3(
     name: &str,
     value: Vec3f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -2845,7 +2845,7 @@ pub fn register_vector3(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_vector3()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value(value)
@@ -2892,7 +2892,7 @@ pub fn register_vector3(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type vector2"
 ///     register_new_vector3(name, value, Some(min), Some(max),
-///                                       Some(flags), Some(description));
+///                                       flags, Some(description));
 /// }
 /// ```
 pub fn register_new_vector3(
@@ -2900,7 +2900,7 @@ pub fn register_new_vector3(
     value: Vec3f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -2942,7 +2942,7 @@ pub fn register_new_vector3(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type vector2"
 ///     reregister_vector3(name, value, Some(min), Some(max),
-///                                     Some(flags), Some(description));
+///                                     flags, Some(description));
 /// }
 /// ```
 pub fn reregister_vector3(
@@ -2950,7 +2950,7 @@ pub fn reregister_vector3(
     value: Vec3f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -2991,14 +2991,14 @@ pub fn reregister_vector3(
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type vector4"
 /// register_vector4(name, value, Some(min), Some(max),
-///                                   Some(flags), Some(description));
+///                                   flags, Some(description));
 /// ```
 pub fn register_vector4(
     name: &str,
     value: Vec4f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -3021,7 +3021,7 @@ pub fn register_vector4(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_vector4()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value(value)
@@ -3068,7 +3068,7 @@ pub fn register_vector4(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type vector4"
 ///     register_new_vector4(name, value, Some(min), Some(max),
-///                                       Some(flags), Some(description));
+///                                       flags, Some(description));
 /// }
 /// ```
 pub fn register_new_vector4(
@@ -3076,7 +3076,7 @@ pub fn register_new_vector4(
     value: Vec4f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -3118,7 +3118,7 @@ pub fn register_new_vector4(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type vector4"
 ///     reregister_vector4(name, value, Some(min), Some(max),
-///                                     Some(flags), Some(description));
+///                                     flags, Some(description));
 /// }
 /// ```
 pub fn reregister_vector4(
@@ -3126,7 +3126,7 @@ pub fn reregister_vector4(
     value: Vec4f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -3167,14 +3167,14 @@ pub fn reregister_vector4(
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type int"
 /// register_int(name, value, Some(min), Some(max),
-///                           Some(flags), Some(description));
+///                           flags, Some(description));
 /// ```
 pub fn register_int(
     name: &str,
     value: i32,
     min: Option<i32>,
     max: Option<i32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -3197,7 +3197,7 @@ pub fn register_int(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_int()
             .domain(min.unwrap_or(i32::MIN), max.unwrap_or(i32::MAX))
             .value(value)
@@ -3243,7 +3243,7 @@ pub fn register_int(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type int"
 ///     register_new_int(name, value, Some(min), Some(max),
-///                                   Some(flags), Some(description));
+///                                   flags, Some(description));
 /// }
 /// ```
 pub fn register_new_int(
@@ -3251,7 +3251,7 @@ pub fn register_new_int(
     value: i32,
     min: Option<i32>,
     max: Option<i32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -3293,7 +3293,7 @@ pub fn register_new_int(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type int"
 ///     reregister_int(name, value, Some(min), Some(max),
-///                                 Some(flags), Some(description));
+///                                 flags, Some(description));
 /// }
 /// ```
 pub fn reregister_int(
@@ -3301,7 +3301,7 @@ pub fn reregister_int(
     value: i32,
     min: Option<i32>,
     max: Option<i32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -3334,12 +3334,12 @@ pub fn reregister_int(
 /// let value = "this is a test";
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type string"
-/// register_string(name, value, Some(flags), Some(description));
+/// register_string(name, value, flags, Some(description));
 /// ```
 pub fn register_string(
     name: &str,
     value: &str,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -3362,7 +3362,7 @@ pub fn register_string(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_string()
             .value(value.to_string())
             .build();
@@ -3400,13 +3400,13 @@ pub fn register_string(
 ///     let value = "this is a test";
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type string"
-///     register_new_string(name, value, Some(flags), Some(description));
+///     register_new_string(name, value, flags, Some(description));
 /// }
 /// ```
 pub fn register_new_string(
     name: &str,
     value: &str,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -3439,13 +3439,13 @@ pub fn register_new_string(
 ///     let value = "this is a test";
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type string"
-///     reregister_string(name, value, Some(flags), Some(description));
+///     reregister_string(name, value, flags, Some(description));
 /// }
 /// ```
 pub fn reregister_string(
     name: &str,
     value: &str,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -3479,13 +3479,13 @@ pub fn reregister_string(
 /// let domain = vec!["ABC".to_string(), "DEF".to_string(), "GHI".to_string()];
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type string"
-/// register_enumeration(name, value, Some(domain), Some(flags), Some(description));
+/// register_enumeration(name, value, Some(domain), flags, Some(description));
 /// ```
 pub fn register_enumeration(
     name: &str,
     value: String,
     domain: Option<Vec<String>>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -3508,7 +3508,7 @@ pub fn register_enumeration(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_enumeration()
             .domain(domain.unwrap_or_default())
             .value(value)
@@ -3550,14 +3550,14 @@ pub fn register_enumeration(
 ///     let domain = vec!["ABC".to_string(), "DEF".to_string(), "GHI".to_string()];
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type string"
-///     register_enumeration(name, value, Some(domain), Some(flags), Some(description));
+///     register_enumeration(name, value, Some(domain), flags, Some(description));
 /// }
 /// ```
 pub fn register_new_enumeration(
     name: &str,
     value: String,
     domain: Option<Vec<String>>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -3594,14 +3594,14 @@ pub fn register_new_enumeration(
 ///     let domain = vec!["ABC".to_string(), "DEF".to_string(), "GHI".to_string()];
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type string"
-///     register_enumeration(name, value, Some(domain), Some(flags), Some(description));
+///     register_enumeration(name, value, Some(domain), flags, Some(description));
 /// }
 /// ```
 pub fn reregister_enumeration(
     name: &str,
     value: String,
     domain: Option<Vec<String>>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -3643,7 +3643,7 @@ pub fn reregister_enumeration(
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type color"
 /// register_color(name, red, green, blue,
-///                alpha, Some(flags), Some(description));
+///                alpha, flags, Some(description));
 /// ```
 pub fn register_color(
     name: &str,
@@ -3651,7 +3651,7 @@ pub fn register_color(
     green: f32,
     blue: f32,
     alpha: f32,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let r = if red < 0.0 {
@@ -3718,7 +3718,7 @@ pub fn register_color(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_color()
             .value((r, g, b, a))
             .build();
@@ -3765,7 +3765,7 @@ pub fn register_color(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type color"
 ///     register_new_color(name, red, green, blue,
-///                        alpha, Some(flags), Some(description));
+///                        alpha, flags, Some(description));
 /// }
 /// ```
 pub fn register_new_color(
@@ -3774,7 +3774,7 @@ pub fn register_new_color(
     green: f32,
     blue: f32,
     alpha: f32,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -3816,7 +3816,7 @@ pub fn register_new_color(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type color"
 ///     reregister_color(name, red, green, blue,
-///                        alpha, Some(flags), Some(description));
+///                        alpha, flags, Some(description));
 /// }
 /// ```
 pub fn reregister_color(
@@ -3825,7 +3825,7 @@ pub fn reregister_color(
     green: f32,
     blue: f32,
     alpha: f32,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -3862,14 +3862,14 @@ pub fn reregister_color(
 /// let max = i64::MAX;
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type int64"
-/// register_int64(name, value, Some(min), Some(max), Some(flags), Some(description));
+/// register_int64(name, value, Some(min), Some(max), flags, Some(description));
 /// ```
 pub fn register_int64(
     name: &str,
     value: i64,
     min: Option<i64>,
     max: Option<i64>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -3896,7 +3896,7 @@ pub fn register_int64(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_int64()
             .domain(min.unwrap_or(i64::MIN), max.unwrap_or(i64::MAX))
             .value(value)
@@ -3942,7 +3942,7 @@ pub fn register_int64(
 ///     let max = i64::MAX;
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type int64"
-///     register_new_int64(name, value, Some(min), Some(max), Some(flags), Some(description));
+///     register_new_int64(name, value, Some(min), Some(max), flags, Some(description));
 /// }
 /// ```
 pub fn register_new_int64(
@@ -3950,7 +3950,7 @@ pub fn register_new_int64(
     value: i64,
     min: Option<i64>,
     max: Option<i64>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -3991,7 +3991,7 @@ pub fn register_new_int64(
 ///     let max = i64::MAX;
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type int64"
-///     reregister_int64(name, value, Some(min), Some(max), Some(flags), Some(description));
+///     reregister_int64(name, value, Some(min), Some(max), flags, Some(description));
 /// }
 /// ```
 pub fn reregister_int64(
@@ -3999,7 +3999,7 @@ pub fn reregister_int64(
     value: i64,
     min: Option<i64>,
     max: Option<i64>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -4044,7 +4044,7 @@ pub fn reregister_int64(
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type color"
 /// register_linear_color_rgb(name, red, green, blue,
-///                           Some(min), Some(max), Some(flags),
+///                           Some(min), Some(max), flags,
 ///                           Some(description));
 /// ```
 #[allow(clippy::too_many_arguments)]
@@ -4055,7 +4055,7 @@ pub fn register_linear_color_rgb(
     blue: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -4078,7 +4078,7 @@ pub fn register_linear_color_rgb(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_linear_color_rgb()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value((red, green, blue))
@@ -4129,7 +4129,7 @@ pub fn register_linear_color_rgb(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type color"
 ///     register_new_linear_color_rgb(name, red, green, blue,
-///                                   Some(min), Some(max), Some(flags),
+///                                   Some(min), Some(max), flags,
 ///                                   Some(description));
 /// }
 /// ```
@@ -4141,7 +4141,7 @@ pub fn register_new_linear_color_rgb(
     blue: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -4196,7 +4196,7 @@ pub fn register_new_linear_color_rgb(
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type color"
 ///     reregister_linear_color_rgb(name, red, green, blue,
-///                                 Some(min), Some(max), Some(flags),
+///                                 Some(min), Some(max), flags,
 ///                                 Some(description));
 /// }
 /// ```
@@ -4208,7 +4208,7 @@ pub fn reregister_linear_color_rgb(
     blue: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -4258,7 +4258,7 @@ pub fn reregister_linear_color_rgb(
 /// let max = 0.7;
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type color XYZ"
-/// register_color_xyz(name, x, y, z, Some(min), Some(max), Some(flags), Some(description));
+/// register_color_xyz(name, x, y, z, Some(min), Some(max), flags, Some(description));
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn register_color_xyz(
@@ -4268,7 +4268,7 @@ pub fn register_color_xyz(
     z: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     let b: bool;
@@ -4291,7 +4291,7 @@ pub fn register_color_xyz(
         let dvar = DvarBuilder::new()
             .name(name)
             .description(description.unwrap_or_default().to_string())
-            .flags(flags.unwrap_or_default())
+            .flags(flags)
             .type_color_xyz()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value((x, y, z))
@@ -4339,7 +4339,7 @@ pub fn register_color_xyz(
 ///     let max = 0.7;
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type color XYZ"
-///     register_new_color_xyz(name, x, y, z, Some(min), Some(max), Some(flags), Some(description));
+///     register_new_color_xyz(name, x, y, z, Some(min), Some(max), flags, Some(description));
 /// }
 /// ```
 #[allow(clippy::too_many_arguments)]
@@ -4350,7 +4350,7 @@ pub fn register_new_color_xyz(
     z: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -4392,7 +4392,7 @@ pub fn register_new_color_xyz(
 ///     let max = 0.7;
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type color XYZ"
-///     reregister_color_xyz(name, x, y, z, Some(min), Some(max), Some(flags), Some(description));
+///     reregister_color_xyz(name, x, y, z, Some(min), Some(max), flags, Some(description));
 /// }
 /// ```
 #[allow(clippy::too_many_arguments)]
@@ -4403,7 +4403,7 @@ pub fn reregister_color_xyz(
     z: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if !exists(name) {
@@ -4597,12 +4597,12 @@ pub fn set_bool(name: &str, value: bool) -> bool {
 /// let value = false;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_bool(name, value, Some(flags), Some(description));
+/// set_or_register_bool(name, value, flags, Some(description));
 /// ```
 pub fn set_or_register_bool(
     name: &str,
     value: bool,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -4749,14 +4749,14 @@ pub fn set_float(name: &str, value: f32) -> bool {
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_float(name, value, Some(min), Some(max), Some(flags), Some(description));
+/// set_or_register_float(name, value, Some(min), Some(max), flags, Some(description));
 /// ```
 pub fn set_or_register_float(
     name: &str,
     value: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -4907,14 +4907,14 @@ pub fn set_vector2(name: &str, value: Vec2f32) -> bool {
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_vector2(name, value, Some(min), Some(max), Some(flags), Some(description));
+/// set_or_register_vector2(name, value, Some(min), Some(max), flags, Some(description));
 /// ```
 pub fn set_or_register_vector2(
     name: &str,
     value: Vec2f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -5065,14 +5065,14 @@ pub fn set_vector3(name: &str, value: Vec3f32) -> bool {
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_vector3(name, value, Some(min), Some(max), Some(flags), Some(description));
+/// set_or_register_vector3(name, value, Some(min), Some(max), flags, Some(description));
 /// ```
 pub fn set_or_register_vector3(
     name: &str,
     value: Vec3f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -5223,14 +5223,14 @@ pub fn set_vector4(name: &str, value: Vec4f32) -> bool {
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_vector4(name, value, Some(min), Some(max), Some(flags), Some(description));
+/// set_or_register_vector4(name, value, Some(min), Some(max), flags, Some(description));
 /// ```
 pub fn set_or_register_vector4(
     name: &str,
     value: Vec4f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -5377,14 +5377,14 @@ pub fn set_int(name: &str, value: i32) -> bool {
 /// let max = 400i32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar");
-/// set_or_register_int(name, value, Some(min), Some(max), Some(flags), Some(description));
+/// set_or_register_int(name, value, Some(min), Some(max), flags, Some(description));
 /// ```
 pub fn set_or_register_int(
     name: &str,
     value: i32,
     min: Option<i32>,
     max: Option<i32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -5529,12 +5529,12 @@ pub fn set_string(name: &str, value: &str) -> bool {
 /// let value = "test";
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_string(name, value, Some(flags), Some(description));
+/// set_or_register_string(name, value, flags, Some(description));
 /// ```
 fn set_or_register_string(
     name: &str,
     value: &str,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -5684,13 +5684,13 @@ fn set_enumeration(name: &str, value: String) -> bool {
 /// let domain = vec!["test".to_string(), "test2".to_string()];
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_enumeration(name, value, Some(domain), Some(flags), Some(description));
+/// set_or_register_enumeration(name, value, Some(domain), flags, Some(description));
 /// ```
 pub fn set_or_register_enumeration(
     name: &str,
     value: String,
     domain: Option<Vec<String>>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -5858,7 +5858,7 @@ pub fn set_color(
 /// let value = (0.957f32, 0.66f32, 0.71875f32, 1.0f);
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_color(name, value, Some(flags), Some(description));
+/// set_or_register_color(name, value, flags, Some(description));
 /// ```
 pub fn set_or_register_color(
     name: &str,
@@ -5866,7 +5866,7 @@ pub fn set_or_register_color(
     green: f32,
     blue: f32,
     alpha: f32,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -6013,14 +6013,14 @@ pub fn set_int64(name: &str, value: i64) -> bool {
 /// let max = i64::MAX;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_int64(name, value, Some(min), Some(max), Some(flags), Some(description));
+/// set_or_register_int64(name, value, Some(min), Some(max), flags, Some(description));
 /// ```
 pub fn set_or_register_int64(
     name: &str,
     value: i64,
     min: Option<i64>,
     max: Option<i64>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -6199,7 +6199,7 @@ pub fn set_linear_color_rgb(
 /// let max = 0.97f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_linear_color_rgb(name, value, Some(min), Some(max), Some(flags), Some(description));
+/// set_or_register_linear_color_rgb(name, value, Some(min), Some(max), flags, Some(description));
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn set_or_register_linear_color_rgb(
@@ -6209,7 +6209,7 @@ pub fn set_or_register_linear_color_rgb(
     blue: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -6371,7 +6371,7 @@ pub fn set_color_xyz(name: &str, x: f32, y: f32, z: f32) -> bool {
 /// let max = 0.97f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_color_xyz(name, value, Some(min), Some(max), Some(flags), Some(description));
+/// set_or_register_color_xyz(name, value, Some(min), Some(max), flags, Some(description));
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn set_or_register_color_xyz(
@@ -6381,7 +6381,7 @@ pub fn set_or_register_color_xyz(
     z: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
@@ -6449,7 +6449,7 @@ pub fn get_bool(name: &str) -> Option<bool> {
 pub fn get_or_register_bool(
     name: &str,
     value: bool,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<bool> {
     get_bool(name).or_else(|| {
@@ -6524,7 +6524,7 @@ pub fn get_or_register_float(
     value: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<f32> {
     get_float(name).or_else(|| {
@@ -6599,7 +6599,7 @@ pub fn get_or_register_vector2(
     value: Vec2f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<Vec2f32> {
     get_vector2(name).or_else(|| {
@@ -6674,7 +6674,7 @@ pub fn get_or_register_vector3(
     value: Vec3f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<Vec3f32> {
     get_vector3(name).or_else(|| {
@@ -6749,7 +6749,7 @@ pub fn get_or_register_vector4(
     value: Vec4f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<Vec4f32> {
     get_vector4(name).or_else(|| {
@@ -6824,7 +6824,7 @@ pub fn get_or_register_int(
     value: i32,
     min: Option<i32>,
     max: Option<i32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<i32> {
     get_int(name).or_else(|| {
@@ -6893,7 +6893,7 @@ pub fn get_string(name: &str) -> Option<String> {
 pub fn get_or_register_string(
     name: &str,
     value: &str,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<String> {
     get_string(name).or_else(|| {
@@ -6965,7 +6965,7 @@ pub fn get_or_register_enumeration(
     name: &str,
     value: String,
     domain: Option<Vec<String>>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<String> {
     get_enumeration(name).or_else(|| {
@@ -7049,7 +7049,7 @@ pub fn get_or_register_color(
     green: f32,
     blue: f32,
     alpha: f32,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<Vec4f32> {
     get_color(name).or_else(|| {
@@ -7124,7 +7124,7 @@ pub fn get_or_register_int64(
     value: i64,
     min: Option<i64>,
     max: Option<i64>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<i64> {
     get_int64(name).or_else(|| {
@@ -7206,7 +7206,7 @@ pub fn get_or_register_linear_color_rgb(
     green: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<Vec3f32> {
     get_linear_color_rgb(name).or_else(|| {
@@ -7297,7 +7297,7 @@ pub fn get_or_register_color_xyz(
     z: f32,
     min: Option<f32>,
     max: Option<f32>,
-    flags: Option<DvarFlags>,
+    flags: DvarFlags,
     description: Option<&str>,
 ) -> Option<Vec3f32> {
     get_color_xyz(name).or_else(|| {
@@ -7981,7 +7981,7 @@ fn register_bool_f() {
                     register_bool(
                         &name,
                         value,
-                        Some(DvarFlags::EXTERNAL),
+                        DvarFlags::EXTERNAL,
                         Some("External Dvar"),
                     );
                 }
@@ -8027,7 +8027,7 @@ fn register_int_f() {
                 value.unwrap_or(0),
                 min,
                 max,
-                Some(DvarFlags::EXTERNAL),
+                DvarFlags::EXTERNAL,
                 Some("External Dvar"),
             );
         }
@@ -8039,7 +8039,7 @@ fn register_int_f() {
                         value.unwrap_or(0),
                         min,
                         max,
-                        Some(DvarFlags::EXTERNAL),
+                        DvarFlags::EXTERNAL,
                         Some("External Dvar"),
                     );
                 }
@@ -8087,7 +8087,7 @@ fn register_float_f() {
                 value.unwrap_or(0.0),
                 min,
                 max,
-                Some(DvarFlags::EXTERNAL),
+                DvarFlags::EXTERNAL,
                 Some("External Dvar"),
             );
         }
@@ -8099,7 +8099,7 @@ fn register_float_f() {
                         value.unwrap_or(0.0),
                         min,
                         max,
-                        Some(DvarFlags::EXTERNAL),
+                        DvarFlags::EXTERNAL,
                         Some("External Dvar"),
                     );
                 }
@@ -8147,7 +8147,7 @@ fn register_color_f() {
                 g,
                 b,
                 a,
-                Some(DvarFlags::EXTERNAL),
+                DvarFlags::EXTERNAL,
                 Some("External Dvar"),
             );
         }
@@ -8162,7 +8162,7 @@ fn register_color_f() {
                         g,
                         b,
                         a,
-                        Some(DvarFlags::EXTERNAL),
+                        DvarFlags::EXTERNAL,
                         Some("External Dvar"),
                     );
                 }
@@ -8262,13 +8262,13 @@ pub fn init() {
         register_bool(
             "sv_restoreDvars",
             true,
-            Some(DvarFlags::empty()),
+            DvarFlags::empty(),
             Some("Enable to restore Dvars on entering the Xbox Live menu"),
         );
         register_bool(
             "sv_cheats",
             false,
-            Some(DvarFlags::empty()),
+            DvarFlags::empty(),
             Some("External Dvar"),
         );
         add_commands();
