@@ -161,9 +161,9 @@ pub fn check_crash_or_rerun() -> bool {
 
 pub fn get_cmdline() -> String {
     let mut cmd_line: String = String::new();
-    for arg in std::env::args() {
+    std::env::args().for_each(|arg| {
         write!(&mut cmd_line, "{} ", &arg).unwrap();
-    }
+    });
     cmd_line.trim().to_string()
 }
 
