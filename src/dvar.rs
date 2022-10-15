@@ -1325,9 +1325,13 @@ impl Dvar {
                     || i > domain.as_int_limits().unwrap().max
             }
             DvarValue::String(_) => true,
-            DvarValue::Enumeration(v) => {
-                domain.as_enumeration_limits().unwrap().strings.iter().find(|&s| *s == v).is_some()
-            }
+            DvarValue::Enumeration(v) => domain
+                .as_enumeration_limits()
+                .unwrap()
+                .strings
+                .iter()
+                .find(|&s| *s == v)
+                .is_some(),
             DvarValue::Color(_) => true,
             DvarValue::Int64(i) => {
                 i < domain.as_int64_limits().unwrap().min
@@ -5648,7 +5652,7 @@ fn set_enumeration_internal(name: &str, value: String) -> bool {
 ///     set_enumeration(name, value);
 /// }
 /// ```
-fn set_enumeration(name: &str, value: String) -> bool {
+pub fn set_enumeration(name: &str, value: String) -> bool {
     set_enumeration_from_source(name, value, SetSource::External)
 }
 
@@ -7411,7 +7415,9 @@ pub fn clear_flags(name: &str, flags: DvarFlags) -> bool {
 // Helper function to check if Dvar name is valid
 // Valid names consist only of alphanumeric characters and underscores
 fn name_is_valid(name: &str) -> bool {
-    name.chars().find(|&c| !c.is_alphanumeric() && c != '_').is_none()
+    name.chars()
+        .find(|&c| !c.is_alphanumeric() && c != '_')
+        .is_none()
 }
 
 // Toggle current value of Dvar if possible
