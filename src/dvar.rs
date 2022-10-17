@@ -8,7 +8,7 @@ use crate::*;
 use bitflags::bitflags;
 use common::*;
 use lazy_static::lazy_static;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::hash::Hash;
 use std::mem::MaybeUninit;
@@ -411,7 +411,7 @@ impl DvarLimitsString {
 // Domain for enumeration is a set of possible strings
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct DvarLimitsEnumeration {
-    pub strings: Vec<String>,
+    pub strings: HashSet<String>,
 }
 
 impl Display for DvarLimitsEnumeration {
@@ -446,7 +446,7 @@ impl DvarLimitsEnumeration {
         }
 
         DvarLimitsEnumeration {
-            strings: domain.to_vec(),
+            strings: HashSet::from_iter(domain.iter().map(|s| s.clone())),
         }
     }
 }
@@ -5585,6 +5585,24 @@ pub fn set_enumeration_from_source(
     value: String,
     source: SetSource,
 ) -> bool {
+    match find(name) {
+        Some(d) => match d.current {
+            DvarValue::Enumeration(_) => {
+                if d.domain
+                    .as_enumeration_limits()
+                    .unwrap()
+                    .strings
+                    .iter()
+                    .find(|&s| *s == value)
+                    .is_none()
+                {
+                    return false;
+                }
+            }
+            _ => return false,
+        },
+        None => return false,
+    };
     set_variant_from_source(name, DvarValue::Enumeration(value), source)
 }
 
@@ -5654,6 +5672,166 @@ fn set_enumeration_internal(name: &str, value: String) -> bool {
 /// ```
 pub fn set_enumeration(name: &str, value: String) -> bool {
     set_enumeration_from_source(name, value, SetSource::External)
+}
+
+/// Advances an existing [`Dvar`] of type [`DvarValue::Enumeration`]
+/// to the next value of its domain.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be advanced.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     set_enumeration_next(name);
+/// }
+/// ```
+pub fn set_enumeration_next(name: &str) -> bool {
+    let current = match get_enumeration(name) {
+        Some(d) => d,
+        None => return false,
+    };
+
+    match find(name) {
+        Some(d) => match d.current {
+            DvarValue::Enumeration(_) => {
+                let domain = d.domain.as_enumeration_limits().unwrap();
+                let mut iter = domain.strings.iter();
+                loop {
+                    match iter.next() {
+                        Some(v) => {
+                            if *v == current {
+                                let next = match iter.next() {
+                                    Some(n) => n.clone(),
+                                    None => return false,
+                                };
+                                return set_enumeration(name, next);
+                            }
+                        }
+                        None => match domain.strings.iter().next() {
+                            Some(v) => return set_enumeration(name, v.clone()),
+                            None => return false,
+                        },
+                    }
+                }
+            }
+            _ => return false,
+        },
+        None => return false,
+    };
+}
+
+/// Advances an existing [`Dvar`] of type [`DvarValue::Enumeration`]
+/// to the previous value of its domain.
+///
+/// # Arguments
+/// * `name` - A [`String`] that holds the name of the [`Dvar`]
+/// to be reversed.
+///
+/// # Return Value
+///
+/// Returns true if set was successful, false otherwise.
+///
+/// # Panics
+/// Panics if the write lock for [`DVARS`] can't be acquired (usually because
+/// the write lock or a read lock is held by a function farther up the
+/// call stack).
+///
+/// # Example
+/// ```
+/// let name = "sv_test";
+/// let dvar = find(name);
+/// // Make sure Dvar currently exists
+/// if dvar.is_some() {
+///     set_enumeration_prev(name);
+/// }
+/// ```
+pub fn set_enumeration_prev(name: &str) -> bool {
+    match find(name) {
+        Some(d) => match d.current {
+            DvarValue::Enumeration(s) => {
+                let domain = match d.domain {
+                    DvarLimits::Enumeration(l) => l,
+                    _ => return false,
+                };
+
+                let i = match domain
+                    .strings
+                    .iter()
+                    .enumerate()
+                    .find(|(_, u)| **u == *s)
+                {
+                    Some((j, _)) => j,
+                    None => return false,
+                };
+
+                let value = domain
+                    .strings
+                    .iter()
+                    .nth(i - 1)
+                    .unwrap_or(domain.strings.iter().nth(0).unwrap());
+                dvar::set_enumeration(name, value.clone());
+                return true;
+            }
+            _ => return false,
+        },
+        None => return false,
+    }
+}
+
+fn add_to_enumeration_domain(name: &str, domain_str: &str) -> bool {
+    match find(name) {
+        Some(d) => match d.current {
+            DvarValue::Enumeration(_) => {
+                let lock = DVARS.clone();
+                let mut writer = lock.try_write().expect("");
+                let d = writer.get_mut(name).unwrap();
+                match &mut d.domain {
+                    DvarLimits::Enumeration(l) => {
+                        l.strings.insert(domain_str.to_string());
+                        return true;
+                    }
+                    _ => return false,
+                };
+            }
+            _ => return false,
+        },
+        None => return false,
+    }
+}
+
+fn remove_from_enumeration_domain(name: &str, domain_str: &str) -> bool {
+    match find(name) {
+        Some(d) => match d.current {
+            DvarValue::Enumeration(_) => {
+                let lock = DVARS.clone();
+                let mut writer = lock.try_write().expect("");
+                let d = writer.get_mut(name).unwrap();
+                match &mut d.domain {
+                    DvarLimits::Enumeration(l) => {
+                        l.strings.remove(&domain_str.to_string());
+                        return true;
+                    }
+                    _ => return false,
+                };
+            }
+            _ => return false,
+        },
+        None => return false,
+    }
 }
 
 /// Sets the value of an existing [`Dvar`], or registers a new one with
@@ -7600,7 +7778,13 @@ fn index_string_to_enum_string(
                 None
             } else {
                 Some(
-                    dvar.domain.as_enumeration_limits().unwrap().strings[i]
+                    dvar.domain
+                        .as_enumeration_limits()
+                        .unwrap()
+                        .strings
+                        .iter()
+                        .nth(i)
+                        .unwrap()
                         .clone(),
                 )
             }
