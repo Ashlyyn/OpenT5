@@ -11,6 +11,7 @@ pub fn init() {
 }
 
 #[derive(FromPrimitive, PartialEq, Debug)]
+#[repr(isize)]
 enum RenderApi {
     Vulkan,
     Dx12,
@@ -55,42 +56,6 @@ macro_rules! render_api_implemented_by_wgpu {
     };
 }
 
-#[derive(FromPrimitive, PartialEq, Debug)]
-enum WindowCreator {
-    Winit,
-}
-
-const WINDOW_CREATOR_DEFAULT: WindowCreator = WindowCreator::Winit;
-
-lazy_static! {
-    static ref WINDOW_CREATOR: AtomicIsize =
-        AtomicIsize::new(WINDOW_CREATOR_DEFAULT as isize);
-}
-
-macro_rules! window_creator {
-    () => {{
-        let w: WindowCreator = num::FromPrimitive::from_isize(
-            WINDOW_CREATOR.load(Ordering::SeqCst),
-        )
-        .unwrap();
-        w
-    }};
-}
-
-pub struct Window {
-    winit_window: winit::window::Window,
-}
-
-impl Window {
-    fn new() -> Self {
-        if window_creator!() == WindowCreator::Winit {
-            todo!();
-        } else {
-            todo!("gpu::Window not yet implemented for {:?}.", render_api!());
-        }
-    }
-}
-
 pub struct Instance {
     wgpu_instance: Option<wgpu::Instance>,
 }
@@ -116,23 +81,16 @@ pub struct Surface {
 }
 
 impl Surface {
-    pub fn new(instance: &Instance, window: &Window) -> Self {
+    pub fn new(instance: &Instance, window: &winit::window::Window) -> Self {
         if render_api_implemented_by_wgpu!() {
-            if window_creator!() == WindowCreator::Winit {
-                Surface {
-                    wgpu_surface: Some(unsafe {
-                        instance
-                            .wgpu_instance
-                            .as_ref()
-                            .unwrap()
-                            .create_surface(&window.winit_window)
-                    }),
-                }
-            } else {
-                todo!(
-                    "gpu::Instance not yet implemented for {:?}.",
-                    window_creator!()
-                );
+            Surface {
+                wgpu_surface: Some(unsafe {
+                    instance
+                        .wgpu_instance
+                        .as_ref()
+                        .unwrap()
+                        .create_surface(&window)
+                }),
             }
         } else {
             todo!("gpu::Instance not yet implemented for {:?}.", render_api!());
@@ -230,9 +188,9 @@ pub struct Device {
 }
 
 impl Device {
-    pub async fn new(adapter: &Adapter) -> Self {
+    pub async fn new(adapter: &Adapter) -> Option<Self> {
         if render_api_implemented_by_wgpu!() {
-            let (device, _) = adapter
+            let device = adapter
                 .wgpu_adapter
                 .as_ref()
                 .unwrap()
@@ -244,11 +202,13 @@ impl Device {
                     },
                     None, // Trace path
                 )
-                .await
-                .unwrap();
+                .await;
 
-            Device {
-                wgpu_device: Some(device),
+            match device {
+                Ok((d, _)) => Some(Device {
+                    wgpu_device: Some(d),
+                }),
+                Err(_) => None,
             }
         } else {
             todo!("gpu::Device not yet implemented for {:?}.", render_api!());
@@ -311,6 +271,7 @@ impl Config {
                 width,
                 height,
                 present_mode: wgpu::PresentMode::AutoNoVsync,
+                alpha_mode: wgpu::CompositeAlphaMode::Auto,
             };
 
             Self {
@@ -322,6 +283,7 @@ impl Config {
     }
 }
 
+/*
 struct State {
     surface: Surface,
     device: Device,
@@ -330,12 +292,12 @@ struct State {
 }
 
 impl State {
-    pub async fn new(window: &Window) -> Self {
+    pub async fn new(window: &winit::window::Window) -> Self {
         if render_api_implemented_by_wgpu!() {
             let instance = Instance::new();
             let surface = Surface::new(&instance, window);
             let adapter = Adapter::new(&instance, Some(&surface)).await;
-            let device = Device::new(&adapter).await;
+            let device = Device::new(&adapter).await.un;
             let queue = Queue::new(&adapter).await;
             //let config = Config::new(&surface, &adapter, width, height).await;
             //surface.wgpu_surface.unwrap().configure(&device.wgpu_device.unwrap(), &config.wgpu_config.unwrap());
@@ -351,3 +313,4 @@ impl State {
         }
     }
 }
+*/
