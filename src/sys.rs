@@ -7,9 +7,11 @@ pub mod gpu;
 
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashMap};
 use std::path::Path;
-use std::sync::RwLock;
+use std::sync::{RwLock, Condvar, Mutex};
+use std::thread::JoinHandle;
+use std::time::Duration;
 use std::{
     fmt::Display,
     path::PathBuf,
@@ -299,4 +301,84 @@ pub fn enqueue_event(mut event: Event) {
     let lock = EVENT_QUEUE.clone();
     let mut writer = lock.try_write().expect("");
     writer.push_back(event);
+}
+
+pub fn render_fatal_error() -> ! {
+    panic!("render_fatal_error()");
+}
+
+lazy_static! {
+    static ref EVENTS: Arc<RwLock<HashMap<String, (Mutex<bool>, (Condvar, bool))>>> = Arc::new(RwLock::new(HashMap::new())); 
+}
+
+pub fn create_event(initial_state: bool, name: &str) {
+    EVENTS.clone().try_write().expect("").insert(name.to_owned(), (Mutex::new(false), (Condvar::new(), initial_state)));
+    if initial_state {
+        EVENTS.clone().try_write().expect("").get_mut(&name.to_string()).unwrap().1.0.notify_one();
+    }
+}
+
+fn wait_for_event_timeout(name: &str, timeout: usize) -> bool {
+    match EVENTS.clone().try_write().expect("").get_mut(&name.to_string()) {
+        Some((m, (e, b))) => {
+            let l = e.wait_timeout(m.lock().unwrap(), Duration::from_millis(timeout as _));
+            match l {
+                Ok((_, _)) => *b,
+                Err(e) => panic!("sys::wait_for_event_timeout: event timeout error: {}.", e),
+            }
+        },
+        None => panic!("sys::wait_for_event_timeout: event not found.")
+    }
+}
+
+pub fn query_event(name: &str) -> bool {
+    wait_for_event_timeout(name, 0)
+}
+
+pub fn wait_event(name: &str, msec: usize) -> bool {
+    wait_for_event_timeout(name, msec)
+}
+
+pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(name: &str, function: F) -> Option<JoinHandle<()>> {
+    println!("creating thread...");
+    match std::thread::Builder::new().name(name.to_string()).spawn(move || {
+        println!("in closure...");
+        //std::thread::park();
+        function();
+    }) {
+        Ok(h) => {
+            Some(h)
+        },
+        Err(e) => {
+            com::println(&format!("error {} while creating thread {}", e, name));
+            None
+        }
+    }
+}
+
+pub fn spawn_render_thread<F: Fn() -> ! + Send + Sync + 'static>(function: F) -> bool {
+    create_event(false, "renderPausedEvent");
+    create_event(true, "renderCompletedEvent");
+    create_event(false, "resourcesFlushedEvent");
+    create_event(false, "resourcesQueuedEvent");
+    create_event(true, "rendererRunningEvent");
+    create_event(false, "backendEvent");
+    create_event(false, "backendEvent1");
+    create_event(true, "updateSpotLightEffectEvent");
+    create_event(true, "updateEffectsEvent");
+    create_event(true, "deviceOKEvent");
+    create_event(false, "deviceHardStartEvent");
+    create_event(false, "renderShutdownEvent");
+    create_event(true, "deviceMessageEvent");
+    create_event(false, "osQuitEvent");
+    create_event(false, "osScriptDebuggerDrawEvent");
+    create_event(false, "rgRegisteredEvent");
+    create_event(false, "renderEvent");
+    match create_thread("Backend", function) {
+        Some(h) => {
+            h.thread().unpark();
+            true
+        },
+        None => false
+    }
 }
