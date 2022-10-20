@@ -1,4 +1,6 @@
 #![allow(non_snake_case, clippy::bool_comparison)]
+#![feature(thread_spawn_unchecked)]
+#![feature(never_type)]
 
 use lazy_static::lazy_static;
 use std::fmt::Write;
@@ -6,9 +8,11 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
+use std::time::Duration;
 extern crate num_derive;
 
 mod cbuf;
+mod cl;
 mod cmd;
 mod com;
 mod common;
@@ -16,12 +20,15 @@ mod dvar;
 mod fs;
 mod gfx;
 mod input;
+mod key;
 mod locale;
 mod platform;
 mod pmem;
 mod render;
+mod seh;
 mod sys;
 mod vid;
+mod rb;
 
 lazy_static! {
     #[allow(dead_code)]
@@ -29,6 +36,7 @@ lazy_static! {
     static ref S_NOSND: AtomicBool = AtomicBool::new(false);
 }
 
+#[allow(clippy::collapsible_else_if)]
 fn main() {
     platform::os::target::main();
     let cmdline = sys::get_cmdline();
@@ -59,22 +67,38 @@ fn main() {
     }
 
     dvar::init();
-    println!("{}", pollster::block_on(sys::find_info()));
+    //println!("{}", pollster::block_on(sys::find_info()));
 
-    // std::thread::spawn(|| {
-    let mut window_parms = gfx::WindowParms {
-        window_handle: platform::WindowHandle::new(),
-        hz: 60,
-        fullscreen: false,
-        x: 0,
-        y: 0,
-        scene_height: 480,
-        scene_width: 640,
-        display_width: 1920,
-        display_height: 1080,
-        aa_samples: 0,
+    std::thread::spawn(|| {
+        com::init();
+    });
+
+    println!("com::init spawned, looping until ready for window init...");
+    loop {
+        {
+            let reader = render::AWAITING_WINDOW_INIT.read().expect("");
+            let guard = reader.0.lock().unwrap();
+            reader.1.wait(guard).unwrap();
+            if *reader.0.lock().unwrap() == true {
+                break;
+            }
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    
+    println!("ready for window init, getting wnd_parms...");
+    let mut wnd_parms = {
+        let wnd_parms_lock = render::WND_PARMS.clone();
+        let wnd_parms_writer = wnd_parms_lock.read().expect("");
+        *wnd_parms_writer
     };
 
-    render::create_window(&mut window_parms);
-    // });
+    println!("wnd_parms retrieved, creating window...");
+    render::create_window_2(&mut wnd_parms);
+
+    {
+        let wnd_parms_lock = render::WND_PARMS.clone();
+        let mut wnd_parms_writer = wnd_parms_lock.write().expect("");
+        *wnd_parms_writer = wnd_parms;
+    };
 }
