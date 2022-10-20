@@ -6,17 +6,17 @@ pub mod mouse;
 
 use crate::*;
 
-use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::atomic::Ordering;
 
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref APP_ACTIVE: AtomicIsize = AtomicIsize::new(0);
+    static ref APP_ACTIVE: AtomicBool = AtomicBool::new(false);
 }
 
-pub fn activate(app_active: isize) {
+pub fn activate(app_active: bool) {
     APP_ACTIVE.store(app_active, Ordering::SeqCst);
-    if app_active == 0 {
+    if app_active == false {
         mouse::deactivate();
     } else {
         mouse::activate(1);
