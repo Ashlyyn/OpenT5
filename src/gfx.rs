@@ -375,7 +375,7 @@ pub struct ListBoxDef {
     row_count: i32,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct WindowParms {
     pub window_handle: platform::WindowHandle,
     pub hz: u16,
