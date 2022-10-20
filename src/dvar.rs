@@ -438,7 +438,7 @@ impl DvarLimitsEnumeration {
     ///
     /// # Example
     /// ```
-    /// let domain = DvarLimitsEnumeration::new(vec!["test".to_string()]);
+    /// let domain = DvarLimitsEnumeration::new(&vec!["test".to_string(), "test2".to_string()]);
     /// ```
     pub fn new(domain: &[String]) -> Self {
         if domain.is_empty() {
@@ -446,7 +446,7 @@ impl DvarLimitsEnumeration {
         }
 
         DvarLimitsEnumeration {
-            strings: HashSet::from_iter(domain.iter().map(|s| s.clone())),
+            strings: HashSet::from_iter(domain.iter().cloned()),
         }
     }
 }
@@ -1204,7 +1204,7 @@ impl Dvar {
     fn any_latched_values() -> bool {
         let lock = DVARS.clone();
         let reader = lock.try_read().expect("dvar::any_latched_values: failed to acquire reader lock. Probably still held by calling function.");
-        reader.values().find(|&d| d.has_latched_value()).is_some()
+        reader.values().any(|d| d.has_latched_value())
     }
 
     fn can_change_value(
@@ -1330,8 +1330,7 @@ impl Dvar {
                 .unwrap()
                 .strings
                 .iter()
-                .find(|&s| *s == v)
-                .is_some(),
+                .any(|s| *s == v),
             DvarValue::Color(_) => true,
             DvarValue::Int64(i) => {
                 i < domain.as_int64_limits().unwrap().min
@@ -2335,7 +2334,7 @@ pub fn register_bool(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -2353,7 +2352,7 @@ pub fn register_bool(
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -2487,7 +2486,7 @@ pub fn register_float(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -2506,7 +2505,7 @@ pub fn register_float(
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -2662,7 +2661,7 @@ pub fn register_vector2(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -2681,7 +2680,7 @@ pub fn register_vector2(
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -2838,7 +2837,7 @@ pub fn register_vector3(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -2857,7 +2856,7 @@ pub fn register_vector3(
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -3014,7 +3013,7 @@ pub fn register_vector4(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -3033,7 +3032,7 @@ pub fn register_vector4(
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -3190,7 +3189,7 @@ pub fn register_int(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -3209,7 +3208,7 @@ pub fn register_int(
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -3355,7 +3354,7 @@ pub fn register_string(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -3373,7 +3372,7 @@ pub fn register_string(
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -3501,7 +3500,7 @@ pub fn register_enumeration(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -3520,7 +3519,7 @@ pub fn register_enumeration(
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -3711,7 +3710,7 @@ pub fn register_color(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -3729,7 +3728,7 @@ pub fn register_color(
         b_2 = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b_2 {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -3889,7 +3888,7 @@ pub fn register_int64(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -3909,7 +3908,7 @@ pub fn register_int64(
         other_name = &writer.get(name).unwrap().name;
 
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -4071,7 +4070,7 @@ pub fn register_linear_color_rgb(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -4090,7 +4089,7 @@ pub fn register_linear_color_rgb(
         b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -4284,7 +4283,7 @@ pub fn register_color_xyz(
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
-                format!(
+                &format!(
                     "Can\'t create dvar \'{}\': {} dvars already exist",
                     name, DVAR_COUNT_MAX
                 ),
@@ -4304,7 +4303,7 @@ pub fn register_color_xyz(
         other_name = &writer.get(name).unwrap().name;
 
         if b {
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+            com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return false;
         }
     }
@@ -5582,19 +5581,18 @@ fn set_or_register_string(
 /// ```
 pub fn set_enumeration_from_source(
     name: &str,
-    value: String,
+    value: &str,
     source: SetSource,
 ) -> bool {
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
-                if d.domain
+                if !d.domain
                     .as_enumeration_limits()
                     .unwrap()
                     .strings
                     .iter()
-                    .find(|&s| *s == value)
-                    .is_none()
+                    .any(|s| *s == value)
                 {
                     return false;
                 }
@@ -5603,7 +5601,7 @@ pub fn set_enumeration_from_source(
         },
         None => return false,
     };
-    set_variant_from_source(name, DvarValue::Enumeration(value), source)
+    set_variant_from_source(name, DvarValue::Enumeration(value.to_string()), source)
 }
 
 /// Sets the value of an existing [`Dvar`].
@@ -5636,7 +5634,7 @@ pub fn set_enumeration_from_source(
 ///     set_enumeration(name, value);
 /// }
 /// ```
-fn set_enumeration_internal(name: &str, value: String) -> bool {
+fn set_enumeration_internal(name: &str, value: &str) -> bool {
     set_enumeration_from_source(name, value, SetSource::Internal)
 }
 
@@ -5670,7 +5668,7 @@ fn set_enumeration_internal(name: &str, value: String) -> bool {
 ///     set_enumeration(name, value);
 /// }
 /// ```
-pub fn set_enumeration(name: &str, value: String) -> bool {
+pub fn set_enumeration(name: &str, value: &str) -> bool {
     set_enumeration_from_source(name, value, SetSource::External)
 }
 
@@ -5718,20 +5716,20 @@ pub fn set_enumeration_next(name: &str) -> bool {
                                     Some(n) => n.clone(),
                                     None => return false,
                                 };
-                                return set_enumeration(name, next);
+                                return set_enumeration(name, &next);
                             }
                         }
                         None => match domain.strings.iter().next() {
-                            Some(v) => return set_enumeration(name, v.clone()),
+                            Some(v) => return set_enumeration(name, v),
                             None => return false,
                         },
                     }
                 }
             }
-            _ => return false,
+            _ => false,
         },
-        None => return false,
-    };
+        None => false,
+    }
 }
 
 /// Advances an existing [`Dvar`] of type [`DvarValue::Enumeration`]
@@ -5782,13 +5780,13 @@ pub fn set_enumeration_prev(name: &str) -> bool {
                     .strings
                     .iter()
                     .nth(i - 1)
-                    .unwrap_or(domain.strings.iter().nth(0).unwrap());
-                dvar::set_enumeration(name, value.clone());
-                return true;
+                    .unwrap_or_else(|| domain.strings.iter().next().unwrap());
+                dvar::set_enumeration(name, value);
+                true
             }
-            _ => return false,
+            _ => false,
         },
-        None => return false,
+        None => false,
     }
 }
 
@@ -5802,14 +5800,14 @@ fn add_to_enumeration_domain(name: &str, domain_str: &str) -> bool {
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
                         l.strings.insert(domain_str.to_string());
-                        return true;
+                        true
                     }
-                    _ => return false,
-                };
+                    _ => false,
+                }
             }
-            _ => return false,
+            _ => false,
         },
-        None => return false,
+        None => false,
     }
 }
 
@@ -5823,14 +5821,14 @@ fn remove_from_enumeration_domain(name: &str, domain_str: &str) -> bool {
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
                         l.strings.remove(&domain_str.to_string());
-                        return true;
+                        true
                     }
-                    _ => return false,
-                };
+                    _ => false,
+                }
             }
-            _ => return false,
+            _ => false,
         },
-        None => return false,
+        None => false,
     }
 }
 
@@ -5876,7 +5874,7 @@ pub fn set_or_register_enumeration(
     description: Option<&str>,
 ) -> bool {
     if exists(name) {
-        set_enumeration_internal(name, value)
+        set_enumeration_internal(name, &value)
     } else {
         register_enumeration(name, value, domain, flags, description)
     }
@@ -7593,9 +7591,8 @@ pub fn clear_flags(name: &str, flags: DvarFlags) -> bool {
 // Helper function to check if Dvar name is valid
 // Valid names consist only of alphanumeric characters and underscores
 fn name_is_valid(name: &str) -> bool {
-    name.chars()
-        .find(|&c| !c.is_alphanumeric() && c != '_')
-        .is_none()
+    !name.chars()
+        .any(|c| !c.is_alphanumeric() && c != '_')
 }
 
 // Toggle current value of Dvar if possible
@@ -7761,7 +7758,7 @@ fn index_string_to_enum_string(
         return None;
     }
 
-    if index_string.chars().find(|&c| c.is_ascii_digit()).is_some() {
+    if index_string.chars().any(|c| c.is_ascii_digit()) {
         return None;
     }
 
