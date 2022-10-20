@@ -2,6 +2,7 @@ use num_derive::FromPrimitive;
 
 #[derive(Copy, Clone, Default, FromPrimitive)]
 #[repr(u8)]
+#[allow(clippy::upper_case_acronyms)]
 enum Connstate {
     #[default]
     DISCONNECTED = 0,
