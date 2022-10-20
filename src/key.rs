@@ -51,7 +51,8 @@ lazy_static! {
         Arc::new(RwLock::new(Default::default()));
 }
 
+#[allow(unused_variables)]
 pub fn clear_states(ids: isize) {
     PLAYER_KEYS.clone().try_write().expect("").any_key_down = 0;
-    todo!("key::clear_states");
+    println!("TODO - key::clear_states");
 }
