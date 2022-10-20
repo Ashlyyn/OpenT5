@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::*;
 use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
 use std::fs::File;
@@ -110,12 +111,12 @@ pub fn log_file_open() -> bool {
 
 // Also needs to be actually implemented
 // Currently just a wrapper for panic
-pub fn error(err_type: ErrorParm, err: String) {
+pub fn error(err_type: ErrorParm, err: &str) {
     panic!("{} ({:?})", err, err_type);
 }
 
-pub fn errorln(err_type: ErrorParm, err: String) {
-    error(err_type, format!("{}\n", err));
+pub fn errorln(err_type: ErrorParm, err: &str) {
+    error(err_type, &format!("{}\n", err));
 }
 
 // Implement these two later
@@ -143,7 +144,13 @@ pub fn get_official_build_name_r() -> String {
     "Call of Duty: BlackOps".to_string()
 }
 
-pub fn init() {}
+pub fn init() {
+    init_try_block_function();
+}
+
+fn init_try_block_function() {
+    render::init_threads();
+}
 
 pub fn touch_memory() {
     todo!("com::touch_memory");
@@ -154,6 +161,7 @@ pub fn get_icon_rgba() -> Option<winit::window::Icon> {
     None
 }
 
+// TODO - implement
 pub fn startup_variable(name: &str) {
     println(&format!("com::startup_variable: {}", name));
 }
