@@ -5587,7 +5587,8 @@ pub fn set_enumeration_from_source(
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
-                if !d.domain
+                if !d
+                    .domain
                     .as_enumeration_limits()
                     .unwrap()
                     .strings
@@ -5601,7 +5602,11 @@ pub fn set_enumeration_from_source(
         },
         None => return false,
     };
-    set_variant_from_source(name, DvarValue::Enumeration(value.to_string()), source)
+    set_variant_from_source(
+        name,
+        DvarValue::Enumeration(value.to_string()),
+        source,
+    )
 }
 
 /// Sets the value of an existing [`Dvar`].
@@ -5776,11 +5781,10 @@ pub fn set_enumeration_prev(name: &str) -> bool {
                     None => return false,
                 };
 
-                let value = domain
-                    .strings
-                    .iter()
-                    .nth(i - 1)
-                    .unwrap_or_else(|| domain.strings.iter().next().unwrap());
+                let value =
+                    domain.strings.iter().nth(i - 1).unwrap_or_else(|| {
+                        domain.strings.iter().next().unwrap()
+                    });
                 dvar::set_enumeration(name, value);
                 true
             }
@@ -7591,8 +7595,7 @@ pub fn clear_flags(name: &str, flags: DvarFlags) -> bool {
 // Helper function to check if Dvar name is valid
 // Valid names consist only of alphanumeric characters and underscores
 fn name_is_valid(name: &str) -> bool {
-    !name.chars()
-        .any(|c| !c.is_alphanumeric() && c != '_')
+    !name.chars().any(|c| !c.is_alphanumeric() && c != '_')
 }
 
 // Toggle current value of Dvar if possible
