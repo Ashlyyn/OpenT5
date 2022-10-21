@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-pub mod gamepad;
+pub mod gpad;
 pub mod keyboard;
 pub mod mouse;
 
@@ -25,7 +25,7 @@ pub fn activate(app_active: bool) {
 
 fn startup() {
     mouse::startup();
-    gamepad::startup();
+    gpad::startup();
     dvar::clear_modified("in_mouse");
 }
 
