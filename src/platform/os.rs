@@ -1,3 +1,6 @@
+// This file exports the platform-specific modules as module "target"
+// to allow for easy execution in main()
+
 #[cfg(target_os = "windows")]
 pub mod win32;
 #[cfg(target_os = "windows")]

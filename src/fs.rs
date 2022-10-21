@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+// This file exists to abstract filesystem-related functionalities
+
 cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
         use windows::Win32::{
