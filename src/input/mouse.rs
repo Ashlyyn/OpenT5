@@ -34,7 +34,8 @@ struct MouseVars {
 }
 
 lazy_static! {
-    static ref S_MV: Arc<RwLock<MouseVars>> = Arc::new(RwLock::new(Default::default()));
+    static ref S_MV: Arc<RwLock<MouseVars>> =
+        Arc::new(RwLock::new(Default::default()));
 }
 
 pub fn startup() {
