@@ -1,15 +1,17 @@
 #![allow(dead_code)]
 
+use crate::util::SmpEvent;
 use crate::*;
+use num_derive::FromPrimitive;
 use sysinfo::{CpuExt, SystemExt};
 
 pub mod gpu;
 
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
-use std::collections::{VecDeque, HashMap};
-use std::path::Path;
-use std::sync::{RwLock, Condvar, Mutex};
+use std::collections::{HashMap, VecDeque};
+use std::fs::File;
+use std::sync::RwLock;
 use std::thread::JoinHandle;
 use std::time::Duration;
 use std::{
@@ -20,8 +22,22 @@ use std::{
 };
 cfg_if! {
     if #[cfg(target_os = "windows")] {
+        use std::ffi::CStr;
+        use std::ffi::CString;
         use windows::Win32::Foundation::MAX_PATH;
         use windows::Win32::System::LibraryLoader::GetModuleFileNameA;
+        use windows::core::PCSTR;
+        use windows::Win32::Foundation::HWND;
+        use windows::Win32::UI::Input::KeyboardAndMouse::GetActiveWindow;
+        use windows::Win32::UI::WindowsAndMessaging::{
+            MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
+            MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
+            MESSAGEBOX_STYLE,
+        };
+    } else {
+        use gtk4::prelude::*;
+        use gtk4::builders::MessageDialogBuilder;
+        use std::cell::RefCell;
     }
 }
 
@@ -30,9 +46,18 @@ lazy_static! {
     pub static ref TIME_BASE: AtomicIsize = AtomicIsize::new(0);
 }
 
-pub fn init() {
-    gpu::init();
+cfg_if! {
+    if #[cfg(windows)] {
+        pub fn init() {
+            gpu::init();
+        }
+    } else {
+        pub fn init() {
+            gpu::init();
+        }
+    }
 }
+
 
 pub fn milliseconds() -> isize {
     if BASE_TIME_ACQUIRED.load(SeqCst) == false {
@@ -55,37 +80,26 @@ pub fn milliseconds() -> isize {
 
 cfg_if! {
     if #[cfg(target_os = "windows")] {
-        #[allow(unreachable_code)]
         pub fn get_executable_name() -> String {
-            todo!("Not working correctly on Windows (path can't be stripped)");
             let mut buf: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
             unsafe { GetModuleFileNameA(None, &mut buf) };
-            let s = String::from_utf8(buf.to_vec()).unwrap().to_string();
-            println!("\"{}\"", s);
-            let s = s.strip_suffix(".exe").unwrap().to_string();
-            match s.rfind("\\.:") {
-            Some(pos) => s[pos + 1..].to_string(),
-            None => s,
+            let c_string = CStr::from_bytes_until_nul(&buf).unwrap();
+            let s = c_string.to_str().unwrap().to_string();
+            let p = PathBuf::from(s);
+            let s = p.file_name().unwrap().to_str().unwrap().to_string();
+            match s.strip_suffix(".exe") {
+                Some(s) => s.to_string(),
+                None => s
+            }
         }
-    }
-} else if #[cfg(target_os = "linux")] {
-    pub fn get_executable_name() -> String {
-       let pid = std::process::id();
-
-        let proc_path = format!("/proc/{}/exe", pid);
-        let path = std::fs::read_link(proc_path)
-            .expect("sys::get_executable_name: readlink() failed")
-            .to_str()
-            .unwrap()
-            .to_string();
-        let s = if path.ends_with('/') {
-            &path[..path.len() - 1]
-        } else {
-            &path
-        };
-        let pos = s.rfind('/').unwrap();
-        s[pos + 1..].to_string()
-    }
+    } else if #[cfg(target_os = "linux")] {
+        pub fn get_executable_name() -> String {
+            let pid = std::process::id();
+            let proc_path = format!("/proc/{}/exe", pid);
+            std::fs::read_link(proc_path)
+                .expect("sys::get_executable_name: readlink() failed")
+                .file_name().unwrap().to_str().unwrap().to_string()
+        }
 } else if #[cfg(any(
     target_os = "freebsd",
     target_os = "dragonfly",
@@ -134,31 +148,98 @@ cfg_if! {
     }
 }
 
+fn get_application_name() -> &'static str {
+    "Call of Duty(R) Singleplayer - Ship"
+}
+
 pub fn get_semaphore_file_path() -> PathBuf {
-    Path::new(&fs::get_os_folder_path(fs::OsFolder::UserData))
-        .join("/Activision/CoD")
+    let os_folder_path = fs::get_os_folder_path(fs::OsFolder::UserData);
+    let p: PathBuf = [ PathBuf::from(os_folder_path), PathBuf::from("CoD").join("Activision") ].iter().collect();
+    p
 }
 
 pub fn get_semaphore_file_name() -> String {
-    format!("__{}", get_executable_name())
+    let s = format!("__{}", get_executable_name());
+    dbg!(s.clone());
+    s
+}
+
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        fn get_active_window() -> WindowHandle {
+            WindowHandle(unsafe { GetActiveWindow() }.0 as _)
+        }
+    } else {
+        fn get_active_window() -> WindowHandle {
+            WindowHandle(0)
+        }
+    }
+}
+
+pub fn no_free_files_error() -> ! {
+    let msg_box_type = MessageBoxType::Ok;
+    let msg_box_icon = MessageBoxIcon::Stop;
+    let title = locale::localize_ref("WIN_DISK_FULL_TITLE");
+    let text = locale::localize_ref("WIN_DISK_FULL_BODY");
+    let handle = get_active_window();
+    message_box(
+        Some(handle),
+        &title,
+        &text,
+        msg_box_type,
+        Some(msg_box_icon),
+    );
+    // DoSetEvent_UNK();
+    std::process::exit(-1);
 }
 
 pub fn check_crash_or_rerun() -> bool {
     let semaphore_folder_path = get_semaphore_file_path();
+    dbg!(semaphore_folder_path.clone());
 
     if !std::path::Path::new(&semaphore_folder_path).exists() {
         std::fs::create_dir_all(&semaphore_folder_path).unwrap();
+        println!("sys::check_crash_or_rerun: semaphore file directory does not exist, returning true");
         return true;
     }
 
     let semaphore_file_path =
         semaphore_folder_path.join(&get_semaphore_file_name());
+    dbg!(semaphore_file_path.clone());
     let semaphore_file_exists = semaphore_file_path.exists();
+    dbg!(semaphore_file_exists);
     if semaphore_file_exists {
-        com::print_warning("check_crash_or_rerun: Semaphore file found, game probably crashed on last run.".to_string());
+        let msg_box_type = MessageBoxType::YesNoCanel;
+        let msg_box_icon = MessageBoxIcon::Stop;
+        let title = locale::localize_ref("WIN_IMPROPER_QUIT_TITLE");
+        let text = locale::localize_ref("WIN_IMPROPER_QUIT_BODY");
+        let handle = get_active_window();
+        match message_box(
+            Some(handle),
+            &text,
+            &title,
+            msg_box_type,
+            Some(msg_box_icon),
+        ) {
+            Some(MessageBoxResult::Yes) => {
+                com::force_safe_mode();
+            }
+            Some(MessageBoxResult::Cancel) | None => {
+                return false;
+            }
+            _ => {}
+        };
     }
-    // TODO - implement message box functionality and ref localization
-    true
+
+    match File::create(semaphore_file_path) {
+        Ok(_f) => {
+            // TODO - implement writing PID to file
+            true
+        }
+        Err(_) => {
+            no_free_files_error();
+        }
+    }
 }
 
 pub fn get_cmdline() -> String {
@@ -194,7 +275,7 @@ pub fn get_physical_cpu_count() -> usize {
 pub fn get_system_ram_in_bytes() -> u64 {
     let mut system = sysinfo::System::new_all();
     system.refresh_all();
-    system.total_memory() * 1024
+    system.total_memory()
 }
 
 pub fn get_cpu_vendor() -> String {
@@ -214,11 +295,13 @@ pub fn get_cpu_name() -> String {
         .to_string()
 }
 
-pub async fn detect_video_card() -> String {
-    let adapter = gpu::Adapter::new(&gpu::Instance::new(), None).await;
+pub fn detect_video_card() -> String {
+    let adapter =
+        pollster::block_on(gpu::Adapter::new(&gpu::Instance::new(), None));
     adapter.get_info().name
 }
 
+#[derive(Clone, Default)]
 pub struct SysInfo {
     pub gpu_description: String,
     pub logical_cpu_count: usize,
@@ -226,6 +309,8 @@ pub struct SysInfo {
     pub sys_mb: u64,
     pub cpu_vendor: String,
     pub cpu_name: String,
+    pub cpu_ghz: f32,
+    pub configure_ghz: f32,
 }
 
 impl Display for SysInfo {
@@ -238,27 +323,36 @@ impl Display for SysInfo {
 }
 
 impl SysInfo {
-    async fn new() -> Self {
-        let gpu_description = detect_video_card().await;
-        let logical_cpu_count = get_logical_cpu_count();
-        let physical_cpu_count = get_physical_cpu_count();
-        let sys_mb = get_system_ram_in_bytes() / (1024 * 1024);
-        let cpu_vendor = get_cpu_vendor();
-        let cpu_name = get_cpu_name();
-
+    fn new() -> Self {
         SysInfo {
-            gpu_description,
-            logical_cpu_count,
-            physical_cpu_count,
-            sys_mb,
-            cpu_vendor,
-            cpu_name,
+            ..Default::default()
         }
+    }
+
+    fn find(&mut self) {
+        self.gpu_description = detect_video_card();
+        self.logical_cpu_count = get_logical_cpu_count();
+        self.physical_cpu_count = get_physical_cpu_count();
+        self.sys_mb = get_system_ram_in_bytes() / (1024 * 1024);
+        self.cpu_vendor = get_cpu_vendor();
+        self.cpu_name = get_cpu_name();
     }
 }
 
-pub async fn find_info() -> SysInfo {
-    SysInfo::new().await
+lazy_static! {
+    static ref SYS_INFO: Arc<RwLock<SysInfo>> =
+        Arc::new(RwLock::new(SysInfo::new()));
+}
+
+pub fn find_info() {
+    SysInfo::new().find();
+}
+
+fn info() -> Option<SysInfo> {
+    match SYS_INFO.clone().read() {
+        Ok(s) => Some(s.clone()),
+        Err(_) => None,
+    }
 }
 
 pub enum EventType {
@@ -304,30 +398,54 @@ pub fn enqueue_event(mut event: Event) {
 }
 
 pub fn render_fatal_error() -> ! {
-    panic!("render_fatal_error()");
+    let msg_box_type = MessageBoxType::Ok;
+    let msg_box_icon = MessageBoxIcon::Stop;
+    let title = locale::localize_ref("WIN_RENDER_INIT_TITLE");
+    let text = locale::localize_ref("WIN_RENDER_INIT_BODY");
+    let handle = get_active_window();
+    message_box(
+        Some(handle),
+        &title,
+        &text,
+        msg_box_type,
+        Some(msg_box_icon),
+    );
+    //DoSetEvent_UNK();
+    std::process::exit(-1);
 }
 
 lazy_static! {
-    static ref EVENTS: Arc<RwLock<HashMap<String, (Mutex<bool>, (Condvar, bool))>>> = Arc::new(RwLock::new(HashMap::new())); 
+    static ref EVENTS: Arc<RwLock<HashMap<String, SmpEvent<()>>>> =
+        Arc::new(RwLock::new(HashMap::new()));
 }
 
 pub fn create_event(initial_state: bool, name: &str) {
-    EVENTS.clone().try_write().expect("").insert(name.to_owned(), (Mutex::new(false), (Condvar::new(), initial_state)));
+    EVENTS
+        .clone()
+        .try_write()
+        .expect("")
+        .insert(name.to_owned(), SmpEvent::new((), false));
     if initial_state {
-        EVENTS.clone().try_write().expect("").get_mut(&name.to_string()).unwrap().1.0.notify_one();
+        EVENTS
+            .clone()
+            .try_write()
+            .expect("")
+            .get_mut(&name.to_string())
+            .unwrap()
+            .notify_one();
     }
 }
 
 fn wait_for_event_timeout(name: &str, timeout: usize) -> bool {
-    match EVENTS.clone().try_write().expect("").get_mut(&name.to_string()) {
-        Some((m, (e, b))) => {
-            let l = e.wait_timeout(m.lock().unwrap(), Duration::from_millis(timeout as _));
-            match l {
-                Ok((_, _)) => *b,
-                Err(e) => panic!("sys::wait_for_event_timeout: event timeout error: {}.", e),
-            }
-        },
-        None => panic!("sys::wait_for_event_timeout: event not found.")
+    let lock = EVENTS.clone();
+    let mut writer = lock.write().unwrap();
+    let event = writer.get_mut(&name.to_string());
+    match event {
+        Some(e) => {
+            e.wait_timeout(Duration::from_millis(timeout as _));
+            e.signaled().unwrap_or(false)
+        }
+        None => panic!("sys::wait_for_event_timeout: event not found."),
     }
 }
 
@@ -339,24 +457,30 @@ pub fn wait_event(name: &str, msec: usize) -> bool {
     wait_for_event_timeout(name, msec)
 }
 
-pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(name: &str, function: F) -> Option<JoinHandle<()>> {
-    println!("creating thread...");
-    match std::thread::Builder::new().name(name.to_string()).spawn(move || {
-        println!("in closure...");
-        //std::thread::park();
-        function();
-    }) {
-        Ok(h) => {
-            Some(h)
-        },
+pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
+    name: &str,
+    function: F,
+) -> Option<JoinHandle<()>> {
+    match std::thread::Builder::new()
+        .name(name.to_string())
+        .spawn(move || {
+            std::thread::park();
+            function();
+        }) {
+        Ok(h) => Some(h),
         Err(e) => {
-            com::println(&format!("error {} while creating thread {}", e, name));
+            com::println(&format!(
+                "error {} while creating thread {}",
+                e, name
+            ));
             None
         }
     }
 }
 
-pub fn spawn_render_thread<F: Fn() -> ! + Send + Sync + 'static>(function: F) -> bool {
+pub fn spawn_render_thread<F: Fn() -> ! + Send + Sync + 'static>(
+    function: F,
+) -> bool {
     create_event(false, "renderPausedEvent");
     create_event(true, "renderCompletedEvent");
     create_event(false, "resourcesFlushedEvent");
@@ -378,7 +502,296 @@ pub fn spawn_render_thread<F: Fn() -> ! + Send + Sync + 'static>(function: F) ->
         Some(h) => {
             h.thread().unpark();
             true
-        },
-        None => false
+        }
+        None => false,
+    }
+}
+
+/*
+fn register_info_dvars() {
+    dvar::register_float(
+        "sys_configureGHz", 
+        0.0,
+        Some(f32::MIN),
+        Some(f32::MAX),
+        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        Some("Normalized total CPU power, based on cpu type, count, and speed; used in autoconfigure")
+    );
+    dvar::register_int(
+        "sys_sysMB",
+        0,
+        Some(i32::MIN),
+        Some(i32::MAX),
+        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        Some("Physical memory in the system"),
+    );
+    dvar::register_string(
+        "sys_gpu",
+        "",
+        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        Some("GPU description"),
+    );
+    dvar::register_int(
+        "sys_configSum",
+        0,
+        Some(i32::MIN),
+        Some(i32::MAX),
+        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        Some("Configuration checksum"),
+    );
+    // TODO - SIMD support Dvar
+    dvar::register_float(
+        "sys_cpuGHz",
+        info().unwrap().cpu_ghz,
+        Some(f32::MIN),
+        Some(f32::MAX),
+        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        Some("Measured CPU speed"),
+    );
+    dvar::register_string(
+        "sys_cpuName",
+        &info().unwrap().cpu_name,
+        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        Some("CPU name description"),
+    );
+}
+
+fn archive_info(sum: i32) {
+    register_info_dvars();
+    dvar::set_float_internal("sys_configureGHz", info().unwrap().configure_ghz);
+    dvar::set_int_internal("sys_sysMB", info().unwrap().sys_mb as _);
+    dvar::set_string_internal("sys_gpu", &info().unwrap().gpu_description);
+    dvar::set_int_internal("sys_configSum", sum);
+}
+*/
+
+fn should_update_for_info_change() -> bool {
+    let msg_box_type = MessageBoxType::YesNo;
+    let msg_box_icon = MessageBoxIcon::Information;
+    let title = locale::localize_ref("WIN_CONFIGURE_UPDATED_TITLE");
+    let text = locale::localize_ref("WIN_CONFIGURE_UPDATED_BODY");
+    let handle = get_active_window();
+    matches!(
+        message_box(
+            Some(handle),
+            &title,
+            &text,
+            msg_box_type,
+            Some(msg_box_icon)
+        ),
+        Some(MessageBoxResult::Yes)
+    )
+}
+
+pub struct WindowHandle(isize);
+
+cfg_if! {
+    if #[cfg(windows)] {
+        #[derive(Copy, Clone, Default)]
+        #[repr(u32)]
+        pub enum MessageBoxType {
+            #[default]
+            Ok = MB_OK.0,
+            YesNoCanel = MB_YESNOCANCEL.0,
+            YesNo = MB_YESNO.0,
+            // TODO - maybe implement Help?
+        }
+    } else {
+        #[derive(Copy, Clone, Default)]
+        #[repr(u32)]
+        pub enum MessageBoxType {
+            #[default]
+            Ok,
+            YesNoCanel,
+            YesNo,
+            // TODO - maybe implement Help?
+        }
+
+        impl TryInto<gtk4::ButtonsType> for MessageBoxType {
+            type Error = ();
+            fn try_into(self) -> Result<gtk4::ButtonsType, Self::Error> {
+                match self {
+                    MessageBoxType::Ok => Ok(gtk4::ButtonsType::Ok),
+                    MessageBoxType::YesNo => Ok(gtk4::ButtonsType::YesNo),
+                    _ => Err(())
+                }
+            }
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(windows)] {
+        #[derive(Copy, Clone, Default)]
+        #[repr(u32)]
+        pub enum MessageBoxIcon {
+            #[default]
+            None = 0x00000000,
+            Stop = MB_ICONSTOP.0,
+            Information = MB_ICONINFORMATION.0,
+        }
+    } else {
+        #[derive(Copy, Clone, Default)]
+        #[repr(u32)]
+        pub enum MessageBoxIcon {
+            #[default]
+            None,
+            Stop,
+            Information,
+        }
+
+        impl TryInto<gtk4::MessageType> for MessageBoxIcon {
+            type Error = ();
+            fn try_into(self) -> Result<gtk4::MessageType, Self::Error> {
+                use gtk4::MessageType::*;
+                match self {
+                    MessageBoxIcon::Information => Ok(Info),
+                    MessageBoxIcon::Stop => Ok(Error),
+                    _ => Err(())
+                }
+            }
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(windows)] {
+        #[derive(Copy, Clone, FromPrimitive)]
+        #[repr(i32)]
+        pub enum MessageBoxResult {
+            Ok = IDOK.0,
+            Cancel = IDCANCEL.0,
+            Yes = IDYES.0,
+            No = IDNO.0,
+            Unknown,
+        }
+    } else {
+        #[derive(Copy, Clone, FromPrimitive)]
+        #[repr(i32)]
+        pub enum MessageBoxResult {
+            Ok,
+            Cancel,
+            Yes,
+            No,
+            Unknown,
+        }
+
+        impl From<gtk4::ResponseType> for MessageBoxResult {
+            fn from(value: gtk4::ResponseType) -> Self {
+                match value {
+                    gtk4::ResponseType::Ok => MessageBoxResult::Ok,
+                    gtk4::ResponseType::Cancel => MessageBoxResult::Cancel,
+                    gtk4::ResponseType::Yes => MessageBoxResult::Yes,
+                    gtk4::ResponseType::No => MessageBoxResult::No,
+                    _ => MessageBoxResult::Unknown
+                }
+            }
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        pub fn message_box(
+            handle: Option<WindowHandle>,
+            title: &str, text: &str,
+            msg_box_type: MessageBoxType,
+            msg_box_icon: Option<MessageBoxIcon>
+        ) -> Option<MessageBoxResult> {
+            let ctext = match CString::new(text) {
+                Ok(s) => s,
+                Err(_) => return None,
+            };
+
+            let ctitle = match CString::new(title) {
+                Ok(s) => s,
+                Err(_) => return None,
+            };
+
+            let ctype = MESSAGEBOX_STYLE(
+                msg_box_type as u32
+                | msg_box_icon.unwrap_or(MessageBoxIcon::None) as u32
+            );
+
+            let res: MessageBoxResult = num::FromPrimitive::from_i32(unsafe {
+                MessageBoxA(
+                    HWND(handle.unwrap_or(WindowHandle(0)).0),
+                    PCSTR(ctext.as_ptr() as *const _),
+                    PCSTR(ctitle.as_ptr() as *const _),
+                    ctype
+                ) }.0).unwrap_or(MessageBoxResult::Unknown);
+            Some(res)
+        }
+    } else {
+        // The non-Windows implementations of message_box() will use GTK
+        // by default, instead of targeting each, e.g. Wayland, X, Cocoa, etc.
+        // For platforms that don't support GTK for some reason,
+        // other implementations are welcome
+
+        // The GTK implementation here is very much a work in progress. It's
+        // super buggy on WSL2, but I can't tell if the issues are with the
+        // application here, or with WSL2. Will try to test on native Linux
+        // at some point
+        lazy_static! {
+            static ref GTK_WINDOW_TITLE: Arc<RwLock<String>>
+                = Arc::new(RwLock::new(String::new()));
+        }
+
+        thread_local! {
+            static GTK_RESPONSE_EVENT: RefCell<SmpEvent<gtk4::ResponseType>>
+                = RefCell::new(SmpEvent::new(gtk4::ResponseType::Other(0xFFFF), false));
+        }
+
+        pub fn message_box(
+            _handle: Option<WindowHandle>,
+            text: &str,
+            title: &str,
+            msg_box_type: MessageBoxType,
+            msg_icon_type: Option<MessageBoxIcon>
+        ) -> Option<MessageBoxResult> {
+            println!("aaaaa");
+            let dialog = MessageDialogBuilder::new()
+                .buttons(gtk4::ButtonsType::None)
+                .destroy_with_parent(true)
+                .focusable(true)
+                //.message_type(msg_icon_type.unwrap_or(MessageBoxIcon::None).try_into().unwrap_or(gtk4::MessageType::Other))
+                .message_type(msg_icon_type.unwrap().try_into().unwrap())
+                .modal(false)
+                .name(title)
+                .resizable(false)
+                .title(title)
+                .text(text)
+                .visible(true)
+                .build();
+
+            let buttons = &match msg_box_type {
+                MessageBoxType::Ok => vec![("Ok", gtk4::ResponseType::Ok)],
+                MessageBoxType::YesNo => vec![
+                    ("Yes", gtk4::ResponseType::Yes),
+                    ("No", gtk4::ResponseType::No)
+                ],
+                MessageBoxType::YesNoCanel => vec![
+                    ("Yes", gtk4::ResponseType::Yes),
+                    ("No", gtk4::ResponseType::No),
+                    ("Cancel", gtk4::ResponseType::Cancel)
+                ],
+            };
+
+            dialog.add_buttons(buttons);
+            dialog.run_async(|obj, answer| {
+                obj.close();
+                GTK_RESPONSE_EVENT.with_borrow_mut(|event| {
+                    event.set_state(answer);
+                    event.set_signaled();
+                })
+            });
+
+            let response = GTK_RESPONSE_EVENT.with_borrow(|event| {
+                while !event.signaled().unwrap_or(false) {}
+                event.get_state().unwrap()
+            });
+
+            Some(response.into())
+        }
     }
 }
