@@ -183,6 +183,7 @@ impl Adapter {
     }
 }
 
+#[derive(Default)]
 pub struct Device {
     wgpu_device: Option<wgpu::Device>,
 }
