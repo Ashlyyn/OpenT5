@@ -165,3 +165,15 @@ pub fn get_icon_rgba() -> Option<winit::window::Icon> {
 pub fn startup_variable(name: &str) {
     println(&format!("com::startup_variable: {}", name));
 }
+
+lazy_static! {
+    static ref SAFE_MODE: AtomicBool = AtomicBool::new(false);
+}
+
+pub fn safe_mode() -> bool {
+    SAFE_MODE.load(Ordering::SeqCst)
+}
+
+pub fn force_safe_mode() {
+    SAFE_MODE.store(true, Ordering::SeqCst);
+}
