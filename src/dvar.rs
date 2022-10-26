@@ -438,7 +438,10 @@ impl DvarLimitsEnumeration {
     ///
     /// # Example
     /// ```
-    /// let domain = DvarLimitsEnumeration::new(&vec!["test".to_string(), "test2".to_string()]);
+    /// let domain = DvarLimitsEnumeration::new(&vec![
+    ///     "test".to_string(),
+    ///     "test2".to_string(),
+    /// ]);
     /// ```
     pub fn new(domain: &[String]) -> Self {
         if domain.is_empty() {
@@ -2244,8 +2247,8 @@ lazy_static! {
 /// ```
 /// let dvar_name = "sv_test";
 /// match find(dvar_name) {
-///    Some(d) => println!("found dvar {} with value {}", d.name, d.current),
-///    None => panic!("dvar {} not found", dvar_name)
+///     Some(d) => println!("found dvar {} with value {}", d.name, d.current),
+///     None => panic!("dvar {} not found", dvar_name),
 /// };
 /// ```
 pub fn find(name: &str) -> Option<Dvar> {
@@ -2280,8 +2283,8 @@ pub fn find(name: &str) -> Option<Dvar> {
 /// ```
 /// let dvar_name = "sv_test";
 /// match exists(dvar_name) {
-///    Some(d) => println!("found dvar {}", d.name),
-///    None => panic!("dvar {} not found", dvar_name)
+///     Some(d) => println!("found dvar {}", d.name),
+///     None => panic!("dvar {} not found", dvar_name),
 /// };
 /// ```
 pub fn exists(name: &str) -> bool {
@@ -4752,7 +4755,14 @@ pub fn set_float(name: &str, value: f32) -> bool {
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_float(name, value, Some(min), Some(max), flags, Some(description));
+/// set_or_register_float(
+///     name,
+///     value,
+///     Some(min),
+///     Some(max),
+///     flags,
+///     Some(description),
+/// );
 /// ```
 pub fn set_or_register_float(
     name: &str,
@@ -4910,7 +4920,14 @@ pub fn set_vector2(name: &str, value: Vec2f32) -> bool {
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_vector2(name, value, Some(min), Some(max), flags, Some(description));
+/// set_or_register_vector2(
+///     name,
+///     value,
+///     Some(min),
+///     Some(max),
+///     flags,
+///     Some(description),
+/// );
 /// ```
 pub fn set_or_register_vector2(
     name: &str,
@@ -5068,7 +5085,14 @@ pub fn set_vector3(name: &str, value: Vec3f32) -> bool {
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_vector3(name, value, Some(min), Some(max), flags, Some(description));
+/// set_or_register_vector3(
+///     name,
+///     value,
+///     Some(min),
+///     Some(max),
+///     flags,
+///     Some(description),
+/// );
 /// ```
 pub fn set_or_register_vector3(
     name: &str,
@@ -5226,7 +5250,14 @@ pub fn set_vector4(name: &str, value: Vec4f32) -> bool {
 /// let max = 800.0f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_vector4(name, value, Some(min), Some(max), flags, Some(description));
+/// set_or_register_vector4(
+///     name,
+///     value,
+///     Some(min),
+///     Some(max),
+///     flags,
+///     Some(description),
+/// );
 /// ```
 pub fn set_or_register_vector4(
     name: &str,
@@ -5463,7 +5494,7 @@ fn set_string_from_source(name: &str, value: &str, source: SetSource) -> bool {
 ///     set_string(name, value);
 /// }
 /// ```
-fn set_string_internal(name: &str, value: &str) -> bool {
+pub fn set_string_internal(name: &str, value: &str) -> bool {
     set_string_from_source(name, value, SetSource::Internal)
 }
 
@@ -5868,7 +5899,13 @@ fn remove_from_enumeration_domain(name: &str, domain_str: &str) -> bool {
 /// let domain = vec!["test".to_string(), "test2".to_string()];
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_enumeration(name, value, Some(domain), flags, Some(description));
+/// set_or_register_enumeration(
+///     name,
+///     value,
+///     Some(domain),
+///     flags,
+///     Some(description),
+/// );
 /// ```
 pub fn set_or_register_enumeration(
     name: &str,
@@ -6197,7 +6234,14 @@ pub fn set_int64(name: &str, value: i64) -> bool {
 /// let max = i64::MAX;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_int64(name, value, Some(min), Some(max), flags, Some(description));
+/// set_or_register_int64(
+///     name,
+///     value,
+///     Some(min),
+///     Some(max),
+///     flags,
+///     Some(description),
+/// );
 /// ```
 pub fn set_or_register_int64(
     name: &str,
@@ -6383,7 +6427,14 @@ pub fn set_linear_color_rgb(
 /// let max = 0.97f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_linear_color_rgb(name, value, Some(min), Some(max), flags, Some(description));
+/// set_or_register_linear_color_rgb(
+///     name,
+///     value,
+///     Some(min),
+///     Some(max),
+///     flags,
+///     Some(description),
+/// );
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn set_or_register_linear_color_rgb(
@@ -6555,7 +6606,14 @@ pub fn set_color_xyz(name: &str, x: f32, y: f32, z: f32) -> bool {
 /// let max = 0.97f32;
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
-/// set_or_register_color_xyz(name, value, Some(min), Some(max), flags, Some(description));
+/// set_or_register_color_xyz(
+///     name,
+///     value,
+///     Some(min),
+///     Some(max),
+///     flags,
+///     Some(description),
+/// );
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn set_or_register_color_xyz(
@@ -7143,7 +7201,8 @@ pub fn get_enumeration(name: &str) -> Option<String> {
 ///
 /// Example
 /// ```
-/// let i = get_or_register_enumeration("sv_test", "test", None, None, None).unwrap();
+/// let i = get_or_register_enumeration("sv_test", "test", None, None, None)
+///     .unwrap();
 /// ```
 pub fn get_or_register_enumeration(
     name: &str,
@@ -7301,7 +7360,9 @@ pub fn get_int64(name: &str) -> Option<i64> {
 ///
 /// Example
 /// ```
-/// let i = get_or_register_int64("sv_test", 364757258672, None, None, None, None).unwrap();
+/// let i =
+///     get_or_register_int64("sv_test", 364757258672, None, None, None, None)
+///         .unwrap();
 /// ```
 pub fn get_or_register_int64(
     name: &str,
