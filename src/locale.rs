@@ -117,3 +117,7 @@ pub fn init() -> Language {
     };
     lang
 }
+
+pub fn localize_ref(s: &str) -> String {
+    s.to_string()
+}
