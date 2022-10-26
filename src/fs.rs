@@ -6,10 +6,11 @@ cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
         use windows::Win32::{
             UI::Shell::{
-                SHGetFolderPathA, CSIDL_APPDATA, CSIDL_FLAG_CREATE, CSIDL_MYDOCUMENTS,
-                CSIDL_PROFILE,
+                SHGetFolderPathA, CSIDL_LOCAL_APPDATA, CSIDL_FLAG_CREATE, CSIDL_MYDOCUMENTS,
+                CSIDL_PROFILE, SHGFP_TYPE_CURRENT,
             },
             Foundation::MAX_PATH};
+            use std::ffi::CStr;
     }
 }
 
@@ -24,8 +25,8 @@ cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
         pub fn get_os_folder_path(os_folder: OsFolder) -> String {
             let csidl: u32 = match os_folder {
-                OsFolder::UserData => CSIDL_APPDATA,
-                OsFolder::UserConfig => CSIDL_APPDATA,
+                OsFolder::UserData => CSIDL_LOCAL_APPDATA,
+                OsFolder::UserConfig => CSIDL_LOCAL_APPDATA,
                 OsFolder::Documents => CSIDL_MYDOCUMENTS,
                 OsFolder::Home => CSIDL_PROFILE,
             };
@@ -34,14 +35,15 @@ cfg_if::cfg_if! {
             unsafe {
                 SHGetFolderPathA(
                     None,
-                    (csidl | CSIDL_FLAG_CREATE) as i32,
+                    (csidl | CSIDL_FLAG_CREATE) as _,
                     None,
-                    0,
+                    SHGFP_TYPE_CURRENT.0 as _,
                     &mut buf,
                 )
                 .unwrap()
             };
-            String::from_utf8(buf.to_vec()).unwrap()
+            let c = CStr::from_bytes_until_nul(&buf).unwrap();
+            c.to_str().unwrap().to_string()
         }
     } else {
         pub fn get_os_folder_path(os_folder: OsFolder) -> String {
