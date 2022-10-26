@@ -1,6 +1,8 @@
 #![allow(non_snake_case, clippy::bool_comparison)]
 #![feature(thread_spawn_unchecked)]
 #![feature(never_type)]
+#![feature(local_key_cell_methods)]
+#![feature(cstr_from_bytes_until_nul)]
 
 use lazy_static::lazy_static;
 use std::fmt::Write;
@@ -8,7 +10,6 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use std::time::Duration;
 extern crate num_derive;
 
 mod cbuf;
@@ -24,11 +25,12 @@ mod key;
 mod locale;
 mod platform;
 mod pmem;
+mod rb;
 mod render;
 mod seh;
 mod sys;
+mod util;
 mod vid;
-mod rb;
 
 lazy_static! {
     #[allow(dead_code)]
@@ -52,7 +54,7 @@ fn main() {
 
     pmem::init();
 
-    /*
+    #[allow(clippy::collapsible_if)]
     if &cmdline[0..9] != "allowdupe" || cmdline.chars().nth(9).unwrap_or(' ') > ' ' {
         if !cmdline.contains("g_connectpaths 3") {
             if sys::check_crash_or_rerun() == false {
@@ -60,7 +62,6 @@ fn main() {
             }
         }
     }
-    */
 
     if cmdline.contains("nosnd") {
         S_NOSND.store(true, Ordering::SeqCst)
@@ -73,27 +74,29 @@ fn main() {
         com::init();
     });
 
-    println!("com::init spawned, looping until ready for window init...");
-    loop {
-        {
-            let reader = render::AWAITING_WINDOW_INIT.read().expect("");
-            let guard = reader.0.lock().unwrap();
-            reader.1.wait(guard).unwrap();
-            if *reader.0.lock().unwrap() == true {
-                break;
-            }
-        }
-        std::thread::sleep(Duration::from_millis(10));
+    com::println(&format!(
+        "{}: com::init spawned, looping until ready for window init...",
+        std::thread::current().name().unwrap_or("main")
+    ));
+    {
+        let reader = render::AWAITING_WINDOW_INIT.read().expect("");
+        reader.wait_until_signaled();
     }
-    
-    println!("ready for window init, getting wnd_parms...");
+
+    com::println(&format!(
+        "{}: ready for window init, getting wnd_parms...",
+        std::thread::current().name().unwrap_or("main")
+    ));
     let mut wnd_parms = {
         let wnd_parms_lock = render::WND_PARMS.clone();
         let wnd_parms_writer = wnd_parms_lock.read().expect("");
         *wnd_parms_writer
     };
 
-    println!("wnd_parms retrieved, creating window...");
+    com::println(&format!(
+        "{}: wnd_parms retrieved, creating window...",
+        std::thread::current().name().unwrap_or("main")
+    ));
     render::create_window_2(&mut wnd_parms);
 
     {
