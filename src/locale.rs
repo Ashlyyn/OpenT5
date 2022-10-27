@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use std::{sync::{Arc, RwLock}, collections::HashMap};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 use lazy_static::lazy_static;
 use num::Integer;
@@ -98,24 +101,38 @@ pub fn init() -> Language {
             let strings = s.trim().split('\n').collect::<Vec<&str>>();
             let lang = get_lang_from_str(strings[0]);
             // collect the rest of the strings for LOCALIZATION.strings
-            // trim the whitespace from the file, 
+            // trim the whitespace from the file,
             // then split it by quotation marks
             // and collect the strings
             let mut t = String::new();
             let file_strings: Vec<&str> = strings[1..].to_vec();
-            file_strings.iter().for_each(|&s| t.push_str(&format!("{}\n", s)));
+            file_strings
+                .iter()
+                .for_each(|&s| t.push_str(&format!("{}\n", s)));
 
-            let strings = t.split('"').collect::<Vec<&str>>()
+            let strings = t
+                .split('"')
+                .collect::<Vec<&str>>()
                 .iter()
                 .map(|&s| s.to_string().trim().to_string())
                 .filter(|s| !s.is_empty())
                 .collect::<Vec<String>>();
             (lang, strings)
-        },
+        }
     };
 
-    let keys: Vec<String> = strings.iter().enumerate().filter(|(i, _)| i.is_even()).map(|(_, s)| s.clone()).collect();
-    let values: Vec<String> = strings.iter().enumerate().filter(|(i, _)| i.is_odd()).map(|(_, s)| s.clone()).collect();
+    let keys: Vec<String> = strings
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| i.is_even())
+        .map(|(_, s)| s.clone())
+        .collect();
+    let values: Vec<String> = strings
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| i.is_odd())
+        .map(|(_, s)| s.clone())
+        .collect();
 
     let mut map: HashMap<String, String> = HashMap::new();
     for i in 0..keys.len() {
@@ -139,6 +156,6 @@ pub fn localize_ref(s: &str) -> String {
     let strings = reader.strings.clone();
     match strings.get(&s.to_string()) {
         Some(s) => s.clone(),
-        None => s.to_string()
+        None => s.to_string(),
     }
 }

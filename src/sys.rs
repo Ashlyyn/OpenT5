@@ -11,7 +11,7 @@ use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 use std::collections::{HashMap, VecDeque};
 use std::fs::File;
-use std::sync::{RwLock};
+use std::sync::RwLock;
 use std::thread::JoinHandle;
 use std::time::Duration;
 use std::{
@@ -57,7 +57,6 @@ cfg_if! {
         }
     }
 }
-
 
 pub fn milliseconds() -> isize {
     if BASE_TIME_ACQUIRED.load(SeqCst) == false {
@@ -154,7 +153,12 @@ fn get_application_name() -> &'static str {
 
 pub fn get_semaphore_file_path() -> PathBuf {
     let os_folder_path = fs::get_os_folder_path(fs::OsFolder::UserData);
-    let p: PathBuf = [ PathBuf::from(os_folder_path), PathBuf::from("CoD").join("Activision") ].iter().collect();
+    let p: PathBuf = [
+        PathBuf::from(os_folder_path),
+        PathBuf::from("CoD").join("Activision"),
+    ]
+    .iter()
+    .collect();
     p
 }
 
@@ -654,7 +658,7 @@ cfg_if! {
 /*
 fn register_info_dvars() {
     dvar::register_float(
-        "sys_configureGHz", 
+        "sys_configureGHz",
         0.0,
         Some(f32::MIN),
         Some(f32::MAX),
@@ -939,4 +943,3 @@ cfg_if! {
         }
     }
 }
-
