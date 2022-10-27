@@ -53,6 +53,7 @@ fn main() {
     }
 
     pmem::init();
+    locale::init();
 
     #[allow(clippy::collapsible_if)]
     if &cmdline[0..9] != "allowdupe" || cmdline.chars().nth(9).unwrap_or(' ') > ' ' {
