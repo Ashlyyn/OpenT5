@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
-use std::sync::{Arc, RwLock};
+use std::{sync::{Arc, RwLock}, collections::HashMap};
 
 use lazy_static::lazy_static;
+use num::Integer;
 use num_derive::FromPrimitive;
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Copy, Clone, Default, FromPrimitive)]
+#[derive(Copy, Clone, Default, Debug, FromPrimitive)]
 #[repr(u8)]
 pub enum Language {
     #[default]
@@ -29,7 +30,7 @@ pub enum Language {
 #[derive(Clone, Default)]
 struct Localization {
     language: Language,
-    strings: Vec<String>,
+    strings: HashMap<String, String>,
 }
 
 lazy_static! {
@@ -90,34 +91,54 @@ pub fn init() -> Language {
         // if read fails, default to English
         Err(_) => (Language::ENGLISH, Vec::<String>::new()),
         // if it succeeds, try to copy it into a String
-        Ok(v) => match String::from_utf8(v) {
-            // if copy fails, default to English
-            Err(_) => (Language::ENGLISH, Vec::<String>::new()),
-            // if it succeeds, get the string
-            Ok(s) => {
-                // trim the whitespace from the file, then split it by newline
-                // and collect the strings
-                let file_strings = s.trim().split('\n').collect::<Vec<&str>>();
-                // the language string should be at the beginning
-                // of the file, a single word followed by a newline
-                let lang = get_lang_from_str(file_strings[0]);
-                // collect the rest of the strings for LOCALIZATION.strings
-                let strings = file_strings[1..]
-                    .to_vec()
-                    .iter()
-                    .map(|&s| s.to_string())
-                    .collect::<Vec<String>>();
-                (lang, strings)
-            }
+        Ok(v) => {
+            let s = String::from_utf8_lossy(&v);
+            // the language string should be at the beginning
+            // of the file, a single word followed by a newline
+            let strings = s.trim().split('\n').collect::<Vec<&str>>();
+            let lang = get_lang_from_str(strings[0]);
+            // collect the rest of the strings for LOCALIZATION.strings
+            // trim the whitespace from the file, 
+            // then split it by quotation marks
+            // and collect the strings
+            let mut t = String::new();
+            let file_strings: Vec<&str> = strings[1..].to_vec();
+            file_strings.iter().for_each(|&s| t.push_str(&format!("{}\n", s)));
+
+            let strings = t.split('"').collect::<Vec<&str>>()
+                .iter()
+                .map(|&s| s.to_string().trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<String>>();
+            (lang, strings)
         },
     };
+
+    let keys: Vec<String> = strings.iter().enumerate().filter(|(i, _)| i.is_even()).map(|(_, s)| s.clone()).collect();
+    let values: Vec<String> = strings.iter().enumerate().filter(|(i, _)| i.is_odd()).map(|(_, s)| s.clone()).collect();
+
+    let mut map: HashMap<String, String> = HashMap::new();
+    for i in 0..keys.len() {
+        map.insert(keys[i].clone(), values[i].clone());
+    }
+
     *LOCALIZATION.clone().try_write().expect("") = Localization {
         language: lang,
-        strings,
+        strings: map,
     };
     lang
 }
 
 pub fn localize_ref(s: &str) -> String {
-    s.to_string()
+    let lock = LOCALIZATION.clone();
+    let reader = match lock.read() {
+        Ok(r) => r,
+        Err(_) => return s.to_string(),
+    };
+
+    let strings = reader.strings.clone();
+    match strings.get(&s.to_string()) {
+        Some(s) => s.clone(),
+        None => s.to_string()
+    }
 }
