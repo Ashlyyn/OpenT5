@@ -10,6 +10,7 @@ pub mod gpu;
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 use std::collections::{HashMap, VecDeque};
+use std::ffi::{CString};
 use std::fs::File;
 use std::sync::RwLock;
 use std::thread::JoinHandle;
@@ -23,7 +24,6 @@ use std::{
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         use std::ffi::CStr;
-        use std::ffi::CString;
         use windows::Win32::Foundation::MAX_PATH;
         use windows::Win32::System::LibraryLoader::GetModuleFileNameA;
         use windows::core::PCSTR;
@@ -83,9 +83,15 @@ cfg_if! {
             let mut buf: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
             unsafe { GetModuleFileNameA(None, &mut buf) };
             let c_string = CStr::from_bytes_until_nul(&buf).unwrap();
-            let s = c_string.to_str().unwrap().to_string();
+            let s = c_string.to_str()
+                .unwrap()
+                .to_string();
             let p = PathBuf::from(s);
-            let s = p.file_name().unwrap().to_str().unwrap().to_string();
+            let s = p.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
             match s.strip_suffix(".exe") {
                 Some(s) => s.to_string(),
                 None => s
@@ -95,54 +101,99 @@ cfg_if! {
         pub fn get_executable_name() -> String {
             let pid = std::process::id();
             let proc_path = format!("/proc/{}/exe", pid);
-            std::fs::read_link(proc_path)
-                .expect("sys::get_executable_name: readlink() failed")
-                .file_name().unwrap().to_str().unwrap().to_string()
-        }
-} else if #[cfg(any(
-    target_os = "freebsd",
-    target_os = "dragonfly",
-    target_os = "openbsd",
-    target_os = "netbsd"
-))] {
-    pub fn get_executable_name() -> String {
-        cfg_if! {
-            if #[cfg(target_os = "netbsd")] {
-                const PROC_PATH: String = "/proc/curproc/exe";
-            }
-            else {
-                const PROC_PATH: String = "/proc/curproc/file";
+            match std::fs::read_link(proc_path) {
+                Ok(f) => {
+                    let file_name = f.file_name()
+                        .unwrap_or(OsStr::new(""))
+                        .to_str()
+                        .unwrap_or("")
+                        .to_string();
+                    let pos = file_name.find('.')
+                        .unwrap_or(file_name.len());
+                    file_name[..pos].to_string()
+                },
+                Err(_) => String::new()
             }
         }
-        // TODO - implement kinfo_getproc method if procfs method fails
-        let path = std::fs::read_link(proc_path)
-            .expect("sys::get_executable_name: readlink() failed")
-            .to_str()
-            .unwrap()
-            .to_string();
-        let s = if path.ends_with('/') {
-            &path[..path.len() - 1]
-        } else {
-            &path
-        };
-        let pos = s.rfind('/').unwrap();
-        s[pos + 1..].to_string()
+    } else if #[cfg(any(
+        target_os = "freebsd",
+        target_os = "dragonfly",
+        target_os = "openbsd",
+        target_os = "netbsd"
+    ))] {
+        pub fn get_executable_name() -> String {
+            cfg_if! {
+                if #[cfg(target_os = "netbsd")] {
+                    const PROC_PATH: &'static str = "/proc/curproc/exe";
+                }
+                else {
+                    const PROC_PATH: &'static str = "/proc/curproc/file";
+                }
+            }
+            // kinfo_getproc method hasn't been tested yet. Not even sure it
+            // compiles (don't have a BSD machine to test it on). Probably
+            // doesn't work even if it does compile, but the general idea
+            // is here
+            match std::fs::read_link(proc_path) {
+                Ok(f) => f.file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+                Err(_) => {
+                    let pid = libc::getpid();
+                    let kinfo_proc = unsafe { libc::kinfo_getproc(pid) };
+                    if kinfo_proc.is_null() {
+                        return String::new();
+                    }
+
+                    let s = CString::new((*kinfo_proc).ki_comm)
+                        .unwrap_or(CString::new("")
+                        .unwrap())
+                        .to_str()
+                        .unwrap_or("")
+                        .to_string();
+                    unsafe { libc::free(kinfo_proc) };
+                    s
+                }
+            }
+        }
     }
-}
-
-// TODO - implement for macOS
-
-// Fallback method - if no platform-specific method is used, try to get the executable name from argv[0]
+    else if #[cfg(target_os = "macos")] {
+        pub fn get_executable_name() -> String {
+            let buf: [u8; libc::PROC_PIDPATHINFO_MAXSIZE as _] =
+                [0; libc::PROC_PIDPATHINFO_MAXSIZE as _];
+            let pid = std::process::pid();
+            unsafe {
+                libc::proc_pidpath(
+                    pid,
+                    addr_of_mut!(buf) as *mut _,
+                    buf.len()
+                )
+            };
+            CString::from_vec_with_nul(buf.to_vec())
+                .unwrap_or(
+                    CString::new("")
+                        .unwrap()
+                )
+                .to_str()
+                .unwrap_or("")
+                .to_string();
+        }
+    }
+    // Fallback method - if no platform-specific method is used, try to get the executable name from argv[0]
     else {
         pub fn get_executable_name() -> String {
-            let s = if path.ends_with('/') {
-                &path[..path.len() - 1]
-            } else {
-                &path
-            };
-            let s = std::env::args().to_string();
-            let pos = s.rfind('/').unwrap();
-            s[pos + 1..].to_string()
+            let argv_0 = std::env::args().collect::<Vec<String>>()[0];
+            let path = PathBuf::from(argv_0);
+            let file_name = path.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+            let pos = file_name.find('.')
+                .unwrap_or(file_name.len());
+            file_name[..pos].to_string()
         }
     }
 }
