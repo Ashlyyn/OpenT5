@@ -10,7 +10,7 @@ pub mod gpu;
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 use std::collections::{HashMap, VecDeque};
-use std::ffi::{CString};
+use std::ffi::CString;
 use std::fs::File;
 use std::sync::RwLock;
 use std::thread::JoinHandle;
@@ -468,12 +468,11 @@ lazy_static! {
         Arc::new(RwLock::new(HashMap::new()));
 }
 
-pub fn create_event(initial_state: bool, name: &str) {
-    EVENTS
-        .clone()
-        .try_write()
-        .expect("")
-        .insert(name.to_owned(), SmpEvent::new((), false));
+pub fn create_event(manual_reset: bool, initial_state: bool, name: &str) {
+    EVENTS.clone().try_write().expect("").insert(
+        name.to_owned(),
+        SmpEvent::new((), initial_state, manual_reset),
+    );
     if initial_state {
         EVENTS
             .clone()
@@ -481,7 +480,7 @@ pub fn create_event(initial_state: bool, name: &str) {
             .expect("")
             .get_mut(&name.to_string())
             .unwrap()
-            .notify_one();
+            .send(());
     }
 }
 
@@ -491,7 +490,7 @@ fn wait_for_event_timeout(name: &str, timeout: usize) -> bool {
     let event = writer.get_mut(&name.to_string());
     match event {
         Some(e) => {
-            e.wait_timeout(Duration::from_millis(timeout as _));
+            e.acknowledge_timeout(Duration::from_millis(timeout as _));
             e.signaled().unwrap_or(false)
         }
         None => panic!("sys::wait_for_event_timeout: event not found."),
@@ -530,23 +529,23 @@ pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
 pub fn spawn_render_thread<F: Fn() -> ! + Send + Sync + 'static>(
     function: F,
 ) -> bool {
-    create_event(false, "renderPausedEvent");
-    create_event(true, "renderCompletedEvent");
-    create_event(false, "resourcesFlushedEvent");
-    create_event(false, "resourcesQueuedEvent");
-    create_event(true, "rendererRunningEvent");
-    create_event(false, "backendEvent");
-    create_event(false, "backendEvent1");
-    create_event(true, "updateSpotLightEffectEvent");
-    create_event(true, "updateEffectsEvent");
-    create_event(true, "deviceOKEvent");
-    create_event(false, "deviceHardStartEvent");
-    create_event(false, "renderShutdownEvent");
-    create_event(true, "deviceMessageEvent");
-    create_event(false, "osQuitEvent");
-    create_event(false, "osScriptDebuggerDrawEvent");
-    create_event(false, "rgRegisteredEvent");
-    create_event(false, "renderEvent");
+    create_event(false, false, "renderPausedEvent");
+    create_event(true, true, "renderCompletedEvent");
+    create_event(true, false, "resourcesFlushedEvent");
+    create_event(true, false, "resourcesQueuedEvent");
+    create_event(true, true, "rendererRunningEvent");
+    create_event(true, false, "backendEvent");
+    create_event(false, false, "backendEvent1");
+    create_event(true, true, "updateSpotLightEffectEvent");
+    create_event(true, true, "updateEffectsEvent");
+    create_event(true, true, "deviceOKEvent");
+    create_event(true, false, "deviceHardStartEvent");
+    create_event(true, false, "renderShutdownEvent");
+    create_event(true, true, "deviceMessageEvent");
+    create_event(true, false, "osQuitEvent");
+    create_event(true, false, "osScriptDebuggerDrawEvent");
+    create_event(true, false, "rgRegisteredEvent");
+    create_event(true, false, "renderEvent");
     match create_thread("Backend", function) {
         Some(h) => {
             h.thread().unpark();
@@ -713,7 +712,7 @@ fn register_info_dvars() {
         0.0,
         Some(f32::MIN),
         Some(f32::MAX),
-        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
         Some("Normalized total CPU power, based on cpu type, count, and speed; used in autoconfigure")
     );
     dvar::register_int(
@@ -721,13 +720,13 @@ fn register_info_dvars() {
         0,
         Some(i32::MIN),
         Some(i32::MAX),
-        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
         Some("Physical memory in the system"),
     );
     dvar::register_string(
         "sys_gpu",
         "",
-        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
         Some("GPU description"),
     );
     dvar::register_int(
@@ -735,7 +734,7 @@ fn register_info_dvars() {
         0,
         Some(i32::MIN),
         Some(i32::MAX),
-        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
         Some("Configuration checksum"),
     );
     // TODO - SIMD support Dvar
@@ -744,13 +743,13 @@ fn register_info_dvars() {
         info().unwrap().cpu_ghz,
         Some(f32::MIN),
         Some(f32::MAX),
-        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
         Some("Measured CPU speed"),
     );
     dvar::register_string(
         "sys_cpuName",
         &info().unwrap().cpu_name,
-        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::WRITE_PROTECTED,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
         Some("CPU name description"),
     );
 }
