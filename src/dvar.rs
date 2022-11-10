@@ -23,6 +23,12 @@ use std::vec::Vec;
 
 // bool has no custom-definable domain, it'll always be 0 or 1/true or false
 // DvarLimitsBool still needs to be defined for printing the domain
+
+/// Domain for [`Dvar`] with value type [`DvarValue::Bool`]
+///
+/// Since [`bool`]'s domain of [`true`]/[`false`] is enforeced by the compiler,
+/// no custom-defined domain is necessary. However, the struct still needs to
+/// exist to impl Display for the domain.
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub struct DvarLimitsBool {}
 
@@ -44,8 +50,11 @@ impl DvarLimitsBool {
     }
 }
 
-// The domain for a float consists of a min and a max
-// Min should never be greater than max, but they may be equal
+/// Domain for [`Dvar`] with value type [`DvarValue::Float`]
+///
+/// The domain is bounded by a custom-defined `min` and `max`,
+/// which may be any values representable by [`f32`] provided
+/// `min <= max`.
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsFloat {
     pub min: f32,
@@ -106,8 +115,12 @@ impl DvarLimitsFloat {
     }
 }
 
-// The domain for a vector follows the same rules as a float
-// Each element is bound the same min/max
+/// Domain for [`Dvar`] with value type [`DvarValue::Vector2`]
+///
+/// The domain is bounded by a custom-defined `min` and `max`,
+/// which may be any values representable by [`f32`] provided
+/// `min <= max`. All elements of the vector share the domain
+/// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsVector2 {
     pub min: f32,
@@ -180,7 +193,12 @@ impl DvarLimitsVector2 {
     }
 }
 
-// Same rules as Vector2
+/// Domain for [`Dvar`] with value type [`DvarValue::Vector3`]
+///
+/// The domain is bounded by a custom-defined `min` and `max`,
+/// which may be any values representable by [`f32`] provided
+/// `min <= max`. All elements of the vector share the domain
+/// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsVector3 {
     pub min: f32,
@@ -253,7 +271,12 @@ impl DvarLimitsVector3 {
     }
 }
 
-// Same rules as Vector2/Vector3
+/// Domain for [`Dvar`] with value type [`DvarValue::Vector4`]
+///
+/// The domain is bounded by a custom-defined `min` and `max`,
+/// which may be any values representable by [`f32`] provided
+/// `min <= max`. All elements of the vector share the domain
+/// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsVector4 {
     pub min: f32,
@@ -326,7 +349,11 @@ impl DvarLimitsVector4 {
     }
 }
 
-// Same rules as Float
+/// Domain for [`Dvar`] with value type [`DvarValue::Int`]
+///
+/// The domain is bounded by a custom-defined `min` and `max`,
+/// which may be any values representable by [`i32`] provided
+/// `min <= max`.
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct DvarLimitsInt {
     pub min: i32,
@@ -385,8 +412,16 @@ impl DvarLimitsInt {
     }
 }
 
-// String has no custom-definable domain
-// Still implemented for the same reason as Bool
+/// Domain for [`Dvar`] with value type [`DvarValue::String`]
+///
+/// Like with [`bool`], there is no custom definable domain;
+/// the compiler already enforces that domain as "valid UTF-8 strings".
+/// Also like with [`bool`], the struct still needs to
+/// exist to impl Display for the domain.
+///
+/// For a [`String`] "bounded" in the sense of "being able to hold
+/// one of one or more pre-defined values", use [`DvarValue::Enumeration`]
+/// instead.
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub struct DvarLimitsString {}
 
@@ -408,7 +443,11 @@ impl DvarLimitsString {
     }
 }
 
-// Domain for enumeration is a set of possible strings
+/// Domain for [`Dvar`] with value type [`DvarValue::Enumeration`]
+///
+/// The domain may consist of one or more different [`String`]s of
+/// any value, but it *must* at least contain at least the current
+/// value of the [`Dvar`].
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct DvarLimitsEnumeration {
     pub strings: HashSet<String>,
@@ -454,8 +493,11 @@ impl DvarLimitsEnumeration {
     }
 }
 
-// Color has no custom-definable domain
-// All valid RGBA values are allowed
+/// Domain for [`Dvar`] with value type [`DvarValue::Color`]
+///
+/// All RGBA values are valid for [`DvarValue::Color`], so no
+/// custom domain is necessary. As with [`bool`] and [`String`],
+/// the struct still needs to exist to impl Display for the domain.
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub struct DvarLimitsColor {}
 
@@ -477,7 +519,11 @@ impl DvarLimitsColor {
     }
 }
 
-// Same rules as Int
+/// Domain for [`Dvar`] with value type [`DvarValue::Int64`]
+///
+/// The domain is bounded by a custom-defined `min` and `max`,
+/// which may be any values representable by [`i64`] provided
+/// `min <= max`.
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct DvarLimitsInt64 {
     pub min: i64,
@@ -536,7 +582,12 @@ impl DvarLimitsInt64 {
     }
 }
 
-// Same rules as Vector3
+/// Domain for [`Dvar`] with value type [`DvarValue::LinearColorRGB`]
+///
+/// The domain is bounded by a custom-defined `min` and `max`,
+/// which may be any values representable by [`f32`] provided
+/// `min <= max`. All elements of the vector share the domain
+/// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsLinearColorRGB {
     pub min: f32,
@@ -615,7 +666,12 @@ impl DvarLimitsLinearColorRGB {
     }
 }
 
-// Same rules as Vector3 and LinearColorRGB
+/// Domain for [`Dvar`] with value type [`DvarValue::ColorXYZ`]
+///
+/// The domain is bounded by a custom-defined `min` and `max`,
+/// which may be any values representable by [`f32`] provided
+/// `min <= max`. All elements of the vector share the domain
+/// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
 pub struct DvarLimitsColorXYZ {
     pub min: f32,
@@ -961,12 +1017,12 @@ bitflags! {
     pub struct DvarFlags: u32 {
         /// Flag with unknown purpose. Never(?) manually set by a function,
         /// but some Dvars are registered with it set by default
-        const UNKNOWN_00000001_A    = 0x00000001;
+        const ARCHIVE               = 0x00000001;
         /// Flag with unknown purpose. Never(?) manually set by a function,
         /// but some Dvars are registered with it set by default
-        const UNKNOWN_00000002_U    = 0x00000002;
+        const USER_INFO             = 0x00000002;
         /// Flag with unknown purpose. Only used once or twice
-        const UNKNOWN_00000004      = 0x00000004;
+        const SERVER_INFO           = 0x00000004;
         /// Flag related to system info (not quite sure what "system info"
         /// means in this context)
         const SYSTEM_INFO           = 0x00000008;
@@ -4849,7 +4905,7 @@ fn set_vector2_from_source(
 ///     set_vector2_internal(name, value);
 /// }
 /// ```
-fn set_vector2_internal(name: &str, value: Vec2f32) -> bool {
+pub fn set_vector2_internal(name: &str, value: Vec2f32) -> bool {
     set_vector2_from_source(name, value, SetSource::Internal)
 }
 
@@ -5014,7 +5070,7 @@ fn set_vector3_from_source(
 ///     set_vector3_internal(name, value);
 /// }
 /// ```
-fn set_vector3_internal(name: &str, value: Vec3f32) -> bool {
+pub fn set_vector3_internal(name: &str, value: Vec3f32) -> bool {
     set_vector3_from_source(name, value, SetSource::Internal)
 }
 
@@ -5179,7 +5235,7 @@ fn set_vector4_from_source(
 ///     set_vector4_internal(name, value);
 /// }
 /// ```
-fn set_vector4_internal(name: &str, value: Vec4f32) -> bool {
+pub fn set_vector4_internal(name: &str, value: Vec4f32) -> bool {
     set_vector4_from_source(name, value, SetSource::Internal)
 }
 
@@ -5670,7 +5726,7 @@ pub fn set_enumeration_from_source(
 ///     set_enumeration(name, value);
 /// }
 /// ```
-fn set_enumeration_internal(name: &str, value: &str) -> bool {
+pub fn set_enumeration_internal(name: &str, value: &str) -> bool {
     set_enumeration_from_source(name, value, SetSource::Internal)
 }
 
@@ -5998,7 +6054,7 @@ fn set_color_from_source(
 ///     set_color(name, value);
 /// }
 /// ```
-fn set_color_internal(
+pub fn set_color_internal(
     name: &str,
     red: f32,
     green: f32,
@@ -6163,7 +6219,7 @@ fn set_int64_from_source(name: &str, value: i64, source: SetSource) -> bool {
 ///     set_int64(name, value);
 /// }
 /// ```
-fn set_int64_internal(name: &str, value: i64) -> bool {
+pub fn set_int64_internal(name: &str, value: i64) -> bool {
     set_int64_from_source(name, value, SetSource::Internal)
 }
 
@@ -6334,7 +6390,7 @@ fn set_linear_color_rgb_from_source(
 ///     set_linear_color_rgb(name, value);
 /// }
 /// ```
-fn set_linear_color_rgb_internal(
+pub fn set_linear_color_rgb_internal(
     name: &str,
     red: f32,
     green: f32,
@@ -6535,7 +6591,7 @@ fn set_color_xyz_from_source(
 ///     set_color_xyz(name, value);
 /// }
 /// ```
-fn set_color_xyz_internal(name: &str, x: f32, y: f32, z: f32) -> bool {
+pub fn set_color_xyz_internal(name: &str, x: f32, y: f32, z: f32) -> bool {
     set_color_xyz_from_source(name, x, y, z, SetSource::Internal)
 }
 
@@ -7906,13 +7962,13 @@ fn list_single(dvar: &Dvar, name: &str) {
 
     let s: char = if dvar
         .flags
-        .contains(DvarFlags::UNKNOWN_00000400 | DvarFlags::UNKNOWN_00000004)
+        .contains(DvarFlags::UNKNOWN_00000400 | DvarFlags::SERVER_INFO)
     {
         'S'
     } else {
         ' '
     };
-    let u: char = if dvar.flags.contains(DvarFlags::UNKNOWN_00000002_U) {
+    let u: char = if dvar.flags.contains(DvarFlags::USER_INFO) {
         'U'
     } else {
         ' '
@@ -7927,7 +7983,7 @@ fn list_single(dvar: &Dvar, name: &str) {
     } else {
         ' '
     };
-    let a: char = if dvar.flags.contains(DvarFlags::UNKNOWN_00000001_A) {
+    let a: char = if dvar.flags.contains(DvarFlags::ARCHIVE) {
         'A'
     } else {
         ' '
@@ -8082,7 +8138,7 @@ fn sets_f() {
     );
 
     if let Some(d) = writer.get_mut(&name) {
-        d.add_flags(DvarFlags::UNKNOWN_00000004);
+        d.add_flags(DvarFlags::SERVER_INFO);
     }
 }
 
@@ -8101,7 +8157,7 @@ fn seta_f() {
     );
 
     if let Some(d) = writer.get_mut(&name) {
-        d.add_flags(DvarFlags::UNKNOWN_00000001_A);
+        d.add_flags(DvarFlags::ARCHIVE);
     }
 }
 
@@ -8120,7 +8176,7 @@ fn set_admin_f() {
     match dvar {
         Some(d) => {
             if d.flags.contains(DvarFlags::CON_ACCESS) {
-                d.add_flags(DvarFlags::UNKNOWN_00000001_A);
+                d.add_flags(DvarFlags::ARCHIVE);
             }
             set_f();
         }
@@ -8432,7 +8488,7 @@ fn setu_f() {
 
     set_f();
     let name = cmd::argv(1);
-    dvar::add_flags(&name, DvarFlags::UNKNOWN_00000002_U);
+    dvar::add_flags(&name, DvarFlags::USER_INFO);
 }
 
 fn restore_dvars() {
@@ -8507,6 +8563,9 @@ lazy_static! {
 }
 
 /// Initializes the Dvar subsystem
+///
+/// Shouldn't ever be called more than once, but doing so
+/// shoudln't corrupt anything
 pub fn init() {
     if IS_DVAR_SYSTEM_ACTIVE.load(Ordering::SeqCst) == false {
         IS_DVAR_SYSTEM_ACTIVE.store(true, Ordering::SeqCst);

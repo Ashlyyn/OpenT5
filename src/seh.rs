@@ -30,14 +30,14 @@ pub fn init_language() {
         Language::ENGLISH as _,
         Some(Language::ENGLISH as _),
         Some(Language::MAX as _),
-        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
         Some("Language"),
     );
 
     dvar::register_bool(
         "loc_forceEnglish",
         false,
-        dvar::DvarFlags::UNKNOWN_00000001_A | dvar::DvarFlags::LATCHED,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
         Some("Force english localized strings"),
     );
 
