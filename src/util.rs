@@ -42,110 +42,110 @@ impl<T: Sized + Clone> SmpEvent<T> {
         }
     }
 
-    fn set_signaled(&mut self) -> bool {
+    fn set_signaled(&mut self) -> Result<(), ()> {
         match &mut self.mutex.lock() {
             Ok(g) => {
                 g.0 = true;
-                true
+                Ok(())
             }
-            Err(_) => false,
+            Err(_) => Err(()),
         }
     }
 
-    fn clear_signaled(&mut self) -> bool {
+    fn clear_signaled(&mut self) -> Result<(), ()> {
         match &mut self.mutex.lock() {
             Ok(g) => {
                 g.0 = false;
-                true
+                Ok(())
             }
-            Err(_) => false,
+            Err(_) => Err(()),
         }
     }
 
-    pub fn get_state(&self) -> Option<T> {
+    pub fn get_state(&self) -> Result<T, ()> {
         match self.mutex.lock() {
-            Ok(g) => Some(g.1.clone()),
-            Err(_) => None,
+            Ok(g) => Ok(g.1.clone()),
+            Err(_) => Err(()),
         }
     }
 
-    pub fn try_get_state(&self) -> Option<T> {
+    pub fn try_get_state(&self) -> Result<T, ()> {
         match self.mutex.try_lock() {
-            Ok(g) => Some(g.1.clone()),
-            Err(_) => None,
+            Ok(g) => Ok(g.1.clone()),
+            Err(_) => Err(()),
         }
     }
 
-    fn set_state(&mut self, state: T) -> bool {
+    fn set_state(&mut self, state: T) -> Result<(), ()> {
         match &mut self.mutex.lock() {
             Ok(g) => {
                 g.1 = state;
-                true
+                Ok(())
             }
-            Err(_) => false,
+            Err(_) => Err(()),
         }
     }
 
-    fn try_set_state(&mut self, state: T) -> bool {
+    fn try_set_state(&mut self, state: T) -> Result<(), ()> {
         match &mut self.mutex.try_lock() {
             Ok(g) => {
                 g.1 = state;
-                true
+                Ok(())
             }
-            Err(_) => false,
+            Err(_) => Err(()),
         }
     }
 
-    fn wait(&self) -> bool {
+    fn wait(&self) -> Result<(), ()> {
         let guard = match self.mutex.lock() {
             Ok(g) => g,
-            Err(_) => return false,
+            Err(_) => return Err(()),
         };
 
         #[allow(unused_must_use)]
         {
             self.condvar.wait(guard).unwrap();
         }
-        true
+        Ok(())
     }
 
-    fn try_wait(&self) -> bool {
+    fn try_wait(&self) -> Result<(), ()> {
         let guard = match self.mutex.try_lock() {
             Ok(g) => g,
-            Err(_) => return false,
+            Err(_) => return Err(()),
         };
 
         #[allow(unused_must_use)]
         {
             self.condvar.wait(guard).unwrap();
         }
-        true
+        Ok(())
     }
 
-    fn wait_timeout(&self, timeout: Duration) -> bool {
+    fn wait_timeout(&self, timeout: Duration) -> Result<(), ()> {
         let guard = match self.mutex.lock() {
             Ok(g) => g,
-            Err(_) => return false,
+            Err(_) => return Err(()),
         };
 
         #[allow(unused_must_use)]
         {
             self.condvar.wait_timeout(guard, timeout).unwrap();
         }
-        true
+        Ok(())
     }
 
-    fn try_wait_timeout(&self, timeout: Duration) -> bool {
+    fn try_wait_timeout(&self, timeout: Duration) -> Result<(), ()> {
         let guard = match self.mutex.try_lock() {
             Ok(g) => g,
-            Err(_) => return false,
+            Err(_) => return Err(()),
         };
 
         #[allow(unused_must_use)]
         {
             self.condvar.wait_timeout(guard, timeout).unwrap();
         }
-        true
+        Ok(())
     }
 
     /*
@@ -244,15 +244,15 @@ impl<T: Sized + Clone> SmpEvent<T> {
     /// Acknowledges the event and retrieves the internal state.
     pub fn acknowledge(&mut self) -> Option<T> {
         let res = match self.wait() {
-            true => self.get_state(),
-            false => None,
+            Ok(_) => self.get_state(),
+            Err(_) => Err(()),
         };
 
         if !self.manual_reset {
-            self.clear_signaled();
+            self.clear_signaled().unwrap();
         }
 
-        res
+        res.ok()
     }
 
     /// Tries to acknowledge the event, and retrieves its internal state
@@ -260,30 +260,30 @@ impl<T: Sized + Clone> SmpEvent<T> {
     #[allow(dead_code)]
     pub fn try_acknowledge(&mut self) -> Option<T> {
         let res = match self.try_wait() {
-            true => self.try_get_state(),
-            false => None,
+            Ok(_) => self.try_get_state(),
+            Err(_) => Err(()),
         };
 
         if !self.manual_reset {
-            self.clear_signaled();
+            self.clear_signaled().unwrap();
         }
 
-        res
+        res.ok()
     }
 
     /// Acknowledges the event within [`duration`], and retrieves its
     /// internal state if successful.
     pub fn acknowledge_timeout(&mut self, duration: Duration) -> Option<T> {
         let res = match self.wait_timeout(duration) {
-            true => self.get_state(),
-            false => None,
+            Ok(_) => self.get_state(),
+            Err(_) => Err(()),
         };
 
         if !self.manual_reset {
-            self.clear_signaled();
+            self.clear_signaled().unwrap();
         }
 
-        res
+        res.ok()
     }
 
     /// Tries to acknowledge the event within [`duration`], and retrieves its
@@ -291,71 +291,51 @@ impl<T: Sized + Clone> SmpEvent<T> {
     #[allow(dead_code)]
     pub fn try_acknowledge_timeout(&mut self, duration: Duration) -> Option<T> {
         let res = match self.try_wait_timeout(duration) {
-            true => self.try_get_state(),
-            false => None,
+            Ok(_) => self.try_get_state(),
+            Err(_) => Err(()),
         };
 
         if !self.manual_reset {
-            self.clear_signaled();
+            self.clear_signaled().unwrap();
         }
 
-        res
+        res.ok()
     }
 
     /// Sets the event's internal state and sets the signaled state.
-    pub fn send(&mut self, state: T) -> bool {
-        if !self.set_state(state) {
-            return false;
-        }
-        if !self.set_signaled() {
-            return false;
-        }
-
+    pub fn send(&mut self, state: T) -> Result<(), ()> {
+        self.set_state(state)?;
+        self.set_signaled()?;
         self.notify_one();
-        true
+        Ok(())
     }
 
     /// Tries to set the event's internal state, and sets the signaled state
     /// if successful.
     #[allow(dead_code)]
-    pub fn try_send(&mut self, state: T) -> bool {
-        if !self.try_set_state(state) {
-            return false;
-        }
-        if !self.set_signaled() {
-            return false;
-        }
-
+    pub fn try_send(&mut self, state: T) -> Result<(), ()> {
+        self.try_set_state(state)?;
+        self.set_signaled()?;
         self.notify_one();
-        true
+        Ok(())
     }
 
     /// Sets the event's internal state, and clears the signaled state
     /// if successful.
-    pub fn send_cleared(&mut self, state: T) -> bool {
-        if !self.set_state(state) {
-            return false;
-        }
-        if !self.clear_signaled() {
-            return false;
-        }
-
+    pub fn send_cleared(&mut self, state: T) -> Result<(), ()> {
+        self.set_state(state)?;
+        self.clear_signaled()?;
         self.notify_one();
-        true
+        Ok(())
     }
 
     /// Tries to set the event's internal state, and clears the signaled state
     /// if successful.
     #[allow(dead_code)]
-    pub fn try_send_cleared(&mut self, state: T) -> bool {
-        if !self.try_set_state(state) {
-            return false;
-        }
-        if !self.clear_signaled() {
-            return false;
-        }
-
+    pub fn try_send_cleared(&mut self, state: T) -> Result<(), ()> {
+        self.try_set_state(state)?;
+        self.clear_signaled()?;
         self.notify_one();
-        true
+        Ok(())
     }
 }
