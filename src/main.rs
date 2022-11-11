@@ -56,7 +56,9 @@ fn main() {
     locale::init();
 
     #[allow(clippy::collapsible_if)]
-    if &cmdline[0..9] != "allowdupe" || cmdline.chars().nth(9).unwrap_or(' ') > ' ' {
+    if &cmdline[0..9] != "allowdupe"
+        || cmdline.chars().nth(9).unwrap_or(' ') > ' '
+    {
         if !cmdline.contains("g_connectpaths 3") {
             if sys::check_crash_or_rerun() == false {
                 return;
@@ -80,8 +82,8 @@ fn main() {
         std::thread::current().name().unwrap_or("main")
     ));
     {
-        let reader = render::AWAITING_WINDOW_INIT.read().expect("");
-        reader.wait_until_signaled();
+        let mut writer = render::AWAITING_WINDOW_INIT.write().expect("");
+        writer.acknowledge();
     }
 
     com::println(&format!(
@@ -98,7 +100,7 @@ fn main() {
         "{}: wnd_parms retrieved, creating window...",
         std::thread::current().name().unwrap_or("main")
     ));
-    render::create_window_2(&mut wnd_parms);
+    render::create_window_2(&mut wnd_parms).unwrap();
 
     {
         let wnd_parms_lock = render::WND_PARMS.clone();
