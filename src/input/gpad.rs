@@ -1,3 +1,9 @@
+// This file is for the gamepad subsystem. It will include everything
+// necessary to use a gamepad as an input device.
+//
+// It is very much a work-in-progress. It's not feature-complete, and
+// none of it has been tested yet.
+
 use arrayvec::ArrayVec;
 use no_deadlocks::RwLock;
 
@@ -27,125 +33,128 @@ struct GamePad {
 }
 
 lazy_static! {
-    static ref S_GAMEPADS: Arc<RwLock<ArrayVec<GamePad, 1>>> =
+    static ref S_GAMEPADS: Arc<RwLock<ArrayVec<GamePad, { MAX_GPADS as _ }>>> =
         Arc::new(RwLock::new(ArrayVec::new()));
 }
 
 pub fn startup() {
-    init_all();
+    init_all().unwrap();
 }
 
-fn init_all() {
-    dvar::register_int(
-        "gpad_debug",
-        0,
-        Some(i32::MIN),
-        Some(i32::MAX),
-        dvar::DvarFlags::empty(),
-        None,
-    );
-    dvar::register_float(
-        "gpad_button_lstick_deflect_max",
-        0.0,
-        Some(0.0),
-        Some(1.0),
-        dvar::DvarFlags::empty(),
-        None,
-    );
-    dvar::register_float(
-        "gpad_button_rstick_deflect_max",
-        0.0,
-        Some(0.0),
-        Some(1.0),
-        dvar::DvarFlags::empty(),
-        None,
-    );
-    dvar::register_float(
-        "gpad_button_deadzone",
-        0.13,
-        Some(0.0),
-        Some(1.0),
-        dvar::DvarFlags::CHEAT_PROTECTED,
-        None,
-    );
-    dvar::register_float(
-        "gpad_stick_deadzone_min",
-        0.2,
-        Some(0.0),
-        Some(1.0),
-        dvar::DvarFlags::CHEAT_PROTECTED,
-        None,
-    );
-    dvar::register_float(
-        "gpad_stick_deadzone_max",
-        0.01,
-        Some(0.0),
-        Some(1.0),
-        dvar::DvarFlags::CHEAT_PROTECTED,
-        None,
-    );
-    dvar::register_float(
-        "gpad_stick_pressed",
-        0.4,
-        Some(0.0),
-        Some(1.0),
-        dvar::DvarFlags::CHEAT_PROTECTED,
-        None,
-    );
-    dvar::register_float(
-        "gpad_stick_hysteresis",
-        0.1,
-        Some(0.0),
-        Some(1.0),
-        dvar::DvarFlags::CHEAT_PROTECTED,
-        None,
-    );
-    dvar::register_bool(
-        "gpad_rumble",
-        true,
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::ALLOW_SET_FROM_DEVGUI,
-        None,
-    );
-    dvar::register_int(
-        "gpad_menu_scroll_delay_first",
-        420,
-        Some(0),
-        Some(1000),
-        dvar::DvarFlags::ARCHIVE,
-        None,
-    );
-    dvar::register_int(
-        "gpad_menu_scroll_delay_rest",
-        210,
-        Some(0),
-        Some(1000),
-        dvar::DvarFlags::ARCHIVE,
-        None,
-    );
-    dvar::register_string(
-        "gpad_buttonsConfig",
-        "buttons_default",
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::ALLOW_SET_FROM_DEVGUI,
-        None,
-    );
-    dvar::register_string(
-        "gpad_sticksConfig",
-        "sticks_default",
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::ALLOW_SET_FROM_DEVGUI,
-        None,
-    );
-    dvar::register_bool(
-        "gpad_enabled",
-        false,
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::ALLOW_SET_FROM_DEVGUI,
-        None,
-    );
-    dvar::register_bool(
-        "gpad_present",
-        false,
-        dvar::DvarFlags::READ_ONLY,
-        None,
-    );
+fn init_all() -> Result<(), ()> {
+    #[allow(unused_must_use)]
+    {
+        dvar::register_int(
+            "gpad_debug",
+            0,
+            Some(i32::MIN),
+            Some(i32::MAX),
+            dvar::DvarFlags::empty(),
+            None,
+        );
+        dvar::register_float(
+            "gpad_button_lstick_deflect_max",
+            0.0,
+            Some(0.0),
+            Some(1.0),
+            dvar::DvarFlags::empty(),
+            None,
+        );
+        dvar::register_float(
+            "gpad_button_rstick_deflect_max",
+            0.0,
+            Some(0.0),
+            Some(1.0),
+            dvar::DvarFlags::empty(),
+            None,
+        );
+        dvar::register_float(
+            "gpad_button_deadzone",
+            0.13,
+            Some(0.0),
+            Some(1.0),
+            dvar::DvarFlags::CHEAT_PROTECTED,
+            None,
+        );
+        dvar::register_float(
+            "gpad_stick_deadzone_min",
+            0.2,
+            Some(0.0),
+            Some(1.0),
+            dvar::DvarFlags::CHEAT_PROTECTED,
+            None,
+        );
+        dvar::register_float(
+            "gpad_stick_deadzone_max",
+            0.01,
+            Some(0.0),
+            Some(1.0),
+            dvar::DvarFlags::CHEAT_PROTECTED,
+            None,
+        );
+        dvar::register_float(
+            "gpad_stick_pressed",
+            0.4,
+            Some(0.0),
+            Some(1.0),
+            dvar::DvarFlags::CHEAT_PROTECTED,
+            None,
+        );
+        dvar::register_float(
+            "gpad_stick_hysteresis",
+            0.1,
+            Some(0.0),
+            Some(1.0),
+            dvar::DvarFlags::CHEAT_PROTECTED,
+            None,
+        );
+        dvar::register_bool(
+            "gpad_rumble",
+            true,
+            dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::ALLOW_SET_FROM_DEVGUI,
+            None,
+        );
+        dvar::register_int(
+            "gpad_menu_scroll_delay_first",
+            420,
+            Some(0),
+            Some(1000),
+            dvar::DvarFlags::ARCHIVE,
+            None,
+        );
+        dvar::register_int(
+            "gpad_menu_scroll_delay_rest",
+            210,
+            Some(0),
+            Some(1000),
+            dvar::DvarFlags::ARCHIVE,
+            None,
+        );
+        dvar::register_string(
+            "gpad_buttonsConfig",
+            "buttons_default",
+            dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::ALLOW_SET_FROM_DEVGUI,
+            None,
+        );
+        dvar::register_string(
+            "gpad_sticksConfig",
+            "sticks_default",
+            dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::ALLOW_SET_FROM_DEVGUI,
+            None,
+        );
+        dvar::register_bool(
+            "gpad_enabled",
+            false,
+            dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::ALLOW_SET_FROM_DEVGUI,
+            None,
+        );
+        dvar::register_bool(
+            "gpad_present",
+            false,
+            dvar::DvarFlags::READ_ONLY,
+            None,
+        );
+    }
     S_GAMEPADS.clone().write().unwrap()[0]
         .feedback
         .rumble
@@ -154,7 +163,24 @@ fn init_all() {
         .feedback
         .rumble
         .right_motor_speed = 0;
-    // TODO - XInputSetState/equivalent
+
+    for i in 0..MAX_GPADS {
+        let lock = S_GAMEPADS.clone();
+        let mut writer = match lock.write() {
+            Ok(g) => g,
+            Err(_) => return Err(()),
+        };
+
+        let mut gpad = match writer.get_mut(i as usize) {
+            Some(g) => g,
+            None => return Err(()),
+        };
+
+        gpad.feedback.rumble.left_motor_speed = 0;
+        gpad.feedback.rumble.right_motor_speed = 0;
+    }
+
+    Ok(())
 }
 
 type GPadIdx = u8;
