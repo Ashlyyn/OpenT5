@@ -1,4 +1,4 @@
-// This file is for any Windows-specific initialization that 
+// This file is for any Windows-specific initialization that
 // should be done before the rest of main() executes
 
 #![allow(non_snake_case)]
