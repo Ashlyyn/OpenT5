@@ -14,53 +14,62 @@ pub fn update_current_language() {
             .unwrap();
     match lang {
         Language::RUSSIAN => {
-            dvar::set_bool("cg_subtitles", false);
+            #[allow(unused_must_use)]
+            {
+                dvar::set_bool("cg_subtitles", false);
+            }
         }
         Language::KOREAN | Language::JAPANESE => {
             G_CURRENT_ASIAN.store(true, Ordering::SeqCst)
         }
         _ => {}
     };
-    dvar::set_string("language", locale::get_str_from_lang(lang));
+    #[allow(unused_must_use)]
+    {
+        dvar::set_string("language", locale::get_str_from_lang(lang));
+    }
 }
 
 pub fn init_language() {
-    dvar::register_int(
-        "loc_language",
-        Language::ENGLISH as _,
-        Some(Language::ENGLISH as _),
-        Some(Language::MAX as _),
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
-        Some("Language"),
-    );
+    #[allow(unused_must_use)]
+    {
+        dvar::register_int(
+            "loc_language",
+            Language::ENGLISH as _,
+            Some(Language::ENGLISH as _),
+            Some(Language::MAX as _),
+            dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
+            Some("Language"),
+        );
 
-    dvar::register_bool(
-        "loc_forceEnglish",
-        false,
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
-        Some("Force english localized strings"),
-    );
+        dvar::register_bool(
+            "loc_forceEnglish",
+            false,
+            dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
+            Some("Force english localized strings"),
+        );
 
-    dvar::register_bool(
-        "loc_translate",
-        true,
-        dvar::DvarFlags::LATCHED,
-        Some("Enable translations"),
-    );
+        dvar::register_bool(
+            "loc_translate",
+            true,
+            dvar::DvarFlags::LATCHED,
+            Some("Enable translations"),
+        );
 
-    dvar::register_bool(
-        "loc_warnings",
-        false,
-        dvar::DvarFlags::empty(),
-        Some("Enable localization warnings"),
-    );
+        dvar::register_bool(
+            "loc_warnings",
+            false,
+            dvar::DvarFlags::empty(),
+            Some("Enable localization warnings"),
+        );
 
-    dvar::register_bool(
-        "loc_warningsAsErrors",
-        false,
-        dvar::DvarFlags::empty(),
-        Some("Throw an error for any unlocalized string"),
-    );
+        dvar::register_bool(
+            "loc_warningsAsErrors",
+            false,
+            dvar::DvarFlags::empty(),
+            Some("Throw an error for any unlocalized string"),
+        );
+    }
 
     update_current_language();
 }

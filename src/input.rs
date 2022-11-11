@@ -26,16 +26,22 @@ pub fn activate(app_active: bool) {
 fn startup() {
     mouse::startup();
     gpad::startup();
-    dvar::clear_modified("in_mouse");
+    #[allow(unused_must_use)]
+    {
+        dvar::clear_modified("in_mouse");
+    }
 }
 
 fn init() {
-    dvar::register_bool(
-        "in_mouse",
-        true,
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
-        Some("Initialize the mouse drivers"),
-    );
+    #[allow(unused_must_use)]
+    {
+        dvar::register_bool(
+            "in_mouse",
+            true,
+            dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
+            Some("Initialize the mouse drivers"),
+        );
+    }
     startup();
 }
 

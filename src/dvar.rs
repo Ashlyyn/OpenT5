@@ -1537,7 +1537,7 @@ pub struct DvarBuilder<T> {
 impl DvarBuilder<DvarBuilderStartState> {
     pub fn new() -> DvarBuilder<DvarBuilderDataState> {
         unsafe {
-            #[allow(clippy::uninit_assumed_init)]
+            #[allow(clippy::uninit_assumed_init, invalid_value)]
             DvarBuilder::<DvarBuilderDataState> {
                 dvar: Dvar {
                     name: "".to_string(),
@@ -2383,7 +2383,7 @@ pub fn register_bool(
     value: bool,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -2398,7 +2398,7 @@ pub fn register_bool(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -2412,11 +2412,11 @@ pub fn register_bool(
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Bool`],
@@ -2451,9 +2451,9 @@ pub fn register_new_bool(
     value: bool,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_bool(name, value, flags, description)
@@ -2489,9 +2489,9 @@ pub fn reregister_bool(
     value: bool,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_bool(name, value, flags, description)
@@ -2535,7 +2535,7 @@ pub fn register_float(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -2550,7 +2550,7 @@ pub fn register_float(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -2565,11 +2565,11 @@ pub fn register_float(
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Float`],
@@ -2613,9 +2613,9 @@ pub fn register_new_float(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_float(name, value, min, max, flags, description)
@@ -2662,9 +2662,9 @@ pub fn reregister_float(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_float(name, value, min, max, flags, description)
@@ -2710,7 +2710,7 @@ pub fn register_vector2(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -2725,7 +2725,7 @@ pub fn register_vector2(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -2740,11 +2740,11 @@ pub fn register_vector2(
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Vector2`],
@@ -2788,9 +2788,9 @@ pub fn register_new_vector2(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_vector2(name, value, min, max, flags, description)
@@ -2838,9 +2838,9 @@ pub fn reregister_vector2(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_vector2(name, value, min, max, flags, description)
@@ -2886,7 +2886,7 @@ pub fn register_vector3(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -2901,7 +2901,7 @@ pub fn register_vector3(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -2916,11 +2916,11 @@ pub fn register_vector3(
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Vector3`],
@@ -2964,9 +2964,9 @@ pub fn register_new_vector3(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_vector3(name, value, min, max, flags, description)
@@ -3014,9 +3014,9 @@ pub fn reregister_vector3(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_vector3(name, value, min, max, flags, description)
@@ -3062,7 +3062,7 @@ pub fn register_vector4(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -3077,7 +3077,7 @@ pub fn register_vector4(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -3092,11 +3092,11 @@ pub fn register_vector4(
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Vector4`],
@@ -3140,9 +3140,9 @@ pub fn register_new_vector4(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_vector4(name, value, min, max, flags, description)
@@ -3190,9 +3190,9 @@ pub fn reregister_vector4(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_vector4(name, value, min, max, flags, description)
@@ -3238,7 +3238,7 @@ pub fn register_int(
     max: Option<i32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -3253,7 +3253,7 @@ pub fn register_int(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -3268,11 +3268,11 @@ pub fn register_int(
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Int`],
@@ -3315,9 +3315,9 @@ pub fn register_new_int(
     max: Option<i32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_int(name, value, min, max, flags, description)
@@ -3365,9 +3365,9 @@ pub fn reregister_int(
     max: Option<i32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_int(name, value, min, max, flags, description)
@@ -3403,7 +3403,7 @@ pub fn register_string(
     value: &str,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -3418,7 +3418,7 @@ pub fn register_string(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -3432,11 +3432,11 @@ pub fn register_string(
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::String`], using the
@@ -3470,9 +3470,9 @@ pub fn register_new_string(
     value: &str,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_string(name, value, flags, description)
@@ -3509,9 +3509,9 @@ pub fn reregister_string(
     value: &str,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_string(name, value, flags, description)
@@ -3549,7 +3549,7 @@ pub fn register_enumeration(
     domain: Option<Vec<String>>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -3564,7 +3564,7 @@ pub fn register_enumeration(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -3579,11 +3579,11 @@ pub fn register_enumeration(
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Enumeration`], using the
@@ -3621,9 +3621,9 @@ pub fn register_new_enumeration(
     domain: Option<Vec<String>>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_enumeration(name, value, domain, flags, description)
@@ -3665,9 +3665,9 @@ pub fn reregister_enumeration(
     domain: Option<Vec<String>>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_enumeration(name, value, domain, flags, description)
@@ -3715,50 +3715,14 @@ pub fn register_color(
     alpha: f32,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
-    let r = if red < 0.0 {
-        0.0
-    } else if red > 1.0 {
-        1.0
-    } else {
-        red
-    } * 255.0
-        + 0.001
-        + 9.313226e-10;
+) -> Result<(), ()> {
+    let r = red.clamp(0.0, 1.0) * 255.0 + 0.001 + 9.313226e-10;
 
-    let g = if green < 0.0 {
-        0.0
-    } else if green > 1.0 {
-        1.0
-    } else {
-        green
-    } * 255.0
-        + 0.001
-        + 9.313226e-10;
+    let g = green.clamp(0.0, 1.0) * 255.0 + 0.001 + 9.313226e-10;
 
-    let b = if blue < 0.0 {
-        0.0
-    } else if blue > 1.0 {
-        1.0
-    } else {
-        blue
-    } * 255.0
-        + 0.001
-        + 9.313226e-10;
+    let b = blue.clamp(0.0, 1.0) * 255.0 + 0.001 + 9.313226e-10;
 
-    let a = if alpha < 0.0 {
-        0.0
-    } else if alpha > 1.0 {
-        1.0
-    } else {
-        alpha
-    } * 255.0
-        + 0.001
-        + 9.313226e-10;
-
-    if exists(name) {
-        return false;
-    }
+    let a = alpha.clamp(0.0, 1.0) * 255.0 + 0.001 + 9.313226e-10;
 
     let b_2: bool;
     let other_name: &str;
@@ -3774,7 +3738,7 @@ pub fn register_color(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -3788,11 +3752,11 @@ pub fn register_color(
         other_name = &writer.get(name).unwrap().name;
         if b_2 {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Color`], using the
@@ -3838,9 +3802,9 @@ pub fn register_new_color(
     alpha: f32,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_color(name, red, green, blue, alpha, flags, description)
@@ -3889,9 +3853,9 @@ pub fn reregister_color(
     alpha: f32,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_color(name, red, green, blue, alpha, flags, description)
@@ -3933,11 +3897,7 @@ pub fn register_int64(
     max: Option<i64>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
-    if exists(name) {
-        return false;
-    }
-
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -3952,7 +3912,7 @@ pub fn register_int64(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -3968,11 +3928,11 @@ pub fn register_int64(
 
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Int64`],
@@ -4014,9 +3974,9 @@ pub fn register_new_int64(
     max: Option<i64>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_int64(name, value, min, max, flags, description)
@@ -4063,9 +4023,9 @@ pub fn reregister_int64(
     max: Option<i64>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_int64(name, value, min, max, flags, description)
@@ -4119,7 +4079,7 @@ pub fn register_linear_color_rgb(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -4134,7 +4094,7 @@ pub fn register_linear_color_rgb(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -4149,11 +4109,11 @@ pub fn register_linear_color_rgb(
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::LinearColorRGB`],
@@ -4205,9 +4165,9 @@ pub fn register_new_linear_color_rgb(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_linear_color_rgb(
@@ -4272,9 +4232,9 @@ pub fn reregister_linear_color_rgb(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_linear_color_rgb(
@@ -4332,7 +4292,7 @@ pub fn register_color_xyz(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     let b: bool;
     let other_name: &str;
     {
@@ -4347,7 +4307,7 @@ pub fn register_color_xyz(
                     name, DVAR_COUNT_MAX
                 ),
             );
-            return false;
+            return Err(());
         }
 
         let dvar = DvarBuilder::new()
@@ -4363,11 +4323,11 @@ pub fn register_color_xyz(
 
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            return false;
+            return Err(());
         }
     }
 
-    true
+    Ok(())
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::ColorXYZ`],
@@ -4414,9 +4374,9 @@ pub fn register_new_color_xyz(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
-        return false;
+        return Err(());
     }
 
     register_color_xyz(name, x, y, z, min, max, flags, description)
@@ -4467,9 +4427,9 @@ pub fn reregister_color_xyz(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     register_color_xyz(name, x, y, z, min, max, flags, description)
@@ -4512,15 +4472,15 @@ fn set_variant_from_source(
     name: &str,
     value: DvarValue,
     source: SetSource,
-) -> bool {
+) -> Result<(), ()> {
     match find(name) {
         Some(_) => {
             let lock = DVARS.clone();
             let mut writer = lock.try_write().expect("");
             writer.get_mut(name).unwrap().set_variant(value, source);
-            true
+            Ok(())
         }
-        None => false,
+        None => Err(()),
     }
 }
 
@@ -4556,7 +4516,11 @@ fn set_variant_from_source(
 ///     set_bool_from_source(name, value, source);
 /// }
 /// ```
-fn set_bool_from_source(name: &str, value: bool, source: SetSource) -> bool {
+fn set_bool_from_source(
+    name: &str,
+    value: bool,
+    source: SetSource,
+) -> Result<(), ()> {
     set_variant_from_source(name, DvarValue::Bool(value), source)
 }
 
@@ -4590,7 +4554,7 @@ fn set_bool_from_source(name: &str, value: bool, source: SetSource) -> bool {
 ///     set_bool_internal(name, value);
 /// }
 /// ```
-pub fn set_bool_internal(name: &str, value: bool) -> bool {
+pub fn set_bool_internal(name: &str, value: bool) -> Result<(), ()> {
     set_bool_from_source(name, value, SetSource::Internal)
 }
 
@@ -4624,7 +4588,7 @@ pub fn set_bool_internal(name: &str, value: bool) -> bool {
 ///     set_bool(name, value);
 /// }
 /// ```
-pub fn set_bool(name: &str, value: bool) -> bool {
+pub fn set_bool(name: &str, value: bool) -> Result<(), ()> {
     set_bool_from_source(name, value, SetSource::External)
 }
 
@@ -4666,7 +4630,7 @@ pub fn set_or_register_bool(
     value: bool,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_bool_internal(name, value)
     } else {
@@ -4706,7 +4670,11 @@ pub fn set_or_register_bool(
 ///     set_float_from_source(name, value, source);
 /// }
 /// ```
-fn set_float_from_source(name: &str, value: f32, source: SetSource) -> bool {
+fn set_float_from_source(
+    name: &str,
+    value: f32,
+    source: SetSource,
+) -> Result<(), ()> {
     set_variant_from_source(name, DvarValue::Float(value), source)
 }
 
@@ -4740,7 +4708,7 @@ fn set_float_from_source(name: &str, value: f32, source: SetSource) -> bool {
 ///     set_float_internal(name, value);
 /// }
 /// ```
-pub fn set_float_internal(name: &str, value: f32) -> bool {
+pub fn set_float_internal(name: &str, value: f32) -> Result<(), ()> {
     set_float_from_source(name, value, SetSource::Internal)
 }
 
@@ -4774,7 +4742,7 @@ pub fn set_float_internal(name: &str, value: f32) -> bool {
 ///     set_float(name, value);
 /// }
 /// ```
-pub fn set_float(name: &str, value: f32) -> bool {
+pub fn set_float(name: &str, value: f32) -> Result<(), ()> {
     set_float_from_source(name, value, SetSource::External)
 }
 
@@ -4827,7 +4795,7 @@ pub fn set_or_register_float(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_float_internal(name, value)
     } else {
@@ -4871,7 +4839,7 @@ fn set_vector2_from_source(
     name: &str,
     value: Vec2f32,
     source: SetSource,
-) -> bool {
+) -> Result<(), ()> {
     set_variant_from_source(name, DvarValue::Vector2(value), source)
 }
 
@@ -4905,7 +4873,7 @@ fn set_vector2_from_source(
 ///     set_vector2_internal(name, value);
 /// }
 /// ```
-pub fn set_vector2_internal(name: &str, value: Vec2f32) -> bool {
+pub fn set_vector2_internal(name: &str, value: Vec2f32) -> Result<(), ()> {
     set_vector2_from_source(name, value, SetSource::Internal)
 }
 
@@ -4939,7 +4907,7 @@ pub fn set_vector2_internal(name: &str, value: Vec2f32) -> bool {
 ///     set_vector2(name, value);
 /// }
 /// ```
-pub fn set_vector2(name: &str, value: Vec2f32) -> bool {
+pub fn set_vector2(name: &str, value: Vec2f32) -> Result<(), ()> {
     set_vector2_from_source(name, value, SetSource::External)
 }
 
@@ -4992,7 +4960,7 @@ pub fn set_or_register_vector2(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_vector2_internal(name, value)
     } else {
@@ -5036,7 +5004,7 @@ fn set_vector3_from_source(
     name: &str,
     value: Vec3f32,
     source: SetSource,
-) -> bool {
+) -> Result<(), ()> {
     set_variant_from_source(name, DvarValue::Vector3(value), source)
 }
 
@@ -5070,7 +5038,7 @@ fn set_vector3_from_source(
 ///     set_vector3_internal(name, value);
 /// }
 /// ```
-pub fn set_vector3_internal(name: &str, value: Vec3f32) -> bool {
+pub fn set_vector3_internal(name: &str, value: Vec3f32) -> Result<(), ()> {
     set_vector3_from_source(name, value, SetSource::Internal)
 }
 
@@ -5104,7 +5072,7 @@ pub fn set_vector3_internal(name: &str, value: Vec3f32) -> bool {
 ///     set_vector3(name, value);
 /// }
 /// ```
-pub fn set_vector3(name: &str, value: Vec3f32) -> bool {
+pub fn set_vector3(name: &str, value: Vec3f32) -> Result<(), ()> {
     set_vector3_from_source(name, value, SetSource::External)
 }
 
@@ -5157,7 +5125,7 @@ pub fn set_or_register_vector3(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_vector3(name, value)
     } else {
@@ -5201,7 +5169,7 @@ fn set_vector4_from_source(
     name: &str,
     value: Vec4f32,
     source: SetSource,
-) -> bool {
+) -> Result<(), ()> {
     set_variant_from_source(name, DvarValue::Vector4(value), source)
 }
 
@@ -5235,7 +5203,7 @@ fn set_vector4_from_source(
 ///     set_vector4_internal(name, value);
 /// }
 /// ```
-pub fn set_vector4_internal(name: &str, value: Vec4f32) -> bool {
+pub fn set_vector4_internal(name: &str, value: Vec4f32) -> Result<(), ()> {
     set_vector4_from_source(name, value, SetSource::Internal)
 }
 
@@ -5269,7 +5237,7 @@ pub fn set_vector4_internal(name: &str, value: Vec4f32) -> bool {
 ///     set_vector4(name, value);
 /// }
 /// ```
-pub fn set_vector4(name: &str, value: Vec4f32) -> bool {
+pub fn set_vector4(name: &str, value: Vec4f32) -> Result<(), ()> {
     set_vector4_from_source(name, value, SetSource::External)
 }
 
@@ -5322,7 +5290,7 @@ pub fn set_or_register_vector4(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_vector4(name, value)
     } else {
@@ -5362,7 +5330,11 @@ pub fn set_or_register_vector4(
 ///     set_int_from_source(name, value, source);
 /// }
 /// ```
-fn set_int_from_source(name: &str, value: i32, source: SetSource) -> bool {
+fn set_int_from_source(
+    name: &str,
+    value: i32,
+    source: SetSource,
+) -> Result<(), ()> {
     set_variant_from_source(name, DvarValue::Int(value), source)
 }
 
@@ -5396,7 +5368,7 @@ fn set_int_from_source(name: &str, value: i32, source: SetSource) -> bool {
 ///     set_int(name, value);
 /// }
 /// ```
-pub fn set_int_internal(name: &str, value: i32) -> bool {
+pub fn set_int_internal(name: &str, value: i32) -> Result<(), ()> {
     set_int_from_source(name, value, SetSource::Internal)
 }
 
@@ -5430,7 +5402,7 @@ pub fn set_int_internal(name: &str, value: i32) -> bool {
 ///     set_int(name, value);
 /// }
 /// ```
-pub fn set_int(name: &str, value: i32) -> bool {
+pub fn set_int(name: &str, value: i32) -> Result<(), ()> {
     set_int_from_source(name, value, SetSource::External)
 }
 
@@ -5476,7 +5448,7 @@ pub fn set_or_register_int(
     max: Option<i32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_int_internal(name, value)
     } else {
@@ -5516,7 +5488,11 @@ pub fn set_or_register_int(
 ///     set_string_from_source(name, value, source);
 /// }
 /// ```
-fn set_string_from_source(name: &str, value: &str, source: SetSource) -> bool {
+fn set_string_from_source(
+    name: &str,
+    value: &str,
+    source: SetSource,
+) -> Result<(), ()> {
     set_variant_from_source(name, DvarValue::String(value.to_string()), source)
 }
 
@@ -5550,7 +5526,7 @@ fn set_string_from_source(name: &str, value: &str, source: SetSource) -> bool {
 ///     set_string(name, value);
 /// }
 /// ```
-pub fn set_string_internal(name: &str, value: &str) -> bool {
+pub fn set_string_internal(name: &str, value: &str) -> Result<(), ()> {
     set_string_from_source(name, value, SetSource::Internal)
 }
 
@@ -5584,7 +5560,7 @@ pub fn set_string_internal(name: &str, value: &str) -> bool {
 ///     set_string(name, value);
 /// }
 /// ```
-pub fn set_string(name: &str, value: &str) -> bool {
+pub fn set_string(name: &str, value: &str) -> Result<(), ()> {
     set_string_from_source(name, value, SetSource::External)
 }
 
@@ -5626,7 +5602,7 @@ fn set_or_register_string(
     value: &str,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_string_internal(name, value)
     } else {
@@ -5670,7 +5646,7 @@ pub fn set_enumeration_from_source(
     name: &str,
     value: &str,
     source: SetSource,
-) -> bool {
+) -> Result<(), ()> {
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
@@ -5682,12 +5658,12 @@ pub fn set_enumeration_from_source(
                     .iter()
                     .any(|s| *s == value)
                 {
-                    return false;
+                    return Err(());
                 }
             }
-            _ => return false,
+            _ => return Err(()),
         },
-        None => return false,
+        None => return Err(()),
     };
     set_variant_from_source(
         name,
@@ -5726,7 +5702,7 @@ pub fn set_enumeration_from_source(
 ///     set_enumeration(name, value);
 /// }
 /// ```
-pub fn set_enumeration_internal(name: &str, value: &str) -> bool {
+pub fn set_enumeration_internal(name: &str, value: &str) -> Result<(), ()> {
     set_enumeration_from_source(name, value, SetSource::Internal)
 }
 
@@ -5760,7 +5736,7 @@ pub fn set_enumeration_internal(name: &str, value: &str) -> bool {
 ///     set_enumeration(name, value);
 /// }
 /// ```
-pub fn set_enumeration(name: &str, value: &str) -> bool {
+pub fn set_enumeration(name: &str, value: &str) -> Result<(), ()> {
     set_enumeration_from_source(name, value, SetSource::External)
 }
 
@@ -5789,10 +5765,10 @@ pub fn set_enumeration(name: &str, value: &str) -> bool {
 ///     set_enumeration_next(name);
 /// }
 /// ```
-pub fn set_enumeration_next(name: &str) -> bool {
+pub fn set_enumeration_next(name: &str) -> Result<(), ()> {
     let current = match get_enumeration(name) {
         Some(d) => d,
-        None => return false,
+        None => return Err(()),
     };
 
     match find(name) {
@@ -5806,21 +5782,21 @@ pub fn set_enumeration_next(name: &str) -> bool {
                             if *v == current {
                                 let next = match iter.next() {
                                     Some(n) => n.clone(),
-                                    None => return false,
+                                    None => return Err(()),
                                 };
                                 return set_enumeration(name, &next);
                             }
                         }
                         None => match domain.strings.iter().next() {
                             Some(v) => return set_enumeration(name, v),
-                            None => return false,
+                            None => return Err(()),
                         },
                     }
                 }
             }
-            _ => false,
+            _ => Err(()),
         },
-        None => false,
+        None => Err(()),
     }
 }
 
@@ -5849,13 +5825,13 @@ pub fn set_enumeration_next(name: &str) -> bool {
 ///     set_enumeration_prev(name);
 /// }
 /// ```
-pub fn set_enumeration_prev(name: &str) -> bool {
+pub fn set_enumeration_prev(name: &str) -> Result<(), ()> {
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(s) => {
                 let domain = match d.domain {
                     DvarLimits::Enumeration(l) => l,
-                    _ => return false,
+                    _ => return Err(()),
                 };
 
                 let i = match domain
@@ -5865,23 +5841,25 @@ pub fn set_enumeration_prev(name: &str) -> bool {
                     .find(|(_, u)| **u == *s)
                 {
                     Some((j, _)) => j,
-                    None => return false,
+                    None => return Err(()),
                 };
 
                 let value =
                     domain.strings.iter().nth(i - 1).unwrap_or_else(|| {
                         domain.strings.iter().next().unwrap()
                     });
-                dvar::set_enumeration(name, value);
-                true
+                if dvar::set_enumeration(name, value).is_err() {
+                    return Err(());
+                };
+                Ok(())
             }
-            _ => false,
+            _ => Err(()),
         },
-        None => false,
+        None => Err(()),
     }
 }
 
-fn add_to_enumeration_domain(name: &str, domain_str: &str) -> bool {
+fn add_to_enumeration_domain(name: &str, domain_str: &str) -> Result<(), ()> {
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
@@ -5891,18 +5869,21 @@ fn add_to_enumeration_domain(name: &str, domain_str: &str) -> bool {
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
                         l.strings.insert(domain_str.to_string());
-                        true
+                        Ok(())
                     }
-                    _ => false,
+                    _ => Err(()),
                 }
             }
-            _ => false,
+            _ => Err(()),
         },
-        None => false,
+        None => Err(()),
     }
 }
 
-fn remove_from_enumeration_domain(name: &str, domain_str: &str) -> bool {
+fn remove_from_enumeration_domain(
+    name: &str,
+    domain_str: &str,
+) -> Result<(), ()> {
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
@@ -5912,14 +5893,14 @@ fn remove_from_enumeration_domain(name: &str, domain_str: &str) -> bool {
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
                         l.strings.remove(&domain_str.to_string());
-                        true
+                        Ok(())
                     }
-                    _ => false,
+                    _ => Err(()),
                 }
             }
-            _ => false,
+            _ => Err(()),
         },
-        None => false,
+        None => Err(()),
     }
 }
 
@@ -5969,7 +5950,7 @@ pub fn set_or_register_enumeration(
     domain: Option<Vec<String>>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_enumeration_internal(name, &value)
     } else {
@@ -6016,7 +5997,7 @@ fn set_color_from_source(
     blue: f32,
     alpha: f32,
     source: SetSource,
-) -> bool {
+) -> Result<(), ()> {
     set_variant_from_source(
         name,
         DvarValue::Color((red, green, blue, alpha)),
@@ -6060,7 +6041,7 @@ pub fn set_color_internal(
     green: f32,
     blue: f32,
     alpha: f32,
-) -> bool {
+) -> Result<(), ()> {
     set_color_from_source(name, red, green, blue, alpha, SetSource::Internal)
 }
 
@@ -6100,7 +6081,7 @@ pub fn set_color(
     green: f32,
     blue: f32,
     alpha: f32,
-) -> bool {
+) -> Result<(), ()> {
     set_color_from_source(name, red, green, blue, alpha, SetSource::External)
 }
 
@@ -6145,7 +6126,7 @@ pub fn set_or_register_color(
     alpha: f32,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_color_internal(name, red, green, blue, alpha)
     } else {
@@ -6185,7 +6166,11 @@ pub fn set_or_register_color(
 ///     set_int64_from_source(name, value, source);
 /// }
 /// ```
-fn set_int64_from_source(name: &str, value: i64, source: SetSource) -> bool {
+fn set_int64_from_source(
+    name: &str,
+    value: i64,
+    source: SetSource,
+) -> Result<(), ()> {
     set_variant_from_source(name, DvarValue::Int64(value), source)
 }
 
@@ -6219,7 +6204,7 @@ fn set_int64_from_source(name: &str, value: i64, source: SetSource) -> bool {
 ///     set_int64(name, value);
 /// }
 /// ```
-pub fn set_int64_internal(name: &str, value: i64) -> bool {
+pub fn set_int64_internal(name: &str, value: i64) -> Result<(), ()> {
     set_int64_from_source(name, value, SetSource::Internal)
 }
 
@@ -6253,7 +6238,7 @@ pub fn set_int64_internal(name: &str, value: i64) -> bool {
 ///     set_int64(name, value);
 /// }
 /// ```
-pub fn set_int64(name: &str, value: i64) -> bool {
+pub fn set_int64(name: &str, value: i64) -> Result<(), ()> {
     set_int64_from_source(name, value, SetSource::External)
 }
 
@@ -6306,7 +6291,7 @@ pub fn set_or_register_int64(
     max: Option<i64>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_int64_internal(name, value)
     } else {
@@ -6352,7 +6337,7 @@ fn set_linear_color_rgb_from_source(
     green: f32,
     blue: f32,
     source: SetSource,
-) -> bool {
+) -> Result<(), ()> {
     set_variant_from_source(
         name,
         DvarValue::LinearColorRGB((red, green, blue)),
@@ -6395,7 +6380,7 @@ pub fn set_linear_color_rgb_internal(
     red: f32,
     green: f32,
     blue: f32,
-) -> bool {
+) -> Result<(), ()> {
     set_linear_color_rgb_from_source(
         name,
         red,
@@ -6440,7 +6425,7 @@ pub fn set_linear_color_rgb(
     red: f32,
     green: f32,
     blue: f32,
-) -> bool {
+) -> Result<(), ()> {
     set_linear_color_rgb_from_source(
         name,
         red,
@@ -6502,7 +6487,7 @@ pub fn set_or_register_linear_color_rgb(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_linear_color_rgb_internal(name, red, green, blue)
     } else {
@@ -6557,7 +6542,7 @@ fn set_color_xyz_from_source(
     y: f32,
     z: f32,
     source: SetSource,
-) -> bool {
+) -> Result<(), ()> {
     set_variant_from_source(name, DvarValue::ColorXYZ((x, y, z)), source)
 }
 
@@ -6591,7 +6576,12 @@ fn set_color_xyz_from_source(
 ///     set_color_xyz(name, value);
 /// }
 /// ```
-pub fn set_color_xyz_internal(name: &str, x: f32, y: f32, z: f32) -> bool {
+pub fn set_color_xyz_internal(
+    name: &str,
+    x: f32,
+    y: f32,
+    z: f32,
+) -> Result<(), ()> {
     set_color_xyz_from_source(name, x, y, z, SetSource::Internal)
 }
 
@@ -6625,7 +6615,7 @@ pub fn set_color_xyz_internal(name: &str, x: f32, y: f32, z: f32) -> bool {
 ///     set_color_xyz(name, value);
 /// }
 /// ```
-pub fn set_color_xyz(name: &str, x: f32, y: f32, z: f32) -> bool {
+pub fn set_color_xyz(name: &str, x: f32, y: f32, z: f32) -> Result<(), ()> {
     set_color_xyz_from_source(name, x, y, z, SetSource::External)
 }
 
@@ -6681,7 +6671,7 @@ pub fn set_or_register_color_xyz(
     max: Option<f32>,
     flags: DvarFlags,
     description: Option<&str>,
-) -> bool {
+) -> Result<(), ()> {
     if exists(name) {
         set_color_xyz_internal(name, x, y, z)
     } else {
@@ -6751,7 +6741,7 @@ pub fn get_or_register_bool(
     description: Option<&str>,
 ) -> Option<bool> {
     get_bool(name).or_else(|| {
-        if !register_bool(name, value, flags, description) {
+        if register_bool(name, value, flags, description).is_err() {
             return None;
         }
         Some(value)
@@ -6826,7 +6816,7 @@ pub fn get_or_register_float(
     description: Option<&str>,
 ) -> Option<f32> {
     get_float(name).or_else(|| {
-        if !register_float(name, value, min, max, flags, description) {
+        if register_float(name, value, min, max, flags, description).is_err() {
             return None;
         }
         Some(value)
@@ -6901,7 +6891,8 @@ pub fn get_or_register_vector2(
     description: Option<&str>,
 ) -> Option<Vec2f32> {
     get_vector2(name).or_else(|| {
-        if !register_vector2(name, value, min, max, flags, description) {
+        if register_vector2(name, value, min, max, flags, description).is_err()
+        {
             return None;
         }
         Some(value)
@@ -6976,7 +6967,8 @@ pub fn get_or_register_vector3(
     description: Option<&str>,
 ) -> Option<Vec3f32> {
     get_vector3(name).or_else(|| {
-        if !register_vector3(name, value, min, max, flags, description) {
+        if register_vector3(name, value, min, max, flags, description).is_err()
+        {
             return None;
         }
         Some(value)
@@ -7051,7 +7043,8 @@ pub fn get_or_register_vector4(
     description: Option<&str>,
 ) -> Option<Vec4f32> {
     get_vector4(name).or_else(|| {
-        if !register_vector4(name, value, min, max, flags, description) {
+        if register_vector4(name, value, min, max, flags, description).is_err()
+        {
             return None;
         }
         Some(value)
@@ -7126,7 +7119,7 @@ pub fn get_or_register_int(
     description: Option<&str>,
 ) -> Option<i32> {
     get_int(name).or_else(|| {
-        if !register_int(name, value, min, max, flags, description) {
+        if register_int(name, value, min, max, flags, description).is_err() {
             return None;
         }
         Some(value)
@@ -7195,7 +7188,7 @@ pub fn get_or_register_string(
     description: Option<&str>,
 ) -> Option<String> {
     get_string(name).or_else(|| {
-        if !register_string(name, value, flags, description) {
+        if register_string(name, value, flags, description).is_err() {
             return None;
         }
         Some(value.to_string())
@@ -7268,13 +7261,9 @@ pub fn get_or_register_enumeration(
     description: Option<&str>,
 ) -> Option<String> {
     get_enumeration(name).or_else(|| {
-        if !register_enumeration(
-            name,
-            value.clone(),
-            domain,
-            flags,
-            description,
-        ) {
+        if register_enumeration(name, value.clone(), domain, flags, description)
+            .is_err()
+        {
             return None;
         }
         Some(value)
@@ -7352,7 +7341,9 @@ pub fn get_or_register_color(
     description: Option<&str>,
 ) -> Option<Vec4f32> {
     get_color(name).or_else(|| {
-        if !register_color(name, red, green, blue, alpha, flags, description) {
+        if register_color(name, red, green, blue, alpha, flags, description)
+            .is_err()
+        {
             return None;
         }
         Some((red, green, blue, alpha))
@@ -7429,7 +7420,7 @@ pub fn get_or_register_int64(
     description: Option<&str>,
 ) -> Option<i64> {
     get_int64(name).or_else(|| {
-        if !register_int64(name, value, min, max, flags, description) {
+        if register_int64(name, value, min, max, flags, description).is_err() {
             return None;
         }
         Some(value)
@@ -7511,7 +7502,7 @@ pub fn get_or_register_linear_color_rgb(
     description: Option<&str>,
 ) -> Option<Vec3f32> {
     get_linear_color_rgb(name).or_else(|| {
-        if !register_linear_color_rgb(
+        if register_linear_color_rgb(
             name,
             red,
             green,
@@ -7520,7 +7511,9 @@ pub fn get_or_register_linear_color_rgb(
             max,
             flags,
             description,
-        ) {
+        )
+        .is_err()
+        {
             return None;
         }
         Some((red, green, blue))
@@ -7602,7 +7595,9 @@ pub fn get_or_register_color_xyz(
     description: Option<&str>,
 ) -> Option<Vec3f32> {
     get_color_xyz(name).or_else(|| {
-        if !register_color_xyz(name, x, y, z, min, max, flags, description) {
+        if register_color_xyz(name, x, y, z, min, max, flags, description)
+            .is_err()
+        {
             return None;
         }
         Some((x, y, z))
@@ -7630,15 +7625,15 @@ pub fn get_or_register_color_xyz(
 /// let name = "sv_test";
 /// clear_modified(name);
 /// ```
-pub fn clear_modified(name: &str) -> bool {
+pub fn clear_modified(name: &str) -> Result<(), ()> {
     let lock = DVARS.clone();
     let mut writer = lock.try_write().expect("");
     if let Some(d) = writer.get_mut(name) {
         d.modified = false;
-        return true;
+        return Ok(());
     };
 
-    false
+    Err(())
 }
 
 /// Adds flags to an existing [`Dvar`].
@@ -7664,15 +7659,15 @@ pub fn clear_modified(name: &str) -> bool {
 /// let flags = DvarFlags::empty();
 /// add_flags(name, flags);
 /// ```
-pub fn add_flags(name: &str, flags: DvarFlags) -> bool {
+pub fn add_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
     let lock = DVARS.clone();
     let mut writer = lock.try_write().expect("");
     if let Some(d) = writer.get_mut(name) {
         d.add_flags(flags);
-        return true;
+        return Ok(());
     };
 
-    false
+    Err(())
 }
 
 /// Clears flags from an existing [`Dvar`].
@@ -7698,15 +7693,15 @@ pub fn add_flags(name: &str, flags: DvarFlags) -> bool {
 /// let flags = DvarFlags::EXTERNAL;
 /// clear_flags(name, flags);
 /// ```
-pub fn clear_flags(name: &str, flags: DvarFlags) -> bool {
+pub fn clear_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
     let lock = DVARS.clone();
     let mut writer = lock.try_write().expect("");
     if let Some(d) = writer.get_mut(name) {
         d.clear_flags(flags);
-        return true;
+        return Ok(());
     };
 
-    false
+    Err(())
 }
 
 // Helper function to check if Dvar name is valid
@@ -7716,16 +7711,15 @@ fn name_is_valid(name: &str) -> bool {
 }
 
 // Toggle current value of Dvar if possible
-fn toggle_simple(name: &str) -> bool {
+fn toggle_simple(name: &str) -> Result<(), ()> {
     if !exists(name) {
-        return false;
+        return Err(());
     }
 
     let value = find(name).unwrap().current;
     match value {
         DvarValue::Bool(b) => {
-            set_bool_from_source(name, !b, SetSource::External);
-            true
+            set_bool_from_source(name, !b, SetSource::External)
         }
         DvarValue::Float(f) => {
             let domain = find(name).unwrap().domain;
@@ -7739,20 +7733,19 @@ fn toggle_simple(name: &str) -> bool {
                         name,
                         domain.as_float_limits().unwrap().max,
                         SetSource::External,
-                    );
+                    )
                 } else {
                     set_float_from_source(
                         name,
                         domain.as_float_limits().unwrap().min,
                         SetSource::External,
-                    );
+                    )
                 }
             } else if f == 0.0 {
-                set_float_from_source(name, 1.0, SetSource::External);
+                set_float_from_source(name, 1.0, SetSource::External)
             } else {
-                set_float_from_source(name, 0.0, SetSource::External);
+                set_float_from_source(name, 0.0, SetSource::External)
             }
-            true
         }
         DvarValue::Int(i) => {
             let domain = find(name).unwrap().domain;
@@ -7760,24 +7753,23 @@ fn toggle_simple(name: &str) -> bool {
                 && domain.as_int_limits().unwrap().min < 1
             {
                 if i == 0 {
-                    set_int_from_source(name, 1, SetSource::External);
+                    set_int_from_source(name, 1, SetSource::External)
                 } else {
-                    set_int_from_source(name, 0, SetSource::External);
+                    set_int_from_source(name, 0, SetSource::External)
                 }
             } else if i == domain.as_int_limits().unwrap().min {
                 set_int_from_source(
                     name,
                     domain.as_int_limits().unwrap().max,
                     SetSource::External,
-                );
+                )
             } else {
                 set_int_from_source(
                     name,
                     domain.as_int_limits().unwrap().min,
                     SetSource::External,
-                );
+                )
             }
-            true
         }
         DvarValue::Int64(i) => {
             let domain = find(name).unwrap().domain;
@@ -7785,73 +7777,72 @@ fn toggle_simple(name: &str) -> bool {
                 && domain.as_int64_limits().unwrap().min < 1
             {
                 if i == 0 {
-                    set_int64_from_source(name, 1, SetSource::External);
+                    set_int64_from_source(name, 1, SetSource::External)
                 } else {
-                    set_int64_from_source(name, 0, SetSource::External);
+                    set_int64_from_source(name, 0, SetSource::External)
                 }
             } else if i == domain.as_int64_limits().unwrap().min {
                 set_int64_from_source(
                     name,
                     domain.as_int64_limits().unwrap().max,
                     SetSource::External,
-                );
+                )
             } else {
                 set_int64_from_source(
                     name,
                     domain.as_int64_limits().unwrap().min,
                     SetSource::External,
-                );
+                )
             }
-            true
         }
         DvarValue::Vector2(_) => {
             com::println(&format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
-            false
+            Err(())
         }
         DvarValue::Vector3(_) => {
             com::println(&format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
-            false
+            Err(())
         }
         DvarValue::Vector4(_) => {
             com::println(&format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
-            false
+            Err(())
         }
         DvarValue::String(_) => {
             com::println(&format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
-            false
+            Err(())
         }
         DvarValue::Color(_) => {
             com::println(&format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
-            false
+            Err(())
         }
         DvarValue::LinearColorRGB(_) => {
             com::println(&format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
-            false
+            Err(())
         }
         DvarValue::ColorXYZ(_) => {
             com::println(&format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
-            false
+            Err(())
         }
         DvarValue::Enumeration(_) => {
             todo!();
@@ -7916,7 +7907,10 @@ lazy_static! {
 }
 
 fn set_command(name: &str, value: &str) {
-    set_string_from_source(name, value, SetSource::External);
+    if set_string_from_source(name, value, SetSource::External).is_err() {
+        return;
+    }
+
     let lock = DVARS.clone();
     let mut writer = lock.try_write().expect("dvar::set_command: failed to acquire writer lock. Probably still held by calling function.");
 
@@ -8031,7 +8025,7 @@ fn list_single(dvar: &Dvar, name: &str) {
     DVAR_COUNT_LOCAL.fetch_add(1, Ordering::SeqCst);
 }
 
-fn toggle_internal_f() -> bool {
+fn toggle_internal_f() -> Result<(), ()> {
     let argc = cmd::argc();
 
     let name = if argc < 1 {
@@ -8045,14 +8039,14 @@ fn toggle_internal_f() -> bool {
             "USAGE: {} <variable> <optional value sequence>",
             name
         ));
-        return false;
+        return Err(());
     }
 
     let argv_1 = cmd::argv(1);
 
     if !exists(&name) {
         com::println(&format!("toggle failed: dvar \'{}\' not found.", name));
-        return false;
+        return Err(());
     }
 
     if cmd::argc() == 2 {
@@ -8073,7 +8067,7 @@ fn toggle_internal_f() -> bool {
         }
         if get_enumeration(&name).unwrap() == argv_i {
             set_command(&cmd::argv(1), &cmd::argv(i + 1));
-            return true;
+            return Ok(());
         }
     }
 
@@ -8086,15 +8080,18 @@ fn toggle_internal_f() -> bool {
         }
     }
     set_command(&argv_1, &argv_2);
-    true
+    Ok(())
 }
 
 fn toggle_f() {
-    toggle_internal_f();
+    #[allow(unused_must_use)]
+    {
+        toggle_internal_f();
+    }
 }
 
 fn toggle_print() {
-    if toggle_internal_f() == false {
+    if toggle_internal_f().is_err() {
         return;
     }
 
@@ -8285,12 +8282,15 @@ fn register_bool_f() {
         Some(d) => match d.current {
             DvarValue::String(_) => {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
-                    register_bool(
-                        &name,
-                        value,
-                        DvarFlags::EXTERNAL,
-                        Some("External Dvar"),
-                    );
+                    #[allow(unused_must_use)]
+                    {
+                        register_bool(
+                            &name,
+                            value,
+                            DvarFlags::EXTERNAL,
+                            Some("External Dvar"),
+                        );
+                    }
                 }
             }
             _ => {
@@ -8329,26 +8329,32 @@ fn register_int_f() {
     let dvar = find(&name);
     match dvar {
         None => {
-            register_int(
-                &name,
-                value.unwrap_or(0),
-                min,
-                max,
-                DvarFlags::EXTERNAL,
-                Some("External Dvar"),
-            );
+            #[allow(unused_must_use)]
+            {
+                register_int(
+                    &name,
+                    value.unwrap_or(0),
+                    min,
+                    max,
+                    DvarFlags::EXTERNAL,
+                    Some("External Dvar"),
+                );
+            }
         }
         Some(d) => match d.current {
             DvarValue::String(_) => {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
-                    register_int(
-                        &name,
-                        value.unwrap_or(0),
-                        min,
-                        max,
-                        DvarFlags::EXTERNAL,
-                        Some("External Dvar"),
-                    );
+                    #[allow(unused_must_use)]
+                    {
+                        register_int(
+                            &name,
+                            value.unwrap_or(0),
+                            min,
+                            max,
+                            DvarFlags::EXTERNAL,
+                            Some("External Dvar"),
+                        );
+                    }
                 }
             }
             DvarValue::Int(_) => {}
@@ -8389,26 +8395,32 @@ fn register_float_f() {
     let dvar = find(&name);
     match dvar {
         None => {
-            register_float(
-                &name,
-                value.unwrap_or(0.0),
-                min,
-                max,
-                DvarFlags::EXTERNAL,
-                Some("External Dvar"),
-            );
+            #[allow(unused_must_use)]
+            {
+                register_float(
+                    &name,
+                    value.unwrap_or(0.0),
+                    min,
+                    max,
+                    DvarFlags::EXTERNAL,
+                    Some("External Dvar"),
+                );
+            }
         }
         Some(d) => match d.current {
             DvarValue::String(_) => {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
-                    register_float(
-                        &name,
-                        value.unwrap_or(0.0),
-                        min,
-                        max,
-                        DvarFlags::EXTERNAL,
-                        Some("External Dvar"),
-                    );
+                    #[allow(unused_must_use)]
+                    {
+                        register_float(
+                            &name,
+                            value.unwrap_or(0.0),
+                            min,
+                            max,
+                            DvarFlags::EXTERNAL,
+                            Some("External Dvar"),
+                        );
+                    }
                 }
             }
             DvarValue::Float(_) => {}
@@ -8448,30 +8460,36 @@ fn register_color_f() {
     match dvar {
         None => {
             // If the Dvar doesn't exist, register it.
-            register_color(
-                &name,
-                r,
-                g,
-                b,
-                a,
-                DvarFlags::EXTERNAL,
-                Some("External Dvar"),
-            );
+            #[allow(unused_must_use)]
+            {
+                register_color(
+                    &name,
+                    r,
+                    g,
+                    b,
+                    a,
+                    DvarFlags::EXTERNAL,
+                    Some("External Dvar"),
+                );
+            }
         }
         Some(d) => {
             // Else if it does exist, the type is String, and the External flag is
             // set, register it
             if let DvarValue::String(_) = d.current {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
-                    register_color(
-                        &name,
-                        r,
-                        g,
-                        b,
-                        a,
-                        DvarFlags::EXTERNAL,
-                        Some("External Dvar"),
-                    );
+                    #[allow(unused_must_use)]
+                    {
+                        register_color(
+                            &name,
+                            r,
+                            g,
+                            b,
+                            a,
+                            DvarFlags::EXTERNAL,
+                            Some("External Dvar"),
+                        );
+                    }
                 }
             }
         }
@@ -8488,7 +8506,10 @@ fn setu_f() {
 
     set_f();
     let name = cmd::argv(1);
-    dvar::add_flags(&name, DvarFlags::USER_INFO);
+    #[allow(unused_must_use)]
+    {
+        dvar::add_flags(&name, DvarFlags::USER_INFO);
+    }
 }
 
 fn restore_dvars() {
@@ -8569,18 +8590,21 @@ lazy_static! {
 pub fn init() {
     if IS_DVAR_SYSTEM_ACTIVE.load(Ordering::SeqCst) == false {
         IS_DVAR_SYSTEM_ACTIVE.store(true, Ordering::SeqCst);
-        register_bool(
-            "sv_restoreDvars",
-            true,
-            DvarFlags::empty(),
-            Some("Enable to restore Dvars on entering the Xbox Live menu"),
-        );
-        register_bool(
-            "sv_cheats",
-            false,
-            DvarFlags::empty(),
-            Some("External Dvar"),
-        );
+        #[allow(unused_must_use)]
+        {
+            register_bool(
+                "sv_restoreDvars",
+                true,
+                DvarFlags::empty(),
+                Some("Enable to restore Dvars on entering the Xbox Live menu"),
+            );
+            register_bool(
+                "sv_cheats",
+                false,
+                DvarFlags::empty(),
+                Some("External Dvar"),
+            );
+        }
         add_commands();
     }
 }

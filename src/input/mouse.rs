@@ -48,7 +48,10 @@ pub fn startup() {
     }
 
     gpad::startup();
-    dvar::clear_modified("in_mouse");
+    #[allow(unused_must_use)]
+    {
+        dvar::clear_modified("in_mouse");
+    }
 }
 
 pub enum Scancode {

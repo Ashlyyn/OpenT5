@@ -480,7 +480,8 @@ pub fn create_event(manual_reset: bool, initial_state: bool, name: &str) {
             .expect("")
             .get_mut(&name.to_string())
             .unwrap()
-            .send(());
+            .send(())
+            .unwrap();
     }
 }
 
