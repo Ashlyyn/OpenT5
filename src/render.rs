@@ -28,7 +28,7 @@ lazy_static! {
 }
 
 fn init_render_thread() {
-    if !sys::spawn_render_thread(&rb::render_thread) {
+    if !sys::spawn_render_thread(rb::render_thread) {
         com::errorln(com::ErrorParm::FATAL, "Failed to create render thread");
     }
 }
@@ -679,18 +679,15 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                             // toggle fullscreen on Alt+Enter
                     } else if scancode == input::keyboard::KeyScancode::Enter {
                         if // (_DAT_02910164 != 8) &&
-                        dvar::find("r_fullscreen").is_some() &&
+                        dvar::exists("r_fullscreen") &&
                         dvar::get_int("developer").unwrap() != 0 {
                             // FUN_005a5360()
                             #[allow(unused_must_use)]
                             {
                             dvar::set_bool_internal(
                                 "r_fullscreen", 
-                                !dvar::find("r_fullscreen")
-                                .unwrap()
-                                .current
-                                .as_bool()
-                                .unwrap());
+                                !dvar::get_bool("r_fullscreen")
+                                .unwrap_or_default());
                             }
                             cbuf::add_textln(0, "vid_restart");
                         }
