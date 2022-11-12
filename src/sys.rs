@@ -10,7 +10,6 @@ pub mod gpu;
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 use std::collections::{HashMap, VecDeque};
-use std::ffi::CString;
 use std::fs::File;
 use std::sync::RwLock;
 use std::thread::JoinHandle;
@@ -23,7 +22,7 @@ use std::{
 };
 cfg_if! {
     if #[cfg(target_os = "windows")] {
-        use std::ffi::CStr;
+        use std::ffi::{CStr, CString};
         use windows::Win32::Foundation::MAX_PATH;
         use windows::Win32::System::LibraryLoader::GetModuleFileNameA;
         use windows::core::PCSTR;
@@ -38,6 +37,7 @@ cfg_if! {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
         use std::cell::RefCell;
+        use std::ffi::OsStr;
     }
 }
 
@@ -104,7 +104,7 @@ cfg_if! {
             match std::fs::read_link(proc_path) {
                 Ok(f) => {
                     let file_name = f.file_name()
-                        .unwrap_or(OsStr::new(""))
+                        .unwrap_or_else(|| OsStr::new(""))
                         .to_str()
                         .unwrap_or("")
                         .to_string();
@@ -938,7 +938,7 @@ cfg_if! {
 
         thread_local! {
             static GTK_RESPONSE_EVENT: RefCell<SmpEvent<gtk4::ResponseType>>
-                = RefCell::new(SmpEvent::new(gtk4::ResponseType::Other(0xFFFF), false));
+                = RefCell::new(SmpEvent::new(gtk4::ResponseType::Other(0xFFFF), false, false));
         }
 
         pub fn message_box(
@@ -980,8 +980,10 @@ cfg_if! {
             dialog.run_async(|obj, answer| {
                 obj.close();
                 GTK_RESPONSE_EVENT.with_borrow_mut(|event| {
-                    event.set_state(answer);
-                    event.set_signaled();
+                    #[allow(unused_must_use)]
+                    {
+                        event.send(answer);
+                    }
                 })
             });
 
