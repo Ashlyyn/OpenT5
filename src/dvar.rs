@@ -30,7 +30,7 @@ use std::vec::Vec;
 /// no custom-defined domain is necessary. However, the struct still needs to
 /// exist to impl Display for the domain.
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct DvarLimitsBool {}
+struct DvarLimitsBool {}
 
 impl Display for DvarLimitsBool {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -45,7 +45,7 @@ impl DvarLimitsBool {
     /// ```
     /// let domain = DvarLimitsBool::new();
     /// ```
-    pub fn new() -> Self {
+    fn new() -> Self {
         DvarLimitsBool {}
     }
 }
@@ -56,9 +56,9 @@ impl DvarLimitsBool {
 /// which may be any values representable by [`f32`] provided
 /// `min <= max`.
 #[derive(Copy, Clone, PartialEq)]
-pub struct DvarLimitsFloat {
-    pub min: f32,
-    pub max: f32,
+struct DvarLimitsFloat {
+    min: f32,
+    max: f32,
 }
 
 impl Default for DvarLimitsFloat {
@@ -104,7 +104,7 @@ impl DvarLimitsFloat {
     /// ```
     /// let domain = DvarLimitsFloat::new(0.0, 10.0);
     /// ```
-    pub fn new(min: f32, max: f32) -> Self {
+    fn new(min: f32, max: f32) -> Self {
         // Panic if max is greater than min
         // (possibly implement better error handling in the future)
         if min > max {
@@ -122,9 +122,9 @@ impl DvarLimitsFloat {
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
-pub struct DvarLimitsVector2 {
-    pub min: f32,
-    pub max: f32,
+struct DvarLimitsVector2 {
+    min: f32,
+    max: f32,
 }
 
 impl Default for DvarLimitsVector2 {
@@ -182,7 +182,7 @@ impl DvarLimitsVector2 {
     /// ```
     /// let domain = DvarLimitsVector2::new(0.0, 10.0);
     /// ```
-    pub fn new(min: f32, max: f32) -> Self {
+    fn new(min: f32, max: f32) -> Self {
         if min > max {
             panic!(
                 "DvarLimitsVector2::new(): supplied min is greater than max"
@@ -200,9 +200,9 @@ impl DvarLimitsVector2 {
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
-pub struct DvarLimitsVector3 {
-    pub min: f32,
-    pub max: f32,
+struct DvarLimitsVector3 {
+    min: f32,
+    max: f32,
 }
 
 impl Default for DvarLimitsVector3 {
@@ -260,7 +260,7 @@ impl DvarLimitsVector3 {
     /// ```
     /// let domain = DvarLimitsVector3::new(0.0, 10.0);
     /// ```
-    pub fn new(min: f32, max: f32) -> Self {
+    fn new(min: f32, max: f32) -> Self {
         if min > max {
             panic!(
                 "DvarLimitsVector3::new(): supplied min is greater than max"
@@ -278,9 +278,9 @@ impl DvarLimitsVector3 {
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
-pub struct DvarLimitsVector4 {
-    pub min: f32,
-    pub max: f32,
+struct DvarLimitsVector4 {
+    min: f32,
+    max: f32,
 }
 
 impl Default for DvarLimitsVector4 {
@@ -338,7 +338,7 @@ impl DvarLimitsVector4 {
     /// ```
     /// let domain = DvarLimitsVector4::new(0.0, 10.0);
     /// ```
-    pub fn new(min: f32, max: f32) -> Self {
+    fn new(min: f32, max: f32) -> Self {
         if min > max {
             panic!(
                 "DvarLimitsVector4::new(): supplied min is greater than max"
@@ -355,9 +355,9 @@ impl DvarLimitsVector4 {
 /// which may be any values representable by [`i32`] provided
 /// `min <= max`.
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub struct DvarLimitsInt {
-    pub min: i32,
-    pub max: i32,
+struct DvarLimitsInt {
+    min: i32,
+    max: i32,
 }
 
 impl Default for DvarLimitsInt {
@@ -403,7 +403,7 @@ impl DvarLimitsInt {
     /// ```
     /// let domain = DvarLimitsInt::new(0, 10);
     /// ```
-    pub fn new(min: i32, max: i32) -> Self {
+    fn new(min: i32, max: i32) -> Self {
         if min > max {
             panic!("DvarLimitsInt::new(): supplied min is greater than max");
         }
@@ -423,7 +423,7 @@ impl DvarLimitsInt {
 /// one of one or more pre-defined values", use [`DvarValue::Enumeration`]
 /// instead.
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct DvarLimitsString {}
+struct DvarLimitsString {}
 
 impl Display for DvarLimitsString {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -438,7 +438,7 @@ impl DvarLimitsString {
     /// ```
     /// let domain = DvarLimitsString::new(0, 10);
     /// ```
-    pub fn new() -> Self {
+    fn new() -> Self {
         DvarLimitsString {}
     }
 }
@@ -449,8 +449,8 @@ impl DvarLimitsString {
 /// any value, but it *must* at least contain at least the current
 /// value of the [`Dvar`].
 #[derive(Clone, Default, PartialEq, Eq)]
-pub struct DvarLimitsEnumeration {
-    pub strings: HashSet<String>,
+struct DvarLimitsEnumeration {
+    strings: HashSet<String>,
 }
 
 impl Display for DvarLimitsEnumeration {
@@ -482,7 +482,7 @@ impl DvarLimitsEnumeration {
     ///     "test2".to_string(),
     /// ]);
     /// ```
-    pub fn new(domain: &[String]) -> Self {
+    fn new(domain: &[String]) -> Self {
         if domain.is_empty() {
             panic!("DvarLimitsEnumeration::new(): domain is empty.");
         }
@@ -499,7 +499,7 @@ impl DvarLimitsEnumeration {
 /// custom domain is necessary. As with [`bool`] and [`String`],
 /// the struct still needs to exist to impl Display for the domain.
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct DvarLimitsColor {}
+struct DvarLimitsColor {}
 
 impl Display for DvarLimitsColor {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -514,7 +514,7 @@ impl DvarLimitsColor {
     /// ```
     /// let domain = DvarLimitsColor::new();
     /// ```
-    pub fn new() -> Self {
+    fn new() -> Self {
         DvarLimitsColor {}
     }
 }
@@ -525,9 +525,9 @@ impl DvarLimitsColor {
 /// which may be any values representable by [`i64`] provided
 /// `min <= max`.
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub struct DvarLimitsInt64 {
-    pub min: i64,
-    pub max: i64,
+struct DvarLimitsInt64 {
+    min: i64,
+    max: i64,
 }
 
 impl Default for DvarLimitsInt64 {
@@ -573,7 +573,7 @@ impl DvarLimitsInt64 {
     /// ```
     /// let domain = DvarLimitsInt64::new(0i64, 10i64);
     /// ```
-    pub fn new(min: i64, max: i64) -> Self {
+    fn new(min: i64, max: i64) -> Self {
         if min > max {
             panic!("DvarLimitsInt64::new(): supplied min is greater than max");
         }
@@ -589,9 +589,9 @@ impl DvarLimitsInt64 {
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
-pub struct DvarLimitsLinearColorRGB {
-    pub min: f32,
-    pub max: f32,
+struct DvarLimitsLinearColorRGB {
+    min: f32,
+    max: f32,
 }
 
 impl Default for DvarLimitsLinearColorRGB {
@@ -653,7 +653,7 @@ impl DvarLimitsLinearColorRGB {
     /// ```
     /// let domain = DvarLimitsLinearColorRGB::new(0.3, 0.7);
     /// ```
-    pub fn new(min: f32, max: f32) -> Self {
+    fn new(min: f32, max: f32) -> Self {
         if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
             panic!(
                 "DvarLimitsLinearColorRGB::new(): \
@@ -673,9 +673,9 @@ impl DvarLimitsLinearColorRGB {
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
 #[derive(Copy, Clone, PartialEq)]
-pub struct DvarLimitsColorXYZ {
-    pub min: f32,
-    pub max: f32,
+struct DvarLimitsColorXYZ {
+    min: f32,
+    max: f32,
 }
 
 impl Default for DvarLimitsColorXYZ {
@@ -737,7 +737,7 @@ impl DvarLimitsColorXYZ {
     /// ```
     /// let domain = DvarLimitsColorXYZ::new(0.3, 0.7);
     /// ```
-    pub fn new(min: f32, max: f32) -> Self {
+    fn new(min: f32, max: f32) -> Self {
         if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
             panic!(
                 "DvarLimitsLinearColorRGB::new(): \
@@ -752,7 +752,7 @@ impl DvarLimitsColorXYZ {
 
 // Enum to tie all the DvarLimitsXXXX's together
 #[derive(Clone)]
-pub enum DvarLimits {
+enum DvarLimits {
     Bool(DvarLimitsBool),
     Float(DvarLimitsFloat),
     Vector2(DvarLimitsVector2),
@@ -791,77 +791,77 @@ impl DvarLimits {
     // A bunch of helper functions to extract the domain
     // Useful if a given Dvar is known to be a specific type
     // Otherwise long match expressions would be required
-    pub fn as_bool_limits(&self) -> Option<DvarLimitsBool> {
+    fn as_bool_limits(&self) -> Option<DvarLimitsBool> {
         match self {
             Self::Bool(b) => Some(*b),
             _ => None,
         }
     }
 
-    pub fn as_float_limits(&self) -> Option<DvarLimitsFloat> {
+    fn as_float_limits(&self) -> Option<DvarLimitsFloat> {
         match self {
             Self::Float(f) => Some(*f),
             _ => None,
         }
     }
 
-    pub fn as_vector2_limits(&self) -> Option<DvarLimitsVector2> {
+    fn as_vector2_limits(&self) -> Option<DvarLimitsVector2> {
         match self {
             Self::Vector2(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_vector3_limits(&self) -> Option<DvarLimitsVector3> {
+    fn as_vector3_limits(&self) -> Option<DvarLimitsVector3> {
         match self {
             Self::Vector3(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_vector4_limits(&self) -> Option<DvarLimitsVector4> {
+    fn as_vector4_limits(&self) -> Option<DvarLimitsVector4> {
         match self {
             Self::Vector4(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_int_limits(&self) -> Option<DvarLimitsInt> {
+    fn as_int_limits(&self) -> Option<DvarLimitsInt> {
         match self {
             Self::Int(i) => Some(*i),
             _ => None,
         }
     }
 
-    pub fn as_string_limits(&self) -> Option<DvarLimitsString> {
+    fn as_string_limits(&self) -> Option<DvarLimitsString> {
         match self {
             Self::String(s) => Some(*s),
             _ => None,
         }
     }
 
-    pub fn as_enumeration_limits(&self) -> Option<DvarLimitsEnumeration> {
+    fn as_enumeration_limits(&self) -> Option<DvarLimitsEnumeration> {
         match self {
             Self::Enumeration(v) => Some(v.clone()),
             _ => None,
         }
     }
 
-    pub fn as_color_limits(&self) -> Option<DvarLimitsColor> {
+    fn as_color_limits(&self) -> Option<DvarLimitsColor> {
         match self {
             Self::Color(c) => Some(*c),
             _ => None,
         }
     }
 
-    pub fn as_int64_limits(&self) -> Option<DvarLimitsInt64> {
+    fn as_int64_limits(&self) -> Option<DvarLimitsInt64> {
         match self {
             Self::Int64(i) => Some(*i),
             _ => None,
         }
     }
 
-    pub fn as_linear_color_rgb_limits(
+    fn as_linear_color_rgb_limits(
         &self,
     ) -> Option<DvarLimitsLinearColorRGB> {
         match self {
@@ -870,7 +870,7 @@ impl DvarLimits {
         }
     }
 
-    pub fn as_color_xyz_limits(&self) -> Option<DvarLimitsColorXYZ> {
+    fn as_color_xyz_limits(&self) -> Option<DvarLimitsColorXYZ> {
         match self {
             Self::ColorXYZ(v) => Some(*v),
             _ => None,
@@ -880,7 +880,7 @@ impl DvarLimits {
 
 // Enum to hold all possible Dvar values
 #[derive(Clone, PartialEq)]
-pub enum DvarValue {
+enum DvarValue {
     Bool(bool),
     Float(f32),
     Vector2(Vec2f32),
@@ -919,83 +919,83 @@ impl Display for DvarValue {
 
 impl DvarValue {
     // Helper functions defined for the same reason as in DvarLimits
-    pub fn as_bool(&self) -> Option<bool> {
+    fn as_bool(&self) -> Option<bool> {
         match self {
             Self::Bool(b) => Some(*b),
             _ => None,
         }
     }
 
-    pub fn as_float(&self) -> Option<f32> {
+    fn as_float(&self) -> Option<f32> {
         match self {
             Self::Float(f) => Some(*f),
             _ => None,
         }
     }
 
-    pub fn as_vector2(&self) -> Option<Vec2f32> {
+    fn as_vector2(&self) -> Option<Vec2f32> {
         match self {
             Self::Vector2(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_vector3(&self) -> Option<Vec3f32> {
+    fn as_vector3(&self) -> Option<Vec3f32> {
         match self {
             Self::Vector3(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_vector4(&self) -> Option<Vec4f32> {
+    fn as_vector4(&self) -> Option<Vec4f32> {
         match self {
             Self::Vector4(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_int(&self) -> Option<i32> {
+    fn as_int(&self) -> Option<i32> {
         match self {
             Self::Int(i) => Some(*i),
             _ => None,
         }
     }
-    pub fn as_string(&self) -> Option<String> {
+    fn as_string(&self) -> Option<String> {
         match self {
             Self::String(s) => Some(s.to_string()),
             _ => None,
         }
     }
 
-    pub fn as_enumeration(&self) -> Option<String> {
+    fn as_enumeration(&self) -> Option<String> {
         match self {
             Self::Enumeration(s) => Some(s.clone()),
             _ => None,
         }
     }
 
-    pub fn as_color(&self) -> Option<Vec4f32> {
+    fn as_color(&self) -> Option<Vec4f32> {
         match self {
             Self::Color(c) => Some(*c),
             _ => None,
         }
     }
 
-    pub fn as_int64(&self) -> Option<i64> {
+    fn as_int64(&self) -> Option<i64> {
         match self {
             Self::Int64(i) => Some(*i),
             _ => None,
         }
     }
 
-    pub fn as_linear_color_rgb(&self) -> Option<Vec3f32> {
+    fn as_linear_color_rgb(&self) -> Option<Vec3f32> {
         match self {
             Self::LinearColorRGB(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_color_xyz(&self) -> Option<Vec3f32> {
+    fn as_color_xyz(&self) -> Option<Vec3f32> {
         match self {
             Self::ColorXYZ(v) => Some(*v),
             _ => None,
@@ -1073,7 +1073,7 @@ lazy_static! {
 
 // Finally, the Dvar itself
 #[derive(Clone)]
-pub struct Dvar {
+struct Dvar {
     // Name of Dvar
     pub name: String,
     // Description of Dvar (optional)
@@ -1529,13 +1529,13 @@ zero_variant_enum!(DvarBuilderTypeColorXYZCurrentValueState);
 zero_variant_enum!(DvarBuilderTypeColorXYZOtherValuesState);
 
 // Helper impl to make constructing Dvars easier
-pub struct DvarBuilder<T> {
+struct DvarBuilder<T> {
     dvar: Dvar,
     extra: T,
 }
 
 impl DvarBuilder<DvarBuilderStartState> {
-    pub fn new() -> DvarBuilder<DvarBuilderDataState> {
+    fn new() -> DvarBuilder<DvarBuilderDataState> {
         unsafe {
             #[allow(clippy::uninit_assumed_init, invalid_value)]
             DvarBuilder::<DvarBuilderDataState> {
@@ -1558,12 +1558,12 @@ impl DvarBuilder<DvarBuilderStartState> {
 }
 
 impl DvarBuilder<DvarBuilderDataState> {
-    pub fn name(mut self, name: &str) -> DvarBuilder<DvarBuilderDataState> {
+    fn name(mut self, name: &str) -> DvarBuilder<DvarBuilderDataState> {
         self.dvar.name = name.to_string();
         self
     }
 
-    pub fn description(
+    fn description(
         mut self,
         description: String,
     ) -> DvarBuilder<DvarBuilderDataState> {
@@ -1571,7 +1571,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         self
     }
 
-    pub fn flags(
+    fn flags(
         mut self,
         flags: DvarFlags,
     ) -> DvarBuilder<DvarBuilderDataState> {
@@ -1579,7 +1579,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         self
     }
 
-    pub fn loaded_from_save_game(
+    fn loaded_from_save_game(
         mut self,
         b: bool,
     ) -> DvarBuilder<DvarBuilderDataState> {
@@ -1590,7 +1590,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub fn type_bool(
+    fn type_bool(
         self,
     ) -> DvarBuilder<DvarBuilderTypeBoolCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeBoolCurrentValueState> {
@@ -1599,14 +1599,14 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub fn type_float(self) -> DvarBuilder<DvarBuilderTypeFloatDomainState> {
+    fn type_float(self) -> DvarBuilder<DvarBuilderTypeFloatDomainState> {
         DvarBuilder::<DvarBuilderTypeFloatDomainState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    pub fn type_vector2(
+    fn type_vector2(
         self,
     ) -> DvarBuilder<DvarBuilderTypeVector2DomainState> {
         DvarBuilder::<DvarBuilderTypeVector2DomainState> {
@@ -1615,7 +1615,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub fn type_vector3(
+    fn type_vector3(
         self,
     ) -> DvarBuilder<DvarBuilderTypeVector3DomainState> {
         DvarBuilder::<DvarBuilderTypeVector3DomainState> {
@@ -1624,7 +1624,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub fn type_vector4(
+    fn type_vector4(
         self,
     ) -> DvarBuilder<DvarBuilderTypeVector4DomainState> {
         DvarBuilder::<DvarBuilderTypeVector4DomainState> {
@@ -1633,14 +1633,14 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub fn type_int(self) -> DvarBuilder<DvarBuilderTypeIntDomainState> {
+    fn type_int(self) -> DvarBuilder<DvarBuilderTypeIntDomainState> {
         DvarBuilder::<DvarBuilderTypeIntDomainState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    pub fn type_string(
+    fn type_string(
         self,
     ) -> DvarBuilder<DvarBuilderTypeStringCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeStringCurrentValueState> {
@@ -1649,7 +1649,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub fn type_enumeration(
+    fn type_enumeration(
         self,
     ) -> DvarBuilder<DvarBuilderTypeEnumerationDomainState> {
         DvarBuilder::<DvarBuilderTypeEnumerationDomainState> {
@@ -1658,7 +1658,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub fn type_color(
+    fn type_color(
         self,
     ) -> DvarBuilder<DvarBuilderTypeColorCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeColorCurrentValueState> {
@@ -1667,14 +1667,14 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub fn type_int64(self) -> DvarBuilder<DvarBuilderTypeInt64DomainState> {
+    fn type_int64(self) -> DvarBuilder<DvarBuilderTypeInt64DomainState> {
         DvarBuilder::<DvarBuilderTypeInt64DomainState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    pub fn type_linear_color_rgb(
+    fn type_linear_color_rgb(
         self,
     ) -> DvarBuilder<DvarBuilderTypeLinearColorRGBDomainState> {
         DvarBuilder::<DvarBuilderTypeLinearColorRGBDomainState> {
@@ -1683,7 +1683,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub fn type_color_xyz(
+    fn type_color_xyz(
         self,
     ) -> DvarBuilder<DvarBuilderTypeColorXYZDomainState> {
         DvarBuilder::<DvarBuilderTypeColorXYZDomainState> {
@@ -2274,7 +2274,7 @@ impl DvarBuilder<DvarBuilderTypeColorXYZOtherValuesState> {
 const DVAR_COUNT_MAX: usize = 4096;
 
 lazy_static! {
-    pub static ref DVARS: Arc<RwLock<HashMap<String, Box<Dvar>>>> =
+    static ref DVARS: Arc<RwLock<HashMap<String, Box<Dvar>>>> =
         Arc::new(RwLock::new(HashMap::new()));
 }
 
@@ -2307,7 +2307,7 @@ lazy_static! {
 ///     None => panic!("dvar {} not found", dvar_name),
 /// };
 /// ```
-pub fn find(name: &str) -> Option<Dvar> {
+fn find(name: &str) -> Option<Dvar> {
     let lock = DVARS.clone();
     let reader = lock.try_read().expect(
         "dvar::find: failed to acquire reader lock. Probably still held by calling function.",
@@ -2339,17 +2339,12 @@ pub fn find(name: &str) -> Option<Dvar> {
 /// ```
 /// let dvar_name = "sv_test";
 /// match exists(dvar_name) {
-///     Some(d) => println!("found dvar {}", d.name),
-///     None => panic!("dvar {} not found", dvar_name),
+///     true => println!("found dvar {}", d.name),
+///     false => panic!("dvar {} not found", dvar_name),
 /// };
 /// ```
 pub fn exists(name: &str) -> bool {
-    let lock = DVARS.clone();
-    let reader = lock.try_read().expect(
-        "dvar::exists: failed to acquire reader lock. Probably still held by calling function.",
-    );
-
-    reader.contains_key(name)
+    find(name).is_some()
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Bool`],
