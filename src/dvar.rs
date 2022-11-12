@@ -861,9 +861,7 @@ impl DvarLimits {
         }
     }
 
-    fn as_linear_color_rgb_limits(
-        &self,
-    ) -> Option<DvarLimitsLinearColorRGB> {
+    fn as_linear_color_rgb_limits(&self) -> Option<DvarLimitsLinearColorRGB> {
         match self {
             Self::LinearColorRGB(v) => Some(*v),
             _ => None,
@@ -1571,10 +1569,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         self
     }
 
-    fn flags(
-        mut self,
-        flags: DvarFlags,
-    ) -> DvarBuilder<DvarBuilderDataState> {
+    fn flags(mut self, flags: DvarFlags) -> DvarBuilder<DvarBuilderDataState> {
         self.dvar.flags = flags;
         self
     }
@@ -1590,9 +1585,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    fn type_bool(
-        self,
-    ) -> DvarBuilder<DvarBuilderTypeBoolCurrentValueState> {
+    fn type_bool(self) -> DvarBuilder<DvarBuilderTypeBoolCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeBoolCurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1606,27 +1599,21 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    fn type_vector2(
-        self,
-    ) -> DvarBuilder<DvarBuilderTypeVector2DomainState> {
+    fn type_vector2(self) -> DvarBuilder<DvarBuilderTypeVector2DomainState> {
         DvarBuilder::<DvarBuilderTypeVector2DomainState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    fn type_vector3(
-        self,
-    ) -> DvarBuilder<DvarBuilderTypeVector3DomainState> {
+    fn type_vector3(self) -> DvarBuilder<DvarBuilderTypeVector3DomainState> {
         DvarBuilder::<DvarBuilderTypeVector3DomainState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    fn type_vector4(
-        self,
-    ) -> DvarBuilder<DvarBuilderTypeVector4DomainState> {
+    fn type_vector4(self) -> DvarBuilder<DvarBuilderTypeVector4DomainState> {
         DvarBuilder::<DvarBuilderTypeVector4DomainState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1658,9 +1645,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    fn type_color(
-        self,
-    ) -> DvarBuilder<DvarBuilderTypeColorCurrentValueState> {
+    fn type_color(self) -> DvarBuilder<DvarBuilderTypeColorCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeColorCurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1683,9 +1668,7 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    fn type_color_xyz(
-        self,
-    ) -> DvarBuilder<DvarBuilderTypeColorXYZDomainState> {
+    fn type_color_xyz(self) -> DvarBuilder<DvarBuilderTypeColorXYZDomainState> {
         DvarBuilder::<DvarBuilderTypeColorXYZDomainState> {
             dvar: self.dvar,
             extra: Default::default(),
