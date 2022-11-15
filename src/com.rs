@@ -95,8 +95,12 @@ pub fn println(message: &str) {
     print(format!("{}\n", message));
 }
 
-pub fn print_warning(message: String) {
+pub fn warn(message: &str) {
     print(format!("^3{}", message));
+}
+
+pub fn warnln(message: &str) {
+    warn(&format!("{}\n", message));
 }
 
 lazy_static! {
