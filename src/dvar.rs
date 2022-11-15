@@ -1260,7 +1260,7 @@ impl Dvar {
 
     fn any_latched_values() -> bool {
         let lock = DVARS.clone();
-        let reader = lock.try_read().expect("dvar::any_latched_values: failed to acquire reader lock. Probably still held by calling function.");
+        let reader = lock.read().unwrap();
         reader.values().any(|d| d.has_latched_value())
     }
 
@@ -1457,10 +1457,9 @@ impl Dvar {
         }
 
         if self.current != value {
-            let modified_flags = *MODIFIED_FLAGS.try_read().expect("dvar::Dvar::set_variant: failed to acquire reader lock. Probably still held by calling function.");
+            let modified_flags = *MODIFIED_FLAGS.read().unwrap();
             MODIFIED_FLAGS
-                .try_write()
-                .expect("dvar::Dvar::set_variant: failed to acquire writer lock. Probably still held by calling function.")
+                .write().unwrap()
                 .insert(modified_flags | self.flags);
             self.current = value;
             self.modified = true;
@@ -2292,9 +2291,7 @@ lazy_static! {
 /// ```
 fn find(name: &str) -> Option<Dvar> {
     let lock = DVARS.clone();
-    let reader = lock.try_read().expect(
-        "dvar::find: failed to acquire reader lock. Probably still held by calling function.",
-    );
+    let reader = lock.read().unwrap();
 
     if !reader.contains_key(name) {
         return None;
@@ -2366,7 +2363,7 @@ pub fn register_bool(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -2518,7 +2515,7 @@ pub fn register_float(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -2693,7 +2690,7 @@ pub fn register_vector2(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -2869,7 +2866,7 @@ pub fn register_vector3(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -3045,7 +3042,7 @@ pub fn register_vector4(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -3221,7 +3218,7 @@ pub fn register_int(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -3386,7 +3383,7 @@ pub fn register_string(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -3532,7 +3529,7 @@ pub fn register_enumeration(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -3706,7 +3703,7 @@ pub fn register_color(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -3880,7 +3877,7 @@ pub fn register_int64(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -4062,7 +4059,7 @@ pub fn register_linear_color_rgb(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -4275,7 +4272,7 @@ pub fn register_color_xyz(
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::register_new: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
 
         if writer.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
@@ -4454,7 +4451,7 @@ fn set_variant_from_source(
     match find(name) {
         Some(_) => {
             let lock = DVARS.clone();
-            let mut writer = lock.try_write().unwrap();
+            let mut writer = lock.write().unwrap();
             writer.get_mut(name).unwrap().set_variant(value, source);
             Ok(())
         }
@@ -7890,7 +7887,7 @@ fn set_command(name: &str, value: &str) {
     }
 
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().expect("dvar::set_command: failed to acquire writer lock. Probably still held by calling function.");
+    let mut writer = lock.write().unwrap();
 
     if !exists(name) {
         return;
@@ -8108,9 +8105,7 @@ fn sets_f() {
     let name = cmd::argv(1);
 
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().expect(
-        "dvar::sets: failed to acquire writer lock. Probably still held by calling function.",
-    );
+    let mut writer = lock.write().unwrap();
 
     if let Some(d) = writer.get_mut(&name) {
         d.add_flags(DvarFlags::SERVER_INFO);
@@ -8127,9 +8122,7 @@ fn seta_f() {
     let name = cmd::argv(1);
 
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().expect(
-        "dvar::seta: failed to acquire writer lock. Probably still held by calling function.",
-    );
+    let mut writer = lock.write().unwrap();
 
     if let Some(d) = writer.get_mut(&name) {
         d.add_flags(DvarFlags::ARCHIVE);
@@ -8144,9 +8137,7 @@ fn set_admin_f() {
 
     let name = cmd::argv(1);
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().expect(
-        "dvar::set_admin: failed to acquire writer lock. Probably still held by calling function.",
-    );
+    let mut writer = lock.write().unwrap();
     let dvar = writer.get_mut(&name);
     match dvar {
         Some(d) => {
@@ -8176,7 +8167,7 @@ fn set_from_dvar_f() {
     let source_dvar_name = cmd::argv(2);
 
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().expect("dvar::set_from_dvar: failed to acquire writer lock. Probably still held by calling function.");
+    let mut writer = lock.write().unwrap();
     if let Some(d) = writer.get_mut(&source_dvar_name) {
         set_command(&dest_dvar_name, &d.current.to_string());
     } else {
@@ -8218,7 +8209,7 @@ fn reset_f() {
 
     if exists(&name) {
         let lock = DVARS.clone();
-        let mut writer = lock.try_write().expect("dvar::set_from_string_by_name_from_source: failed to acquire writer lock. Probably still held by calling function.");
+        let mut writer = lock.write().unwrap();
         writer.get_mut(&name).unwrap().reset(SetSource::External);
     }
 }
@@ -8228,9 +8219,7 @@ fn list_f() {
     let argv_1 = cmd::argv(1);
     {
         let lock = DVARS.clone();
-        let reader = lock.try_read().expect(
-            "dvar::list: failed to acquire reader lock. Probably still held by calling function.",
-        );
+        let reader = lock.read().unwrap();
         let iter = reader.values();
         iter.for_each(|d| list_single(d, &argv_1));
     }
@@ -8496,7 +8485,7 @@ fn restore_dvars() {
     }
 
     let lock = DVARS.clone();
-    let mut writer = lock.write().expect("dvar::restore_dvars: failed to acquire writer lock. Probably still held by calling function.");
+    let mut writer = lock.write().unwrap();
     let iter = writer.values_mut();
     iter.for_each(|d| {
         if d.loaded_from_save_game == true {
@@ -8515,7 +8504,7 @@ fn display_dvar(dvar: &Dvar, i: &mut i32) {
 
 fn list_saved_dvars() {
     let lock = DVARS.clone();
-    let reader = lock.write().expect("dvar::list_saved_dvars: failed to acquire reader lock. Probably still held by calling function.");
+    let reader = lock.write().unwrap();
 
     let iter = reader.values();
     let mut i = 0;
