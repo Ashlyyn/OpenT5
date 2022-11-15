@@ -12,8 +12,8 @@ cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
         use windows::Win32::{
             UI::Shell::{
-                SHGetFolderPathA, CSIDL_LOCAL_APPDATA, CSIDL_FLAG_CREATE, CSIDL_MYDOCUMENTS,
-                CSIDL_PROFILE, SHGFP_TYPE_CURRENT,
+                SHGetFolderPathA, CSIDL_LOCAL_APPDATA, CSIDL_FLAG_CREATE,
+                CSIDL_MYDOCUMENTS, CSIDL_PROFILE, SHGFP_TYPE_CURRENT,
             },
             Foundation::MAX_PATH};
             use std::ffi::CStr;
@@ -50,7 +50,13 @@ cfg_if::cfg_if! {
                 )
             } {
                 Ok(_) => {
-                    let c = CStr::from_bytes_until_nul(&buf).unwrap();
+                    // Null-terminate the string, in case the folder path
+                    // was exactly MAX_PATH characters.
+                    buf[buf.len() - 1] = 0x00;
+                    let c = match CStr::from_bytes_until_nul(&buf) {
+                        Ok(c) => c,
+                        Err(_) => return None,
+                    };
                     Some(c.to_str().unwrap().to_string())
                 },
                 Err(_) => None,
@@ -65,8 +71,10 @@ cfg_if::cfg_if! {
                 OsFolder::Home => "HOME",
             };
 
-            let home = std::env::var("HOME")
-                .expect("sys::get_os_folder_path: envar \"HOME\" not set.");
+            let home = match std::env::var("HOME") {
+                Ok(s) => s,
+                Err(_) => return None,
+            };
 
             let envar_default = match os_folder {
                 OsFolder::UserData => format!("{}/.local/share", home),
