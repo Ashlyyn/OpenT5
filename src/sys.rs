@@ -11,6 +11,7 @@ use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 use std::collections::{HashMap, VecDeque};
 use std::fs::File;
+use std::io::{Read, Write};
 use std::sync::RwLock;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -23,8 +24,11 @@ use std::{
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         use std::ffi::{CStr, CString};
+        use std::fs::OpenOptions;
+        use std::os::windows::prelude::*;
         use windows::Win32::Foundation::MAX_PATH;
         use windows::Win32::System::LibraryLoader::GetModuleFileNameA;
+        use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_HIDDEN;
         use windows::core::PCSTR;
         use windows::Win32::Foundation::HWND;
         use windows::Win32::UI::Input::KeyboardAndMouse::GetActiveWindow;
@@ -202,19 +206,32 @@ fn get_application_name() -> &'static str {
     "Call of Duty(R) Singleplayer - Ship"
 }
 
-pub fn get_semaphore_file_path() -> PathBuf {
-    let os_folder_path = fs::get_os_folder_path(fs::OsFolder::UserData);
+pub fn get_semaphore_file_path() -> Option<PathBuf> {
+    let os_folder_path = fs::get_os_folder_path(fs::OsFolder::UserData)?;
     let p: PathBuf = [
         PathBuf::from(os_folder_path),
         PathBuf::from("CoD").join("Activision"),
     ]
     .iter()
     .collect();
-    p
+    Some(p)
 }
 
-pub fn get_semaphore_file_name() -> String {
-    format!("__{}", get_executable_name())
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        pub fn get_semaphore_file_name() -> String {
+            format!("__{}", get_executable_name())
+        }
+    } else if #[cfg(target_family = "unix")] {
+        pub fn get_semaphore_file_name() -> String {
+            format!(".__{}", get_executable_name())
+        }
+    } else {
+        pub fn get_semaphore_file_name() -> String {
+            println!("sys::get_semaphore_file: using default implementation.");
+            format!("__{}", get_executable_name())
+        }
+    }
 }
 
 cfg_if! {
@@ -246,44 +263,80 @@ pub fn no_free_files_error() -> ! {
     std::process::exit(-1);
 }
 
+// TODO - implement
+fn is_game_process(_pid: u32) -> bool {
+    true
+}
+
 pub fn check_crash_or_rerun() -> bool {
-    let semaphore_folder_path = get_semaphore_file_path();
+    let semaphore_folder_path = match get_semaphore_file_path() {
+        Some(s) => s,
+        None => return true,
+    };
 
     if !std::path::Path::new(&semaphore_folder_path).exists() {
-        std::fs::create_dir_all(&semaphore_folder_path).unwrap();
-        return true;
+        return std::fs::create_dir_all(&semaphore_folder_path).is_ok();
     }
 
     let semaphore_file_path =
-        semaphore_folder_path.join(&get_semaphore_file_name());
+        semaphore_folder_path.join(get_semaphore_file_name());
     let semaphore_file_exists = semaphore_file_path.exists();
+
     if semaphore_file_exists {
-        let msg_box_type = MessageBoxType::YesNoCanel;
-        let msg_box_icon = MessageBoxIcon::Stop;
-        let title = locale::localize_ref("WIN_IMPROPER_QUIT_TITLE");
-        let text = locale::localize_ref("WIN_IMPROPER_QUIT_BODY");
-        let handle = get_active_window();
-        match message_box(
-            Some(handle),
-            &title,
-            &text,
-            msg_box_type,
-            Some(msg_box_icon),
-        ) {
-            Some(MessageBoxResult::Yes) => {
-                com::force_safe_mode();
-            }
-            Some(MessageBoxResult::Cancel) | None => {
-                return false;
-            }
-            _ => {}
-        };
+        if let Ok(mut f) = File::open(semaphore_file_path.clone()) {
+            let mut buf = [0u8; 4];
+            if let Ok(4) = f.read(&mut buf) {
+                let pid_read = u32::from_ne_bytes(buf);
+                if pid_read != std::process::id()
+                    || is_game_process(pid_read) == false
+                {
+                    return true;
+                }
+
+                let msg_box_type = MessageBoxType::YesNoCanel;
+                let msg_box_icon = MessageBoxIcon::Stop;
+                let title = locale::localize_ref("WIN_IMPROPER_QUIT_TITLE");
+                let text = locale::localize_ref("WIN_IMPROPER_QUIT_BODY");
+                let handle = get_active_window();
+                match message_box(
+                    Some(handle),
+                    &title,
+                    &text,
+                    msg_box_type,
+                    Some(msg_box_icon),
+                ) {
+                    Some(MessageBoxResult::Yes) => com::force_safe_mode(),
+                    Some(MessageBoxResult::Cancel) | None => return false,
+                    _ => {}
+                };
+            };
+        }
     }
 
-    match File::create(semaphore_file_path) {
-        Ok(_f) => {
-            // TODO - implement writing PID to file
-            true
+    // Create file with hidden attribute on Windows
+    // On Unix platforms, the equivalent operation
+    // (prefixing the file's name with a '.') should
+    // already have been done by get_semaphore_file_name.
+    cfg_if! {
+        if #[cfg(target_os = "windows")] {
+            let file = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .attributes(FILE_ATTRIBUTE_HIDDEN.0)
+                .open(semaphore_file_path);
+        } else {
+            let file = File::create(semaphore_file_path);
+        }
+    }
+    
+    match file {
+        Ok(mut f) => {
+            let pid = std::process::id();
+            if f.write_all(&pid.to_ne_bytes()).is_err() {
+                no_free_files_error();
+            } else {
+                true
+            }
         }
         Err(_) => {
             no_free_files_error();
@@ -294,7 +347,7 @@ pub fn check_crash_or_rerun() -> bool {
 pub fn get_cmdline() -> String {
     let mut cmd_line: String = String::new();
     std::env::args().for_each(|arg| {
-        write!(&mut cmd_line, "{} ", &arg).unwrap();
+        cmd_line.push_str(&arg);
     });
     cmd_line.trim().to_string()
 }
