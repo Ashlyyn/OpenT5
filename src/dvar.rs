@@ -4454,7 +4454,7 @@ fn set_variant_from_source(
     match find(name) {
         Some(_) => {
             let lock = DVARS.clone();
-            let mut writer = lock.try_write().expect("");
+            let mut writer = lock.try_write().unwrap();
             writer.get_mut(name).unwrap().set_variant(value, source);
             Ok(())
         }
@@ -5842,7 +5842,7 @@ fn add_to_enumeration_domain(name: &str, domain_str: &str) -> Result<(), ()> {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
                 let lock = DVARS.clone();
-                let mut writer = lock.try_write().expect("");
+                let mut writer = lock.try_write().unwrap();
                 let d = writer.get_mut(name).unwrap();
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
@@ -5866,7 +5866,7 @@ fn remove_from_enumeration_domain(
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
                 let lock = DVARS.clone();
-                let mut writer = lock.try_write().expect("");
+                let mut writer = lock.try_write().unwrap();
                 let d = writer.get_mut(name).unwrap();
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
@@ -7605,7 +7605,7 @@ pub fn get_or_register_color_xyz(
 /// ```
 pub fn clear_modified(name: &str) -> Result<(), ()> {
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().expect("");
+    let mut writer = lock.try_write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.modified = false;
         return Ok(());
@@ -7639,7 +7639,7 @@ pub fn clear_modified(name: &str) -> Result<(), ()> {
 /// ```
 pub fn add_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().expect("");
+    let mut writer = lock.try_write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.add_flags(flags);
         return Ok(());
@@ -7673,7 +7673,7 @@ pub fn add_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
 /// ```
 pub fn clear_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().expect("");
+    let mut writer = lock.try_write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.clear_flags(flags);
         return Ok(());
@@ -8564,7 +8564,7 @@ lazy_static! {
 /// Initializes the Dvar subsystem
 ///
 /// Shouldn't ever be called more than once, but doing so
-/// shoudln't corrupt anything
+/// also shouldn't corrupt anything.
 pub fn init() {
     if IS_DVAR_SYSTEM_ACTIVE.load(Ordering::SeqCst) == false {
         IS_DVAR_SYSTEM_ACTIVE.store(true, Ordering::SeqCst);
