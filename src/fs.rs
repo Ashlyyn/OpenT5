@@ -2,6 +2,12 @@
 
 // This file exists to abstract filesystem-related functionalities
 
+use crate::*;
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
 cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
         use windows::Win32::{
@@ -23,7 +29,9 @@ pub enum OsFolder {
 
 cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
-        pub fn get_os_folder_path(os_folder: OsFolder) -> String {
+        // TODO - will panic if folder path contains invalid UTF-8 characters.
+        // Fix later.
+        pub fn get_os_folder_path(os_folder: OsFolder) -> Option<String> {
             let csidl: u32 = match os_folder {
                 OsFolder::UserData => CSIDL_LOCAL_APPDATA,
                 OsFolder::UserConfig => CSIDL_LOCAL_APPDATA,
@@ -32,7 +40,7 @@ cfg_if::cfg_if! {
             };
 
             let mut buf: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
-            unsafe {
+            match unsafe {
                 SHGetFolderPathA(
                     None,
                     (csidl | CSIDL_FLAG_CREATE) as _,
@@ -40,13 +48,16 @@ cfg_if::cfg_if! {
                     SHGFP_TYPE_CURRENT.0 as _,
                     &mut buf,
                 )
-                .unwrap()
-            };
-            let c = CStr::from_bytes_until_nul(&buf).unwrap();
-            c.to_str().unwrap().to_string()
+            } {
+                Ok(_) => {
+                    let c = CStr::from_bytes_until_nul(&buf).unwrap();
+                    Some(c.to_str().unwrap().to_string())
+                },
+                Err(_) => None,
+            }
         }
-    } else {
-        pub fn get_os_folder_path(os_folder: OsFolder) -> String {
+    } else if #[cfg(target_family = "unix")] {
+        pub fn get_os_folder_path(os_folder: OsFolder) -> Option<String> {
             let envar = match os_folder {
                 OsFolder::UserData => "XDG_DATA_HOME",
                 OsFolder::UserConfig => "XDG_CONFIG_HOME",
@@ -64,10 +75,18 @@ cfg_if::cfg_if! {
                 OsFolder::Home => home,
             };
 
-            match std::env::var(envar) {
+            Some(match std::env::var(envar) {
                 Ok(s) => s,
                 Err(_) => envar_default,
-            }
+            })
+        }
+    } else {
+        pub fn get_os_folder_path(os_folder: OsFolder) -> Option<String> {
+            compile_error!(
+                "get_os_folder_path unimplemented for {} ({})",
+                std::env::consts::OS,
+                std::env::consts::FAMILY
+            );
         }
     }
 }
