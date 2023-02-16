@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 
 use raw_window_handle::RawWindowHandle;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct WindowHandle {
     pub raw_window_handle: Option<RawWindowHandle>,
 }
