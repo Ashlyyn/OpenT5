@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::*;
+use crate::{*, render::{MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION}};
 use arrayvec::ArrayVec;
 use common::*;
 use num::complex::Complex;
@@ -375,7 +375,7 @@ pub struct ListBoxDef {
     row_count: i32,
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct WindowParms {
     pub window_handle: platform::WindowHandle,
     pub hz: u16,
@@ -392,7 +392,37 @@ pub struct WindowParms {
 impl WindowParms {
     pub fn new() -> Self {
         WindowParms {
+            hz: 60,
+            fullscreen: false,
+            x: 0,
+            y: 0,
+            scene_width: MIN_HORIZONTAL_RESOLUTION,
+            scene_height: MIN_VERTICAL_RESOLUTION,
+            display_width: MIN_HORIZONTAL_RESOLUTION,
+            display_height: MIN_VERTICAL_RESOLUTION,
+            aa_samples: 0,
             ..Default::default()
         }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct WindowTarget {
+    pub width: u16,
+    pub height: u16,
+}
+
+impl WindowTarget {
+    pub fn new() -> Self {
+        Self {
+            width: MIN_HORIZONTAL_RESOLUTION,
+            height: MIN_VERTICAL_RESOLUTION,
+        }
+    }
+}
+
+impl Default for WindowTarget {
+    fn default() -> Self {
+        Self::new()
     }
 }
