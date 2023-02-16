@@ -1,4 +1,4 @@
-//#![allow(dead_code)]
+#![allow(dead_code)]
 
 use cfg_if::cfg_if;
 use std::time::Duration;
@@ -259,16 +259,22 @@ impl<T: Sized + Clone> SmpEvent<T> {
     /// if successful.
     #[allow(dead_code)]
     pub fn try_acknowledge(&mut self) -> Option<T> {
-        let res = match self.try_wait() {
-            Ok(_) => self.try_get_state(),
-            Err(_) => Err(()),
-        };
+        if match self.signaled() {
+            Some(s) => s,
+            None => return None,
+        } == false
+        {
+            return None;
+        }
 
         if !self.manual_reset {
             self.clear_signaled().unwrap();
         }
 
-        res.ok()
+        match self.try_get_state() {
+            Ok(s) => Some(s),
+            Err(_) => None,
+        }
     }
 
     /// Acknowledges the event within [`duration`], and retrieves its
