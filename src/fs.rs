@@ -98,3 +98,50 @@ cfg_if::cfg_if! {
         }
     }
 }
+
+// TODO - Will panic if `path` contains invalid UTF-8 characters.
+// Fix at some point.
+pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
+    let path = path.as_ref();
+
+    if path.is_relative() {
+        com::warnln(&format!(
+            "WARNING: refusing to create relative path \"{}\"",
+            path.display()
+        ));
+        return Err(std::io::ErrorKind::InvalidFilename.into());
+    }
+
+    if path.exists() {
+        return Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap());
+    }
+
+    match std::fs::File::create(path) {
+        Ok(_) => return Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap()),
+        Err(_) => {
+            let dir_path = match path.parent() {
+                Some(d) => d,
+                None => return Err(std::io::ErrorKind::InvalidFilename.into()),
+            };
+
+            std::fs::create_dir_all(dir_path)?;
+
+            match std::fs::File::create(path) {
+                Ok(_) => Ok(path.to_path_buf()),
+                Err(e) => Err(e),
+            }
+        }
+    }
+}
+
+struct Iwd {
+    filename: String,
+    basename: String,
+    gamename: String,
+    handle: Vec<u8>,
+    checksum: usize,
+    pure_checksum: usize,
+    has_open_file: bool,
+    num_files: usize,
+    referenced: bool,
+}
