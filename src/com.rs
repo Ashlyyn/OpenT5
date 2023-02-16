@@ -3,6 +3,7 @@
 use crate::*;
 use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
+use std::sync::Mutex;
 use std::fs::File;
 use std::sync::{Arc, RwLock};
 
@@ -85,9 +86,15 @@ impl ParseThreadInfo {
     }
 }
 
+lazy_static! {
+    static ref PRINT_LOCK: Arc<Mutex<()>> = Arc::new(Mutex::new(()));
+}
+
 // Needs to be actually implemented
 // Just a wrapper around print! currently
 pub fn print(message: String) {
+    let lock = PRINT_LOCK.clone();
+    let _lock = lock.lock().unwrap();
     print!("{}", message);
 }
 
@@ -152,7 +159,12 @@ pub fn init() {
     init_try_block_function();
 }
 
+fn init_dvars() {
+    dvar::register_bool("wideScreen", true, dvar::DvarFlags::READ_ONLY, Some("True if the game video is running in 16x9 aspect, false if 4x3.")).unwrap();
+}
+
 fn init_try_block_function() {
+    init_dvars();
     render::init_threads();
 }
 
