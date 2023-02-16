@@ -1350,36 +1350,36 @@ impl Dvar {
         match value {
             DvarValue::Bool(_) => true,
             DvarValue::Float(f) => {
-                f < domain.as_float_limits().unwrap().min
-                    || f > domain.as_float_limits().unwrap().max
+                f >= domain.as_float_limits().unwrap().min
+                    && f <= domain.as_float_limits().unwrap().max
             }
             DvarValue::Vector2(v) => {
-                v.0 < domain.as_vector2_limits().unwrap().min
-                    || v.0 > domain.as_vector2_limits().unwrap().max
-                    || v.1 < domain.as_vector2_limits().unwrap().min
-                    || v.1 > domain.as_vector2_limits().unwrap().max
+                v.0 >= domain.as_vector2_limits().unwrap().min
+                    && v.0 <= domain.as_vector2_limits().unwrap().max
+                    && v.1 >= domain.as_vector2_limits().unwrap().min
+                    && v.1 <= domain.as_vector2_limits().unwrap().max
             }
             DvarValue::Vector3(v) => {
-                v.0 < domain.as_vector3_limits().unwrap().min
-                    || v.0 > domain.as_vector3_limits().unwrap().max
-                    || v.1 < domain.as_vector3_limits().unwrap().min
-                    || v.1 > domain.as_vector3_limits().unwrap().max
-                    || v.2 < domain.as_vector3_limits().unwrap().min
-                    || v.2 > domain.as_vector3_limits().unwrap().max
+                v.0 >= domain.as_vector3_limits().unwrap().min
+                    && v.0 <= domain.as_vector3_limits().unwrap().max
+                    && v.1 >= domain.as_vector3_limits().unwrap().min
+                    && v.1 <= domain.as_vector3_limits().unwrap().max
+                    && v.2 >= domain.as_vector3_limits().unwrap().min
+                    && v.2 <= domain.as_vector3_limits().unwrap().max
             }
             DvarValue::Vector4(v) => {
-                v.0 < domain.as_vector4_limits().unwrap().min
-                    || v.0 > domain.as_vector4_limits().unwrap().max
-                    || v.1 < domain.as_vector4_limits().unwrap().min
-                    || v.1 > domain.as_vector4_limits().unwrap().max
-                    || v.2 < domain.as_vector4_limits().unwrap().min
-                    || v.2 > domain.as_vector4_limits().unwrap().max
-                    || v.3 < domain.as_vector4_limits().unwrap().min
-                    || v.3 > domain.as_vector4_limits().unwrap().max
+                v.0 >= domain.as_vector4_limits().unwrap().min
+                    && v.0 <= domain.as_vector4_limits().unwrap().max
+                    && v.1 >= domain.as_vector4_limits().unwrap().min
+                    && v.1 <= domain.as_vector4_limits().unwrap().max
+                    && v.2 >= domain.as_vector4_limits().unwrap().min
+                    && v.2 <= domain.as_vector4_limits().unwrap().max
+                    && v.3 >= domain.as_vector4_limits().unwrap().min
+                    && v.3 <= domain.as_vector4_limits().unwrap().max
             }
             DvarValue::Int(i) => {
-                i < domain.as_int_limits().unwrap().min
-                    || i > domain.as_int_limits().unwrap().max
+                i >= domain.as_int_limits().unwrap().min
+                    && i <= domain.as_int_limits().unwrap().max
             }
             DvarValue::String(_) => true,
             DvarValue::Enumeration(v) => domain
@@ -1390,24 +1390,24 @@ impl Dvar {
                 .any(|s| *s == v),
             DvarValue::Color(_) => true,
             DvarValue::Int64(i) => {
-                i < domain.as_int64_limits().unwrap().min
-                    || i > domain.as_int64_limits().unwrap().max
+                i >= domain.as_int64_limits().unwrap().min
+                    && i <= domain.as_int64_limits().unwrap().max
             }
             DvarValue::LinearColorRGB(v) => {
-                v.0 < domain.as_linear_color_rgb_limits().unwrap().min
-                    || v.0 > domain.as_linear_color_rgb_limits().unwrap().max
-                    || v.1 < domain.as_linear_color_rgb_limits().unwrap().min
-                    || v.1 > domain.as_linear_color_rgb_limits().unwrap().max
-                    || v.2 < domain.as_linear_color_rgb_limits().unwrap().min
-                    || v.2 > domain.as_linear_color_rgb_limits().unwrap().max
+                v.0 >= domain.as_linear_color_rgb_limits().unwrap().min
+                    && v.0 <= domain.as_linear_color_rgb_limits().unwrap().max
+                    && v.1 >= domain.as_linear_color_rgb_limits().unwrap().min
+                    && v.1 <= domain.as_linear_color_rgb_limits().unwrap().max
+                    && v.2 >= domain.as_linear_color_rgb_limits().unwrap().min
+                    && v.2 <= domain.as_linear_color_rgb_limits().unwrap().max
             }
             DvarValue::ColorXYZ(v) => {
-                v.0 < domain.as_color_xyz_limits().unwrap().min
-                    || v.0 > domain.as_color_xyz_limits().unwrap().max
-                    || v.1 < domain.as_color_xyz_limits().unwrap().min
-                    || v.1 > domain.as_color_xyz_limits().unwrap().max
-                    || v.2 < domain.as_color_xyz_limits().unwrap().min
-                    || v.2 > domain.as_color_xyz_limits().unwrap().max
+                v.0 >= domain.as_color_xyz_limits().unwrap().min
+                    && v.0 <= domain.as_color_xyz_limits().unwrap().max
+                    && v.1 >= domain.as_color_xyz_limits().unwrap().min
+                    && v.1 <= domain.as_color_xyz_limits().unwrap().max
+                    && v.2 >= domain.as_color_xyz_limits().unwrap().min
+                    && v.2 <= domain.as_color_xyz_limits().unwrap().max
             }
         }
     }
@@ -1459,7 +1459,8 @@ impl Dvar {
         if self.current != value {
             let modified_flags = *MODIFIED_FLAGS.read().unwrap();
             MODIFIED_FLAGS
-                .write().unwrap()
+                .write()
+                .unwrap()
                 .insert(modified_flags | self.flags);
             self.current = value;
             self.modified = true;
@@ -1468,7 +1469,7 @@ impl Dvar {
         }
     }
 
-    fn make_latched_value_current(&mut self) {
+    pub fn make_latched_value_current(&mut self) {
         self.set_variant(self.latched.clone(), SetSource::Internal);
     }
 
@@ -3525,8 +3526,8 @@ pub fn register_enumeration(
     flags: DvarFlags,
     description: Option<&str>,
 ) -> Result<(), ()> {
-    let b: bool;
-    let other_name: &str;
+    let _b: bool;
+    let _other_name: &str;
     {
         let lock = DVARS.clone();
         let mut writer = lock.write().unwrap();
@@ -3550,12 +3551,14 @@ pub fn register_enumeration(
             .domain(domain.unwrap_or_default())
             .value(value)
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
-        other_name = &writer.get(name).unwrap().name;
+        _b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        _other_name = &writer.get(name).unwrap().name;
+        /*
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return Err(());
         }
+        */
     }
 
     Ok(())
@@ -5834,12 +5837,12 @@ pub fn set_enumeration_prev(name: &str) -> Result<(), ()> {
     }
 }
 
-fn add_to_enumeration_domain(name: &str, domain_str: &str) -> Result<(), ()> {
+pub fn add_to_enumeration_domain(name: &str, domain_str: &str) -> Result<(), ()> {
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
                 let lock = DVARS.clone();
-                let mut writer = lock.try_write().unwrap();
+                let mut writer = lock.write().unwrap();
                 let d = writer.get_mut(name).unwrap();
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
@@ -5855,7 +5858,7 @@ fn add_to_enumeration_domain(name: &str, domain_str: &str) -> Result<(), ()> {
     }
 }
 
-fn remove_from_enumeration_domain(
+pub fn remove_from_enumeration_domain(
     name: &str,
     domain_str: &str,
 ) -> Result<(), ()> {
@@ -5863,7 +5866,7 @@ fn remove_from_enumeration_domain(
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
                 let lock = DVARS.clone();
-                let mut writer = lock.try_write().unwrap();
+                let mut writer = lock.write().unwrap();
                 let d = writer.get_mut(name).unwrap();
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
@@ -6780,7 +6783,8 @@ pub fn get_float(name: &str) -> Option<f32> {
 ///
 /// Example
 /// ```
-/// let f = get_or_register_float("sv_test", 32.6f, None, None, None, None).unwrap();
+/// let f = get_or_register_float("sv_test", 32.6f, None, None, None, None)
+///     .unwrap();
 /// ```
 pub fn get_or_register_float(
     name: &str,
@@ -6855,7 +6859,15 @@ pub fn get_vector2(name: &str) -> Option<Vec2f32> {
 ///
 /// Example
 /// ```
-/// let v2 = get_or_register_vector2("sv_test", (32.6f, 68.9f), None, None, None, None).unwrap();
+/// let v2 = get_or_register_vector2(
+///     "sv_test",
+///     (32.6f, 68.9f),
+///     None,
+///     None,
+///     None,
+///     None,
+/// )
+/// .unwrap();
 /// ```
 pub fn get_or_register_vector2(
     name: &str,
@@ -7007,7 +7019,15 @@ pub fn get_vector4(name: &str) -> Option<Vec4f32> {
 ///
 /// Example
 /// ```
-/// let v4 = get_or_register_vector4("sv_test", (32.6f, 68.9f, 410.87f, 683.72f), None, None, None, None).unwrap();
+/// let v4 = get_or_register_vector4(
+///     "sv_test",
+///     (32.6f, 68.9f, 410.87f, 683.72f),
+///     None,
+///     None,
+///     None,
+///     None,
+/// )
+/// .unwrap();
 /// ```
 pub fn get_or_register_vector4(
     name: &str,
@@ -7304,7 +7324,9 @@ pub fn get_color(name: &str) -> Option<Vec4f32> {
 ///
 /// Example
 /// ```
-/// let c = get_or_register_color("sv_test", 0.1f, 0.3f, 0.5f, 0.2f, None, None).unwrap();
+/// let c =
+///     get_or_register_color("sv_test", 0.1f, 0.3f, 0.5f, 0.2f, None, None)
+///         .unwrap();
 /// ```
 pub fn get_or_register_color(
     name: &str,
@@ -7556,7 +7578,8 @@ pub fn get_color_xyz(name: &str) -> Option<Vec3f32> {
 ///
 /// Example
 /// ```
-/// let c = get_or_register_color_xyz("sv_test", 0.1f, 0.3f, 0.5f, None, None).unwrap();
+/// let c = get_or_register_color_xyz("sv_test", 0.1f, 0.3f, 0.5f, None, None)
+///     .unwrap();
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn get_or_register_color_xyz(
@@ -7602,7 +7625,7 @@ pub fn get_or_register_color_xyz(
 /// ```
 pub fn clear_modified(name: &str) -> Result<(), ()> {
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().unwrap();
+    let mut writer = lock.write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.modified = false;
         return Ok(());
@@ -7636,7 +7659,7 @@ pub fn clear_modified(name: &str) -> Result<(), ()> {
 /// ```
 pub fn add_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().unwrap();
+    let mut writer = lock.write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.add_flags(flags);
         return Ok(());
@@ -7670,9 +7693,20 @@ pub fn add_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
 /// ```
 pub fn clear_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
     let lock = DVARS.clone();
-    let mut writer = lock.try_write().unwrap();
+    let mut writer = lock.write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.clear_flags(flags);
+        return Ok(());
+    };
+
+    Err(())
+}
+
+pub fn make_latched_value_current(name: &str) -> Result<(), ()> {
+    let lock = DVARS.clone();
+    let mut writer = lock.write().unwrap();
+    if let Some(d) = writer.get_mut(name) {
+        d.make_latched_value_current();
         return Ok(());
     };
 
