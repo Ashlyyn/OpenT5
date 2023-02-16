@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
-use std::sync::{
+use std::{sync::{
     atomic::{AtomicBool, Ordering},
     RwLock,
-};
+}, num::NonZeroUsize};
 
 use arrayvec::ArrayVec;
 use cfg_if::cfg_if;
@@ -137,21 +137,21 @@ impl<'a> PhysicalMemory<'a> {
 
 cfg_if! {
     if #[cfg(target_os = "windows")] {
-        fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
+        fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
             let p = unsafe {
-                VirtualAlloc(None, size, MEM_COMMIT, PAGE_READWRITE)
+                VirtualAlloc(None, size.get(), MEM_COMMIT, PAGE_READWRITE)
                     as *mut u8
             };
             match p.is_null() {
                 true => None,
-                false => unsafe { Some(core::slice::from_raw_parts_mut(p, size)) },
+                false => unsafe { Some(core::slice::from_raw_parts_mut(p, size.get())) },
             }
         }
     } else if #[cfg(any(target_os = "unix", target_os = "linux"))] {
-        fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
+        fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
             let p = unsafe {
                 mmap(
-                core::ptr::null_mut(),
+                None,
                 size,
                 ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
                 MapFlags::MAP_PRIVATE | MapFlags::MAP_ANON,
@@ -161,12 +161,12 @@ cfg_if! {
             };
             match p.is_null() {
                 true => None,
-                false => unsafe { Some(core::slice::from_raw_parts_mut(p, size)) },
+                false => unsafe { Some(core::slice::from_raw_parts_mut(p, size.get())) },
             }
         }
     } else {
-        fn alloc<'a>(size: usize) -> Option<&'a mut [u8]> {
-            let p = malloc(size);
+        fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
+            let p = malloc(size.get());
             match p.is_null() {
                 true => None,
                 false => Some(p),
@@ -186,11 +186,11 @@ pub fn init() {
     if G_PHYSICAL_MEMORY_INIT.load(Ordering::SeqCst) == false {
         G_PHYSICAL_MEMORY_INIT.store(true, Ordering::SeqCst);
 
-        const SIZE: usize = 0x12C0_0000;
+        const SIZE: NonZeroUsize = NonZeroUsize::new(0x12C0_0000).unwrap();
         *G_MEM.write().unwrap() = PhysicalMemory::new(
             "main".to_string(),
             Some(alloc(SIZE).unwrap()),
-            SIZE,
+            SIZE.get(),
         );
         println!("Successfully allocated {} bytes.", SIZE);
     }
