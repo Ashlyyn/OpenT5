@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use crate::{*, render::{MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION}};
+use crate::{
+    render::{MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION},
+    *,
+};
 use arrayvec::ArrayVec;
 use common::*;
 use num::complex::Complex;

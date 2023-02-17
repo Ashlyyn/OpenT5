@@ -1,9 +1,12 @@
 #![allow(dead_code)]
 
-use std::{sync::{
-    atomic::{AtomicBool, Ordering},
-    RwLock,
-}, num::NonZeroUsize};
+use std::{
+    num::NonZeroUsize,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        RwLock,
+    },
+};
 
 use arrayvec::ArrayVec;
 use cfg_if::cfg_if;

@@ -669,8 +669,9 @@ fn is_talk_key_held() -> bool {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, Hash, Eq, PartialEq, FromPrimitive)]
+#[derive(Copy, Clone, Default, Hash, Eq, PartialEq, FromPrimitive)]
 pub enum KeyScancode {
+    #[default]
     None,
     // First row
     Esc,
@@ -781,12 +782,6 @@ pub enum KeyScancode {
     RightArrow,
     Numpad0,
     NumpadDot,
-}
-
-impl Default for KeyScancode {
-    fn default() -> Self {
-        KeyScancode::None
-    }
 }
 
 lazy_static! {

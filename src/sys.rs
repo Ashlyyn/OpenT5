@@ -328,7 +328,7 @@ pub fn check_crash_or_rerun() -> bool {
             let file = File::create(semaphore_file_path);
         }
     }
-    
+
     match file {
         Ok(mut f) => {
             let pid = std::process::id();

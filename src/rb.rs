@@ -13,10 +13,7 @@ pub fn render_thread() -> ! {
                 if sys::query_event("rgRegisteredEvent") {
                     panic!("");
                 } else {
-                    #[allow(unused_must_use)]
-                    {
-                        render::begin_registration_internal();
-                    }
+                    render::begin_registration_internal().unwrap();
                 }
             } else {
                 panic!("");

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::*;
 use bitflags::bitflags;
 use lazy_static::lazy_static;
-use no_deadlocks::RwLock;
+use std::sync::RwLock;
 
 use super::gpad;
 
@@ -48,10 +48,7 @@ pub fn startup() {
     }
 
     gpad::startup();
-    #[allow(unused_must_use)]
-    {
-        dvar::clear_modified("in_mouse");
-    }
+    dvar::clear_modified("in_mouse").unwrap();
 }
 
 pub enum Scancode {

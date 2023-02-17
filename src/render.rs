@@ -1,17 +1,10 @@
 #![allow(dead_code)]
 
 use crate::{util::*, *};
-use cfg_if::cfg_if;
 use pollster::block_on;
 use sscanf::scanf;
 use std::collections::HashSet;
-cfg_if! {
-    if #[cfg(debug_assertions)] {
-        use no_deadlocks::{RwLock};
-    } else {
-        use std::sync::{RwLock};
-    }
-}
+use std::sync::RwLock;
 
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -64,23 +57,57 @@ fn register() {
     register_dvars();
 }
 
-const ASPECT_RATIO_AUTO: &'static str = "auto";
-const ASPECT_RATIO_STANDARD: &'static str = "standard";
-const ASPECT_RATIO_16_10: &'static str = "wide 16:10";
-const ASPECT_RATIO_16_9: &'static str = "wide 16:9";
+const ASPECT_RATIO_AUTO: &str = "auto";
+const ASPECT_RATIO_STANDARD: &str = "standard";
+const ASPECT_RATIO_16_10: &str = "wide 16:10";
+const ASPECT_RATIO_16_9: &str = "wide 16:9";
 
 fn register_dvars() {
-    dvar::register_bool("r_fullscreen", false, dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, Some("Display game full screen")).unwrap();
+    dvar::register_bool(
+        "r_fullscreen",
+        false,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
+        Some("Display game full screen"),
+    )
+    .unwrap();
     dvar::register_enumeration("r_aspectRatio", "auto".into(), Some(vec![ASPECT_RATIO_AUTO.into(), ASPECT_RATIO_STANDARD.into(), ASPECT_RATIO_16_10.into(), ASPECT_RATIO_16_9.into()]), dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, Some("Screen aspect ratio.  Most widescreen monitors are 16:10 instead of 16:9.")).unwrap();
-    dvar::register_int("r_aaSamples", 1, Some(1), Some(16), dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, Some("Anti-aliasing sample count; 1 disables anti-aliasing")).unwrap();
+    dvar::register_int(
+        "r_aaSamples",
+        1,
+        Some(1),
+        Some(16),
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
+        Some("Anti-aliasing sample count; 1 disables anti-aliasing"),
+    )
+    .unwrap();
     dvar::register_bool("r_vsync", true, dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, Some("Enable v-sync before drawing the next frame to avoid \'tearing\' artifacts.")).unwrap();
-    dvar::register_string("r_customMode", "".into(), dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, Some("Special resolution mode for the remote debugger")).unwrap();
-    dvar::register_int("vid_xpos", 3, Some(-4096), 4096.into(), dvar::DvarFlags::ARCHIVE, "Game window horizontal position".into()).unwrap();
-    dvar::register_int("vid_ypos", 3, Some(-4096), 4096.into(), dvar::DvarFlags::ARCHIVE, "game window vertical position".into()).unwrap();
-    
+    dvar::register_string(
+        "r_customMode",
+        "",
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
+        Some("Special resolution mode for the remote debugger"),
+    )
+    .unwrap();
+    dvar::register_int(
+        "vid_xpos",
+        3,
+        Some(-4096),
+        4096.into(),
+        dvar::DvarFlags::ARCHIVE,
+        "Game window horizontal position".into(),
+    )
+    .unwrap();
+    dvar::register_int(
+        "vid_ypos",
+        3,
+        Some(-4096),
+        4096.into(),
+        dvar::DvarFlags::ARCHIVE,
+        "game window vertical position".into(),
+    )
+    .unwrap();
 }
 
-#[allow(dead_code)]
 fn init() -> Result<(), ()> {
     com::println(&format!(
         "{}: render::init()...",
@@ -89,7 +116,6 @@ fn init() -> Result<(), ()> {
 
     register();
 
-    ALIVE.store(true, Ordering::SeqCst);
     env_logger::init();
     init_graphics_api().unwrap();
 
@@ -110,7 +136,7 @@ lazy_static! {
             current_monitor_handle: None,
             best_monitor_handle: None,
             window: None,
-            video_modes: Vec::new() ,
+            video_modes: Vec::new(),
         }));
 }
 
@@ -164,10 +190,11 @@ fn fatal_init_error(error: &str) -> ! {
     sys::render_fatal_error();
 }
 
-fn set_custom_resolution(
-    wnd_parms: &mut gfx::WindowParms,
-) -> Result<(), ()> {
-    dvar::set_string("r_customMode", &format!("{}x{}", wnd_parms.display_width, wnd_parms.display_height))
+fn set_custom_resolution(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
+    dvar::set_string(
+        "r_customMode",
+        &format!("{}x{}", wnd_parms.display_width, wnd_parms.display_height),
+    )
     /*
     match wnd_parms.display_width <= width && wnd_parms.display_height <= height
     {
@@ -214,12 +241,7 @@ fn closest_refresh_rate_for_mode(
     height: u16,
     hz: u16,
 ) -> Option<u16> {
-    let video_modes = WINIT_GLOBALS
-        .clone()
-        .read()
-        .unwrap()
-        .video_modes
-        .clone();
+    let video_modes = WINIT_GLOBALS.clone().read().unwrap().video_modes.clone();
     if video_modes.is_empty() {
         return Some(60);
     }
@@ -253,13 +275,10 @@ fn closest_refresh_rate_for_mode(
     None
 }
 
-fn set_wnd_parms(
-    wnd_parms: &mut gfx::WindowParms,
-) {
+fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
     let r_fullscreen = dvar::get_bool("r_fullscreen").unwrap();
     wnd_parms.fullscreen = r_fullscreen;
     /*
-    #[allow(clippy::collapsible_if)]
     if !r_fullscreen {
         if set_custom_resolution(wnd_parms).is_err() {
             let r_mode = dvar::get_enumeration("r_mode").unwrap();
@@ -269,13 +288,12 @@ fn set_wnd_parms(
     */
 
     let r_mode = dvar::get_enumeration("r_mode").unwrap();
-    (wnd_parms.display_width, wnd_parms.display_height) = scanf!(r_mode, "{}x{}", u16, u16).unwrap();
+    (wnd_parms.display_width, wnd_parms.display_height) =
+        scanf!(r_mode, "{}x{}", u16, u16).unwrap();
 
     if !wnd_parms.fullscreen {
         let lock = RENDER_GLOBALS.clone();
         let render_globals = lock.read().expect("");
-
-        
 
         if render_globals.adapter_native_width < wnd_parms.display_width {
             wnd_parms.display_width = wnd_parms
@@ -299,9 +317,11 @@ fn set_wnd_parms(
             wnd_parms.display_width,
             wnd_parms.display_height,
             wnd_parms.hz,
-        ).unwrap();
+        )
+        .unwrap();
         wnd_parms.hz = hz;
-        dvar::set_string_internal("r_displayRefresh", &format!("{} Hz", hz)).unwrap();
+        dvar::set_string_internal("r_displayRefresh", &format!("{} Hz", hz))
+            .unwrap();
     }
 
     wnd_parms.x = dvar::get_int("vid_xpos").unwrap() as _;
@@ -386,6 +406,7 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     Ok(())
 }
 
+#[allow(clippy::collapsible_else_if)]
 fn reduce_window_settings() -> Result<(), ()> {
     if dvar::get_int("r_aaSamples").unwrap() > 1 {
         dvar::set_int("r_aaSamples", dvar::get_int("r_aaSamples").unwrap() - 1)
@@ -434,7 +455,8 @@ fn pre_create_window() -> Result<(), ()> {
         Some(vec!["640x480".into()]),
         dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
         Some("Renderer resolution mode"),
-    ).unwrap();
+    )
+    .unwrap();
 
     dvar::register_enumeration(
         "r_displayRefresh",
@@ -444,7 +466,8 @@ fn pre_create_window() -> Result<(), ()> {
             | dvar::DvarFlags::LATCHED
             | dvar::DvarFlags::CHANGEABLE_RESET,
         Some("Refresh rate"),
-    ).unwrap();
+    )
+    .unwrap();
 
     Ok(())
 }
@@ -576,7 +599,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                render_globals.adapter_native_width = width as _;
                render_globals.adapter_native_height = height as _;
                render_globals.adapter_fullscreen_width = width as _;
-               render_globals.adapter_fullscreeen_height = height as _; 
+               render_globals.adapter_fullscreeen_height = height as _;
             }
 
             let mode = {
@@ -591,21 +614,21 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 .clone()
             };
 
-    dvar::register_enumeration(
-        "r_mode",
-        mode,
-        Some(Vec::from_iter(
-            RENDER_GLOBALS
-                .clone()
-                .read()
-                .unwrap()
-                .resolution_names
-                .iter()
-                .cloned(),
-        )),
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
+            dvar::register_enumeration(
+                "r_mode",
+                mode,
+                Some(Vec::from_iter(
+                    RENDER_GLOBALS
+                        .clone()
+                        .read()
+                        .unwrap()
+                        .resolution_names
+                        .iter()
+                        .cloned(),
+                )),
+                dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
         Some("Renderer resolution mode"),
-    ).unwrap();
+            ).unwrap();
 
     /*
     modes.sort_by(|a, b| {
@@ -614,242 +637,236 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     });
     */
 
-    modes.iter().for_each(|m| {
-        RENDER_GLOBALS
-            .clone()
-            .write()
-            .unwrap()
-            .refresh_rate_names
-            .insert(format!(
-                "{} Hz",
-                (m.refresh_rate_millihertz()
-                    - (m.refresh_rate_millihertz() % 1000))
-                    / 1000
-            ));
-    });
+            modes.iter().for_each(|m| {
+                RENDER_GLOBALS
+                    .clone()
+                    .write()
+                    .unwrap()
+                    .refresh_rate_names
+                    .insert(format!(
+                        "{} Hz",
+                        (m.refresh_rate_millihertz()
+                            - (m.refresh_rate_millihertz() % 1000))
+                            / 1000
+                    ));
+            });
 
-    let refresh = {
-        let lock = RENDER_GLOBALS.clone();
-        let render_globals = lock.read().unwrap();
-        let mut names: Vec<_> = render_globals.refresh_rate_names.iter().cloned().collect();
-        names.sort_by_key(|n| scanf!(n, "{} Hz", u16).unwrap());
-        names
-        .iter()
-        .last()
-        .unwrap()
-        .clone()
-    };
-
-    dvar::register_enumeration(
-        "r_displayRefresh",
-        refresh,
-        Some(Vec::from_iter(
-            RENDER_GLOBALS
-                .clone()
-                .read()
-                .unwrap()
-                .refresh_rate_names
+            let refresh = {
+                let lock = RENDER_GLOBALS.clone();
+                let render_globals = lock.read().unwrap();
+                let mut names: Vec<_> = render_globals.refresh_rate_names.iter().cloned().collect();
+                names.sort_by_key(|n| scanf!(n, "{} Hz", u16).unwrap());
+                names
                 .iter()
-                .cloned()
-                .collect::<Vec<String>>(),
-        )),
-        dvar::DvarFlags::ARCHIVE
-            | dvar::DvarFlags::LATCHED
-            | dvar::DvarFlags::CHANGEABLE_RESET,
-        Some("Refresh rate"),
-    ).unwrap();
+                .last()
+                .unwrap()
+                .clone()
+            };
 
-    let mut wnd_parms = gfx::WindowParms::new();
-    set_wnd_parms(&mut wnd_parms);
-    let width = wnd_parms.display_width;
-    let height = wnd_parms.display_height;
-    let hz = wnd_parms.hz;
+            dvar::register_enumeration(
+                "r_displayRefresh",
+                refresh,
+                Some(Vec::from_iter(
+                    RENDER_GLOBALS
+                        .clone()
+                        .read()
+                        .unwrap()
+                        .refresh_rate_names
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<String>>(),
+                    )
+                ),
+                dvar::DvarFlags::ARCHIVE
+                    | dvar::DvarFlags::LATCHED
+                    | dvar::DvarFlags::CHANGEABLE_RESET,
+                Some("Refresh rate"),
+            ).unwrap();
 
-    let window_fullscreen = if fullscreen {
-        let modes = window.current_monitor().unwrap().video_modes();
-        {
-            let lock = WINIT_GLOBALS.clone();
-            let mut winit_globals = lock.write().unwrap();
-            winit_globals.video_modes = modes.collect();
-        }
-        let modes = window.current_monitor().unwrap().video_modes();
-        modes.for_each(|v| println!("{}", v));
-        let mut modes = window.current_monitor().unwrap().video_modes();
-        let mode = modes
-            .find(|m| {
-                m.size().width == width as _
-                    && m.size().height == height as _
-                    && m.refresh_rate_millihertz().div_floor(1000)
-                        == hz as _
-            })
-            .unwrap();
-        Some(Fullscreen::Exclusive(mode))
-    } else {
-        None
-    };
+            let mut wnd_parms = gfx::WindowParms::new();
+            set_wnd_parms(&mut wnd_parms);
+            let width = wnd_parms.display_width;
+            let height = wnd_parms.display_height;
+            let hz = wnd_parms.hz;
 
-    window.set_fullscreen(window_fullscreen);
-    #[allow(unused_must_use)]
-    {
-    if dvar::get_bool("r_reflectionProbeGenerate").unwrap_or(false) 
-        && dvar::get_bool("r_fullscreen").unwrap_or(false) {
-            dvar::set_bool_internal("r_fullscreen", false);
-            cbuf::add_textln(0, "vid_restart");
-        }
-    dvar::register_bool("r_autopriority",
-        false,
-        dvar::DvarFlags::ARCHIVE,
-        Some("Automatically set the priority of the windows process when the game is minimized"),
-    );
-    }
-
+            let window_fullscreen = if fullscreen {
+                let modes = window.current_monitor().unwrap().video_modes();
                 {
-                    let lock = WINDOW_INITIALIZING.clone();
-                    let mut writer = lock.write().unwrap();
-                    writer.send_cleared(()).unwrap();
+                    let lock = WINIT_GLOBALS.clone();
+                    let mut winit_globals = lock.write().unwrap();
+                    winit_globals.video_modes = modes.collect();
                 }
-                {
-                    let lock = WINDOW_INITIALIZED.clone();
-                    let mut writer = lock.write().unwrap();
-                    writer.send(true).unwrap();
+                let modes = window.current_monitor().unwrap().video_modes();
+                modes.for_each(|v| println!("{}", v));
+                let mut modes = window.current_monitor().unwrap().video_modes();
+                let mode = modes
+                    .find(|m| {
+                        m.size().width == width as _
+                            && m.size().height == height as _
+                            && m.refresh_rate_millihertz().div_floor(1000)
+                                == hz as _
+                    })
+                    .unwrap();
+                Some(Fullscreen::Exclusive(mode))
+            } else {
+                None
+            };
+
+            window.set_fullscreen(window_fullscreen);
+            if dvar::get_bool("r_reflectionProbeGenerate").unwrap()
+                && dvar::get_bool("r_fullscreen").unwrap() 
+            {
+                dvar::set_bool_internal("r_fullscreen", false).unwrap();
+                cbuf::add_textln(0, "vid_restart");
+            }
+            
+            dvar::register_bool("r_autopriority",
+                false,
+                dvar::DvarFlags::ARCHIVE,
+                Some("Automatically set the priority of the windows process when the game is minimized"),
+            ).unwrap();
+
+            {
+                let lock = WINDOW_INITIALIZING.clone();
+                let mut writer = lock.write().unwrap();
+                writer.send_cleared(()).unwrap();
+            }
+            {
+                let lock = WINDOW_INITIALIZED.clone();
+                let mut writer = lock.write().unwrap();
+                writer.send(true).unwrap();
+            }
+        },
+        Event::WindowEvent {
+            ref event,
+            window_id,
+        } if window_id == window.id() => match event {
+            WindowEvent::Destroyed => {
+                //FUN_004dfd60()
+                platform::clear_window_handle();
+            },
+            WindowEvent::ModifiersChanged(m) => {
+                modifiers = *m;
+            }
+            WindowEvent::Moved(position) => {
+                if dvar::get_bool("r_fullscreen").unwrap() {
+                    input::mouse::activate(0);
+                } else {
+                    dvar::set_int_internal("vid_xpos", position.x).unwrap();
+                    dvar::set_int_internal("vid_ypos", position.y).unwrap();
+                    dvar::clear_modified("vid_xpos").unwrap();
+                    dvar::clear_modified("vid_ypos").unwrap();
+                    if platform::get_platform_vars().active_app {
+                        input::activate(true);
+                    }
                 }
             },
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            } if window_id == window.id() => match event {
-                WindowEvent::Destroyed => {
-                    //FUN_004dfd60()
-                    platform::clear_window_handle();
-                },
-                WindowEvent::ModifiersChanged(m) => {
-                    modifiers = *m;
+            WindowEvent::Focused(b) => {
+                vid::app_activate(*b, platform::get_minimized());
+            },
+            WindowEvent::CloseRequested => {
+                cbuf::add_textln(0, "quit");
+                *control_flow = ControlFlow::Exit;
+            },
+            WindowEvent::MouseWheel {
+                delta,
+                ..
+            } => {
+                let lines = match delta {
+                    MouseScrollDelta::LineDelta(f, _) => *f,
+                    MouseScrollDelta::PixelDelta(_) =>
+                        panic!("render::create_window: unable to handle PixelDelta variant of MouseScrollDelta for MouseWheel event")
+                };
+                if lines < 0.0 {
+                    sys::enqueue_event(
+                        sys::Event::new(Some(platform::get_msg_time()),
+                        sys::EventType::Mouse(
+                            input::mouse::Scancode::MWheelDown,
+                            true
+                        ),
+                        None));
+                    sys::enqueue_event(
+                        sys::Event::new(Some(platform::get_msg_time()),
+                        sys::EventType::Mouse(
+                            input::mouse::Scancode::MWheelDown,
+                            false),
+                        None));
+                } else {
+                    sys::enqueue_event(
+                        sys::Event::new(Some(platform::get_msg_time()),
+                        sys::EventType::Mouse(
+                            input::mouse::Scancode::MWheelUp,
+                            true),
+                        None));
+                    sys::enqueue_event(
+                        sys::Event::new(Some(platform::get_msg_time()),
+                        sys::EventType::Mouse(
+                            input::mouse::Scancode::MWheelUp,
+                            false),
+                        None));
                 }
-                WindowEvent::Moved(position) => {
-                    if dvar::get_bool("r_fullscreen").unwrap() {
-                        input::mouse::activate(0);
-                    } else {
-                        dvar::set_int_internal("vid_xpos", position.x).unwrap();
-                        dvar::set_int_internal("vid_ypos", position.y).unwrap();
-                        dvar::clear_modified("vid_xpos").unwrap();
-                        dvar::clear_modified("vid_ypos").unwrap();
-                        if platform::get_platform_vars().active_app {
-                            input::activate(true);
-                        }
-                    }
-                },
-                WindowEvent::Focused(b) => {
-                    vid::app_activate(*b, platform::get_minimized());
-                },
-                WindowEvent::CloseRequested => {
-                    cbuf::add_textln(0, "quit");
-                    *control_flow = ControlFlow::Exit;
-                },
-                #[allow(unused_variables, deprecated)]
-                WindowEvent::MouseWheel {
-                    device_id,
-                    delta,
-                    phase,
-                    modifiers
-                } => {
-                    let lines = match delta {
-                        MouseScrollDelta::LineDelta(f, _) => *f,
-                        MouseScrollDelta::PixelDelta(_) =>
-                            panic!("render::create_window: unable to handle PixelDelta variant of MouseScrollDelta for MouseWheel event")
-                    };
-                    if lines < 0.0 {
-                        sys::enqueue_event(
-                            sys::Event::new(Some(platform::get_msg_time()),
-                            sys::EventType::Mouse(
-                                input::mouse::Scancode::MWheelDown,
-                                true),
-                            None));
-                        sys::enqueue_event(
-                            sys::Event::new(Some(platform::get_msg_time()),
-                            sys::EventType::Mouse(
-                                input::mouse::Scancode::MWheelDown,
-                                false),
-                            None));
-                    } else {
-                        sys::enqueue_event(
-                            sys::Event::new(Some(platform::get_msg_time()),
-                            sys::EventType::Mouse(
-                                input::mouse::Scancode::MWheelUp,
-                                true),
-                            None));
-                        sys::enqueue_event(
-                            sys::Event::new(Some(platform::get_msg_time()),
-                            sys::EventType::Mouse(
-                                input::mouse::Scancode::MWheelUp,
-                                false),
-                            None));
-                    }
-                },
-                #[allow(unused_variables)]
+            },
                 WindowEvent::KeyboardInput {
-                    device_id,
-                    input,
-                    is_synthetic
-                } => {
-                    let scancode: input::keyboard::KeyScancode =
-                        num::FromPrimitive::from_u8(input.scancode as u8)
-                        .unwrap();
-                    let alt = modifiers.alt();
-                    #[allow(clippy::collapsible_if)]
-                    if !alt {
-                        sys::enqueue_event(
-                            sys::Event::new(Some(platform::get_msg_time()),
-                            sys::EventType::Key(scancode, false),
-                            None));
-                            // toggle fullscreen on Alt+Enter
-                    } else if scancode == input::keyboard::KeyScancode::Enter {
-                        if // (_DAT_02910164 != 8) &&
-                        dvar::exists("r_fullscreen") &&
-                        dvar::get_int("developer").unwrap() != 0 {
-                            // FUN_005a5360()
-                            #[allow(unused_must_use)]
-                            {
-                            dvar::set_bool_internal(
-                                "r_fullscreen", 
-                                !dvar::get_bool("r_fullscreen")
-                                .unwrap_or_default());
-                            }
+                input,
+                ..
+            } => {
+                let scancode: input::keyboard::KeyScancode =
+                    num::FromPrimitive::from_u8(input.scancode as u8)
+                    .unwrap();
+                let alt = modifiers.alt();
+                #[allow(clippy::collapsible_if)]
+                if !alt {
+                    sys::enqueue_event(
+                        sys::Event::new(Some(platform::get_msg_time()),
+                        sys::EventType::Key(scancode, false),
+                        None));
+                        // toggle fullscreen on Alt+Enter
+                } else if scancode == input::keyboard::KeyScancode::Enter {
+                    if // (_DAT_02910164 != 8) &&
+                    dvar::exists("r_fullscreen") &&
+                        dvar::get_int("developer").unwrap() != 0 
+                    {
+                        // FUN_005a5360()
+                        dvar::set_bool_internal(
+                            "r_fullscreen", 
+                            !dvar::get_bool("r_fullscreen")
+                                .unwrap()).unwrap();
                             cbuf::add_textln(0, "vid_restart");
-                        }
+                    }
                         // FUN_0053f880()
-                    }
-                },
-                WindowEvent::Resized(size) => {
-                    dvar::make_latched_value_current("r_aspectRatio").unwrap();
-                    dvar::make_latched_value_current("r_aaSamples").unwrap();
-                    dvar::make_latched_value_current("r_vsync").unwrap();
-                    dvar::make_latched_value_current("r_fullscreen").unwrap();
-                    dvar::make_latched_value_current("r_displayRefresh").unwrap();
-                    let mut wnd_parms = gfx::WindowParms::new();
-                    let width = size.width;
-                    let height = size.height;
-                    let old_mode = dvar::get_enumeration("r_mode").unwrap();
-                    let new_mode = format!("{}x{}", width, height);
-                    dvar::add_to_enumeration_domain("r_mode", &new_mode).unwrap();
-                    dvar::set_enumeration_internal("r_mode", &new_mode).unwrap();
-                    dvar::remove_from_enumeration_domain("r_mode", &old_mode).unwrap();
-                    set_wnd_parms(&mut wnd_parms);
-                    store_window_settings(&mut wnd_parms).unwrap();
-                    set_wnd_parms(&mut wnd_parms);
-                    let lock = RENDER_GLOBALS.clone();
-                    let mut render_globals = lock.write().unwrap();
-                    render_globals.window.width = wnd_parms.display_width;
-                    render_globals.window.height = wnd_parms.display_height;
-                    if !wnd_parms.fullscreen {
-                        com::println(&format!("Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
-                    } else {
-                        com::println(&format!("Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
-                    }
-                },
-                _ => {}
+                }
+            },
+            WindowEvent::Resized(size) => {
+                dvar::make_latched_value_current("r_aspectRatio").unwrap();
+                dvar::make_latched_value_current("r_aaSamples").unwrap();
+                dvar::make_latched_value_current("r_vsync").unwrap();
+                dvar::make_latched_value_current("r_fullscreen").unwrap();
+                dvar::make_latched_value_current("r_displayRefresh").unwrap();
+                let mut wnd_parms = gfx::WindowParms::new();
+                let width = size.width;
+                let height = size.height;
+                let old_mode = dvar::get_enumeration("r_mode").unwrap();
+                let new_mode = format!("{}x{}", width, height);
+                dvar::add_to_enumeration_domain("r_mode", &new_mode).unwrap();
+                dvar::set_enumeration_internal("r_mode", &new_mode).unwrap();
+                dvar::remove_from_enumeration_domain("r_mode", &old_mode).unwrap();
+                set_wnd_parms(&mut wnd_parms);
+                store_window_settings(&mut wnd_parms).unwrap();
+                set_wnd_parms(&mut wnd_parms);
+                let lock = RENDER_GLOBALS.clone();
+                let mut render_globals = lock.write().unwrap();
+                render_globals.window.width = wnd_parms.display_width;
+                render_globals.window.height = wnd_parms.display_height;
+                if !wnd_parms.fullscreen {
+                    com::println(&format!("Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
+                } else {
+                    com::println(&format!("Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
+                }
             },
             _ => {}
-        });
+        },
+        _ => {}
+    });
 }
 
 fn init_hardware(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
@@ -922,22 +939,14 @@ fn init_graphics_api() -> Result<(), ()> {
         "{}: render::init_graphics_api()...",
         std::thread::current().name().unwrap_or("main")
     ));
-    if RENDER_GLOBALS
-        .clone()
-        .read()
-        .expect("")
-        .device
-        .is_none()
-    {
+    if RENDER_GLOBALS.clone().read().expect("").device.is_none() {
         if pre_create_window().is_err() {
             return Err(());
         }
 
         loop {
             let mut wnd_parms: gfx::WindowParms = gfx::WindowParms::new();
-            set_wnd_parms(
-                &mut wnd_parms
-            );
+            set_wnd_parms(&mut wnd_parms);
             println!(
                 "{}, {}, {}",
                 wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz

@@ -3,8 +3,8 @@
 use crate::*;
 use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
-use std::sync::Mutex;
 use std::fs::File;
+use std::sync::Mutex;
 use std::sync::{Arc, RwLock};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
@@ -160,7 +160,13 @@ pub fn init() {
 }
 
 fn init_dvars() {
-    dvar::register_bool("wideScreen", true, dvar::DvarFlags::READ_ONLY, Some("True if the game video is running in 16x9 aspect, false if 4x3.")).unwrap();
+    dvar::register_bool(
+        "wideScreen",
+        true,
+        dvar::DvarFlags::READ_ONLY,
+        Some("True if the game video is running in 16x9 aspect, false if 4x3."),
+    )
+    .unwrap();
 }
 
 fn init_try_block_function() {

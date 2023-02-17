@@ -1,15 +1,8 @@
 #![allow(dead_code)]
 
-use cfg_if::cfg_if;
 use std::time::Duration;
 
-cfg_if! {
-    if #[cfg(debug_assertions)] {
-        use no_deadlocks::{Condvar, Mutex};
-    } else {
-        use std::sync::{Condvar, Mutex};
-    }
-}
+use std::sync::{Condvar, Mutex};
 
 pub struct SmpEvent<T: Sized> {
     manual_reset: bool,

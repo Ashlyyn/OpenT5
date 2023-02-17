@@ -6,6 +6,8 @@
 #![feature(io_error_more)]
 #![feature(const_option)]
 #![feature(int_roundings)]
+#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::iter_nth_zero)]
 
 use lazy_static::lazy_static;
 use std::sync::{
@@ -80,7 +82,7 @@ fn main() {
     //
     // winit requires the window to be spawned on the main thread due to
     // restrictions on certain platforms (e.g. macOS). One's first instinct
-    // then might be to simply thread the rest of the program off to a 
+    // then might be to simply thread the rest of the program off to a
     // different thread and let winit consume the main thread. However,
     // the window creation is buried fairly deep in the initialization code,
     // so we can't create the window without the requisite initialization being
@@ -92,8 +94,8 @@ fn main() {
     // already be created.
     //
     // So, we must have the window created before initialization continues.
-    // 
-    // How do we do that then? 
+    //
+    // How do we do that then?
     //
     // The answer: Synchronization.
     //
@@ -104,26 +106,26 @@ fn main() {
     // ready to be initialized. We then call render::create_window_2 from the
     // main thread. render::create_window_2 will initialize the window, and
     // then signal the other thread that the initialization is complete, at
-    // which point the other thread will continue its execution and the main 
+    // which point the other thread will continue its execution and the main
     // thread will be consumed by the window.
     //
-    // The general sequence order goes something like the following, if it's 
+    // The general sequence order goes something like the following, if it's
     // more sensible than my ramblings here:
     //
-    // main thread: ... -> spawn init thread -> wait for signal  -> 
-    // init thread: ........................ -> com::init -> ... -> 
+    // main thread: ... -> spawn init thread -> wait for signal  ->
+    // init thread: ........................ -> com::init -> ... ->
     //
-    // main thread cont 1: ........................................... -> 
-    // init thread cont 1: render::create_window -> signal main thread -> 
+    // main thread cont 1: ........................................... ->
+    // init thread cont 1: render::create_window -> signal main thread ->
     //
-    // main thread cont 2: signaled, render::create_window_2 -> ... -> 
+    // main thread cont 2: signaled, render::create_window_2 -> ... ->
     // init thread cont 2: wait for signal -> ........................
     //
     // main thread cont 3: signal init thread -> window stuff forever
     // init thread cont 3: .................. -> continue init
     //
-    // (just imagine the main thread and init thread lines are all one 
-    // continuous line, I just split them to avoid passing the 
+    // (just imagine the main thread and init thread lines are all one
+    // continuous line, I just split them to avoid passing the
     // 80 character limit)
 
     // Here we spawn com::init
@@ -155,8 +157,8 @@ fn main() {
     // render::create_window_2 needs a gfx::WindowParms to be passed to it.
     // Normally, a gfx::WindowParms is created early in the initialization of
     // the render module and passed through the call chain until it hits
-    // render::create_window_2. However, since we're calling 
-    // render::create_window_2 from main, we need to retrieve that structure 
+    // render::create_window_2. However, since we're calling
+    // render::create_window_2 from main, we need to retrieve that structure
     // manually. render::create_window stores it in render::WND_PARMS right
     // before it signals the main thread to call render::create_window_2.
     // Thus we can just take it from there.

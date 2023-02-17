@@ -5837,7 +5837,10 @@ pub fn set_enumeration_prev(name: &str) -> Result<(), ()> {
     }
 }
 
-pub fn add_to_enumeration_domain(name: &str, domain_str: &str) -> Result<(), ()> {
+pub fn add_to_enumeration_domain(
+    name: &str,
+    domain_str: &str,
+) -> Result<(), ()> {
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
@@ -8283,15 +8286,13 @@ fn register_bool_f() {
         Some(d) => match d.current {
             DvarValue::String(_) => {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
-                    #[allow(unused_must_use)]
-                    {
-                        register_bool(
-                            &name,
-                            value,
-                            DvarFlags::EXTERNAL,
-                            Some("External Dvar"),
-                        );
-                    }
+                    register_bool(
+                        &name,
+                        value,
+                        DvarFlags::EXTERNAL,
+                        Some("External Dvar"),
+                    )
+                    .unwrap();
                 }
             }
             _ => {
@@ -8330,32 +8331,28 @@ fn register_int_f() {
     let dvar = find(&name);
     match dvar {
         None => {
-            #[allow(unused_must_use)]
-            {
-                register_int(
-                    &name,
-                    value.unwrap_or(0),
-                    min,
-                    max,
-                    DvarFlags::EXTERNAL,
-                    Some("External Dvar"),
-                );
-            }
+            register_int(
+                &name,
+                value.unwrap_or(0),
+                min,
+                max,
+                DvarFlags::EXTERNAL,
+                Some("External Dvar"),
+            )
+            .unwrap();
         }
         Some(d) => match d.current {
             DvarValue::String(_) => {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
-                    #[allow(unused_must_use)]
-                    {
-                        register_int(
-                            &name,
-                            value.unwrap_or(0),
-                            min,
-                            max,
-                            DvarFlags::EXTERNAL,
-                            Some("External Dvar"),
-                        );
-                    }
+                    register_int(
+                        &name,
+                        value.unwrap_or(0),
+                        min,
+                        max,
+                        DvarFlags::EXTERNAL,
+                        Some("External Dvar"),
+                    )
+                    .unwrap();
                 }
             }
             DvarValue::Int(_) => {}
@@ -8411,17 +8408,15 @@ fn register_float_f() {
         Some(d) => match d.current {
             DvarValue::String(_) => {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
-                    #[allow(unused_must_use)]
-                    {
-                        register_float(
-                            &name,
-                            value.unwrap_or(0.0),
-                            min,
-                            max,
-                            DvarFlags::EXTERNAL,
-                            Some("External Dvar"),
-                        );
-                    }
+                    register_float(
+                        &name,
+                        value.unwrap_or(0.0),
+                        min,
+                        max,
+                        DvarFlags::EXTERNAL,
+                        Some("External Dvar"),
+                    )
+                    .unwrap();
                 }
             }
             DvarValue::Float(_) => {}
@@ -8461,36 +8456,32 @@ fn register_color_f() {
     match dvar {
         None => {
             // If the Dvar doesn't exist, register it.
-            #[allow(unused_must_use)]
-            {
-                register_color(
-                    &name,
-                    r,
-                    g,
-                    b,
-                    a,
-                    DvarFlags::EXTERNAL,
-                    Some("External Dvar"),
-                );
-            }
+            register_color(
+                &name,
+                r,
+                g,
+                b,
+                a,
+                DvarFlags::EXTERNAL,
+                Some("External Dvar"),
+            )
+            .unwrap();
         }
         Some(d) => {
             // Else if it does exist, the type is String, and the External flag is
             // set, register it
             if let DvarValue::String(_) = d.current {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
-                    #[allow(unused_must_use)]
-                    {
-                        register_color(
-                            &name,
-                            r,
-                            g,
-                            b,
-                            a,
-                            DvarFlags::EXTERNAL,
-                            Some("External Dvar"),
-                        );
-                    }
+                    register_color(
+                        &name,
+                        r,
+                        g,
+                        b,
+                        a,
+                        DvarFlags::EXTERNAL,
+                        Some("External Dvar"),
+                    )
+                    .unwrap();
                 }
             }
         }
@@ -8507,10 +8498,7 @@ fn setu_f() {
 
     set_f();
     let name = cmd::argv(1);
-    #[allow(unused_must_use)]
-    {
-        dvar::add_flags(&name, DvarFlags::USER_INFO);
-    }
+    dvar::add_flags(&name, DvarFlags::USER_INFO).unwrap();
 }
 
 fn restore_dvars() {
@@ -8591,21 +8579,20 @@ lazy_static! {
 pub fn init() {
     if IS_DVAR_SYSTEM_ACTIVE.load(Ordering::SeqCst) == false {
         IS_DVAR_SYSTEM_ACTIVE.store(true, Ordering::SeqCst);
-        #[allow(unused_must_use)]
-        {
-            register_bool(
-                "sv_restoreDvars",
-                true,
-                DvarFlags::empty(),
-                Some("Enable to restore Dvars on entering the Xbox Live menu"),
-            );
-            register_bool(
-                "sv_cheats",
-                false,
-                DvarFlags::empty(),
-                Some("External Dvar"),
-            );
-        }
+        register_bool(
+            "sv_restoreDvars",
+            true,
+            DvarFlags::empty(),
+            Some("Enable to restore Dvars on entering the Xbox Live menu"),
+        )
+        .unwrap();
+        register_bool(
+            "sv_cheats",
+            false,
+            DvarFlags::empty(),
+            Some("External Dvar"),
+        )
+        .unwrap();
         add_commands();
     }
 }
