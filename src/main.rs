@@ -9,6 +9,8 @@
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::iter_nth_zero)]
 
+#![deny(missing_debug_implementations)]
+
 use lazy_static::lazy_static;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -35,6 +37,9 @@ mod seh;
 mod sys;
 mod util;
 mod vid;
+mod pb;
+mod console;
+mod conbuf;
 
 lazy_static! {
     #[allow(dead_code)]
@@ -56,7 +61,7 @@ fn main() {
         }
     }
 
-    //pmem::init();
+    pmem::init();
     locale::init();
 
     #[allow(clippy::collapsible_if)]
@@ -75,7 +80,6 @@ fn main() {
     }
 
     dvar::init();
-
     // ========================================================================
     // This is probably the most opaque part of the program so far, so some
     // explanation is in order
@@ -133,7 +137,7 @@ fn main() {
         com::init();
     });
 
-    com::println(&format!(
+    com::println(0.into(), &format!(
         "{}: com::init spawned, looping until ready for window init...",
         std::thread::current().name().unwrap_or("main")
     ));
@@ -165,15 +169,18 @@ fn main() {
     let lock = render::WND_PARMS.clone();
     let mut wnd_parms = *lock.write().unwrap();
 
-    com::println(&format!(
+    com::println(0.into(), &format!(
         "{}: ready for window init, creating window...",
         std::thread::current().name().unwrap_or("main")
     ));
 
     // Finally, we send the main thread off to die in render::create_window_2.
-    // There's no point in inserting any code after this call, because the
-    // function will never return. winit calls std::process::exit when the
+    // Anything past this point will only execute if window creation fails.
+    // If it succeeds, winit will call std::process::exit when the
     // window is destroyed, due to another set of platform restrictions
-    render::create_window_2(&mut wnd_parms).unwrap();
+    match render::create_window_2(&mut wnd_parms) {
+        Ok(_) => unreachable!(),
+        Err(_) => panic!("failed to create window")
+    }
     // ========================================================================
 }
