@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![deny(missing_docs)]
 
 /// This file contains all of code related to the Dvar subsystem, including
 /// the Dvar itself, functions to get, set, and create Dvars, and CmdFunctions
@@ -417,7 +418,7 @@ impl DvarLimitsInt {
 /// Like with [`bool`], there is no custom definable domain;
 /// the compiler already enforces that domain as "valid UTF-8 strings".
 /// Also like with [`bool`], the struct still needs to
-/// exist to impl Display for the domain.
+/// exist to impl [`Display`] for the domain.
 ///
 /// For a [`String`] "bounded" in the sense of "being able to hold
 /// one of one or more pre-defined values", use [`DvarValue::Enumeration`]
@@ -497,7 +498,7 @@ impl DvarLimitsEnumeration {
 ///
 /// All RGBA values are valid for [`DvarValue::Color`], so no
 /// custom domain is necessary. As with [`bool`] and [`String`],
-/// the struct still needs to exist to impl Display for the domain.
+/// the struct still needs to exist to impl [`Display`] for the domain.
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
 struct DvarLimitsColor {}
 
@@ -1072,32 +1073,32 @@ lazy_static! {
 // Finally, the Dvar itself
 #[derive(Clone)]
 struct Dvar {
-    // Name of Dvar
+    /// Name of Dvar
     pub name: String,
-    // Description of Dvar (optional)
+    /// Description of Dvar (optional)
     pub description: String,
-    // Flags for Dvar (write-protected, cheat-protected, read-only, etc.)
+    /// Flags for Dvar (write-protected, cheat-protected, read-only, etc.)
     pub flags: DvarFlags,
-    // Flag to check if the Dvar has been modified
-    // Not included in the actual flags for some reason
+    /// Flag to check if the Dvar has been modified
+    /// Not included in the actual flags for some reason
     pub modified: bool,
-    // Flag to check if Dvar was loaded from a saved game
-    // Also not in the actual flags for some reason
+    /// Flag to check if Dvar was loaded from a saved game
+    /// Also not in the actual flags for some reason
     pub loaded_from_save_game: bool,
-    // Domain of Dvar
+    /// Domain of Dvar
     pub domain: DvarLimits,
-    // Current value of Dvar
+    /// Current value of Dvar
     pub current: DvarValue,
-    // Latched value of Dvar
-    // (seems to be the value it defaults to on restart)
+    /// Latched value of Dvar
+    /// (seems to be the value it defaults to on restart)
     latched: DvarValue,
-    // Reset value of Dvar
-    // (seems to be used when a Dvar is manually reset,
-    //  or when the current value flags the Dvar as a cheat
-    //  and cheats are subsequently disabled)
+    /// Reset value of Dvar
+    /// (seems to be used when a Dvar is manually reset,
+    ///  or when the current value flags the Dvar as a cheat
+    ///  and cheats are subsequently disabled)
     reset: DvarValue,
-    // Saved value of Dvar
-    // (value used on loading a save game?)
+    /// Saved value of Dvar
+    /// (value used on loading a save game?)
     saved: DvarValue,
 }
 
@@ -1274,12 +1275,12 @@ impl Dvar {
         }
 
         if self.flags.contains(DvarFlags::READ_ONLY) {
-            com::println(&format!("{} is read only.", self.name));
+            com::println(1.into(), &format!("{} is read only.", self.name));
             return false;
         }
 
         if self.flags.contains(DvarFlags::WRITE_PROTECTED) {
-            com::println(&format!(
+            com::println(1.into(), &format!(
                 "{} is write protected protected.",
                 self.name
             ));
@@ -1294,7 +1295,7 @@ impl Dvar {
             if (set_source == SetSource::External)
                 || (set_source == SetSource::Script)
             {
-                com::println(&format!("{} is cheat protected.", self.name));
+                com::println(1.into(), &format!("{} is cheat protected.", self.name));
             }
             false
         }
@@ -1315,7 +1316,7 @@ impl Dvar {
             if self.flags.contains(DvarFlags::LATCHED) {
                 self.latched = value.clone();
                 if self.current != self.latched {
-                    com::println(&format!(
+                    com::println(16.into(), &format!(
                         "{} will be changed upon restarting.",
                         self.name
                     ));
@@ -1418,18 +1419,18 @@ impl Dvar {
         }
 
         if com::log_file_open() && self.current != value {
-            com::println(&format!(
+            com::println(16.into(), &format!(
                 "      dvar set {} {}",
                 self.name, self.current
             ));
         }
 
         if !Self::value_is_in_domain(self.domain.clone(), value.clone()) {
-            com::println(&format!(
+            com::println(1.into(), &format!(
                 "\'{}\' is not a valid value for dvar \'{}\'",
                 value, self.name
             ));
-            com::println(&format!("{}", self.domain));
+            com::println(1.into(), &format!("{}", self.domain));
             if let DvarValue::Enumeration(_) = value {
                 self.set_variant(self.reset.to_owned(), source);
             }
@@ -1442,7 +1443,7 @@ impl Dvar {
             {
                 self.latched = value;
                 if self.latched != self.current {
-                    com::println(&format!(
+                    com::println(16.into(), &format!(
                         "{} will be changed upon restarting.",
                         self.name
                     ))
@@ -5826,7 +5827,7 @@ pub fn set_enumeration_prev(name: &str) -> Result<(), ()> {
                     domain.strings.iter().nth(i - 1).unwrap_or_else(|| {
                         domain.strings.iter().next().unwrap()
                     });
-                if dvar::set_enumeration(name, value).is_err() {
+                if dvar::set_enumeration_internal(name, value).is_err() {
                     return Err(());
                 };
                 Ok(())
@@ -7808,49 +7809,49 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
             }
         }
         DvarValue::Vector2(_) => {
-            com::println(&format!(
+            com::println(0.into(), &format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
             Err(())
         }
         DvarValue::Vector3(_) => {
-            com::println(&format!(
+            com::println(0.into(), &format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
             Err(())
         }
         DvarValue::Vector4(_) => {
-            com::println(&format!(
+            com::println(0.into(), &format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
             Err(())
         }
         DvarValue::String(_) => {
-            com::println(&format!(
+            com::println(0.into(), &format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
             Err(())
         }
         DvarValue::Color(_) => {
-            com::println(&format!(
+            com::println(0.into(), &format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
             Err(())
         }
         DvarValue::LinearColorRGB(_) => {
-            com::println(&format!(
+            com::println(0.into(), &format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
             Err(())
         }
         DvarValue::ColorXYZ(_) => {
-            com::println(&format!(
+            com::println(0.into(), &format!(
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name
             ));
@@ -8030,14 +8031,14 @@ fn list_single(dvar: &Dvar, name: &str) {
         ' '
     };
 
-    com::println(&format!(
+    com::println(0.into(), &format!(
         "{}{}{}{}{}{}{}{}{}{}{}{} {} \"{}\"",
         s, u, r, i, a, l, c, y, d, x, e, v, dvar.name, dvar.current
     ));
     DVAR_COUNT_LOCAL.fetch_add(1, Ordering::SeqCst);
 }
 
-fn toggle_internal_f() -> Result<(), ()> {
+fn toggle_internal() -> Result<(), ()> {
     let argc = cmd::argc();
 
     let name = if argc < 1 {
@@ -8047,7 +8048,7 @@ fn toggle_internal_f() -> Result<(), ()> {
     };
 
     if cmd::argc() < 2 {
-        com::println(&format!(
+        com::println(0.into(), &format!(
             "USAGE: {} <variable> <optional value sequence>",
             name
         ));
@@ -8057,7 +8058,7 @@ fn toggle_internal_f() -> Result<(), ()> {
     let argv_1 = cmd::argv(1);
 
     if !exists(&name) {
-        com::println(&format!("toggle failed: dvar \'{}\' not found.", name));
+        com::println(0.into(), &format!("toggle failed: dvar \'{}\' not found.", name));
         return Err(());
     }
 
@@ -8098,17 +8099,17 @@ fn toggle_internal_f() -> Result<(), ()> {
 fn toggle_f() {
     #[allow(unused_must_use)]
     {
-        toggle_internal_f();
+        toggle_internal();
     }
 }
 
-fn toggle_print() {
-    if toggle_internal_f().is_err() {
+fn toggle_print_f() {
+    if toggle_internal().is_err() {
         return;
     }
 
     let name = cmd::argv(1);
-    com::println(&format!(
+    com::println(0.into(), &format!(
         "{} toggled to {}",
         name,
         find(&name).unwrap().current
@@ -8118,13 +8119,13 @@ fn toggle_print() {
 fn set_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println("USAGE: set <variable> <value>");
+        com::println(0.into(), "USAGE: set <variable> <value>");
         return;
     }
 
     let name = cmd::argv(1);
     if !name_is_valid(&name) {
-        com::println(&format!("invalid variable name: {}", name));
+        com::println(0.into(), &format!("invalid variable name: {}", name));
         return;
     }
 
@@ -8135,7 +8136,7 @@ fn set_f() {
 fn sets_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println("USAGE: sets <variable> <value>\n");
+        com::println(0.into(), "USAGE: sets <variable> <value>\n");
     }
 
     set_f();
@@ -8152,7 +8153,7 @@ fn sets_f() {
 fn seta_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println("USAGE: seta <variable> <value>\n");
+        com::println(0.into(), "USAGE: seta <variable> <value>\n");
     }
 
     set_f();
@@ -8169,7 +8170,7 @@ fn seta_f() {
 fn set_admin_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println("USAGE: setadminvar <variable> <value>\n");
+        com::println(0.into(), "USAGE: setadminvar <variable> <value>\n");
     }
 
     let name = cmd::argv(1);
@@ -8185,7 +8186,7 @@ fn set_admin_f() {
         }
         None => {
             let name = cmd::argv(1);
-            com::println(&format!(
+            com::println(0.into(), &format!(
                 "setadmindvar failed: dvar \'{}\' not found.",
                 name
             ));
@@ -8196,7 +8197,7 @@ fn set_admin_f() {
 fn set_from_dvar_f() {
     let argc = cmd::argc();
     if argc != 3 {
-        com::println("USAGE: setfromdvar <dest_dvar> <source_dvar>");
+        com::println(0.into(), "USAGE: setfromdvar <dest_dvar> <source_dvar>");
         return;
     }
 
@@ -8208,7 +8209,7 @@ fn set_from_dvar_f() {
     if let Some(d) = writer.get_mut(&source_dvar_name) {
         set_command(&dest_dvar_name, &d.current.to_string());
     } else {
-        com::println(&format!(
+        com::println(0.into(), &format!(
             "dvar \'{}\' doesn\'t exist\n",
             source_dvar_name
         ));
@@ -8219,14 +8220,14 @@ fn set_to_time_f() {
     let argc = cmd::argc();
 
     if argc < 2 {
-        com::println("USAGE: set <variable>");
+        com::println(0.into(), "USAGE: set <variable>");
         return;
     }
 
     let name = cmd::argv(1);
     if !name_is_valid(&name) {
         let name = cmd::argv(1);
-        com::println(&format!("invalid variable name: {}\n", name));
+        com::println(0.into(), &format!("invalid variable name: {}\n", name));
         return;
     }
 
@@ -8238,7 +8239,7 @@ fn set_to_time_f() {
 fn reset_f() {
     let argc = cmd::argc();
     if argc != 2 {
-        com::println("USAGE: reset <variable>");
+        com::println(0.into(), "USAGE: reset <variable>");
         return;
     }
 
@@ -8260,7 +8261,7 @@ fn list_f() {
         let iter = reader.values();
         iter.for_each(|d| list_single(d, &argv_1));
     }
-    com::println(&format!(
+    com::println(0.into(), &format!(
         "\n{} total dvars",
         DVAR_COUNT_LOCAL.load(Ordering::SeqCst)
     ));
@@ -8274,7 +8275,7 @@ fn register_bool_f() {
     let argc = cmd::argc();
     if argc != 3 {
         let cmd = cmd::argv(0);
-        com::println(&format!("USAGE: {} <name> <default>", cmd));
+        com::println(0.into(), &format!("USAGE: {} <name> <default>", cmd));
     }
 
     let name = cmd::argv(1);
@@ -8296,7 +8297,7 @@ fn register_bool_f() {
                 }
             }
             _ => {
-                com::println(&format!(
+                com::println(0.into(), &format!(
                     "dvar \'{}\' is not a boolean dvar",
                     name
                 ));
@@ -8309,7 +8310,7 @@ fn register_int_f() {
     let argc = cmd::argc();
     if argc != 5 {
         let cmd = cmd::argv(0);
-        com::println(&format!("USAGE: {} <name> <default> <min> <max>", cmd));
+        com::println(0.into(), &format!("USAGE: {} <name> <default> <min> <max>", cmd));
         return;
     }
 
@@ -8319,7 +8320,7 @@ fn register_int_f() {
     let max = cmd::argv(4).parse::<i32>().ok();
 
     if min > max {
-        com::println(&format!(
+        com::println(0.into(), &format!(
             "dvar {}: min {} should not be greater than max {}i\n",
             name,
             min.unwrap_or(0),
@@ -8358,7 +8359,7 @@ fn register_int_f() {
             DvarValue::Int(_) => {}
             DvarValue::Enumeration(_) => {}
             _ => {
-                com::println(&format!(
+                com::println(0.into(), &format!(
                     "dvar \'{}\' is not an integer dvar",
                     d.name
                 ));
@@ -8371,7 +8372,7 @@ fn register_float_f() {
     let argc = cmd::argc();
     if argc != 5 {
         let cmd = cmd::argv(0);
-        com::println(&format!("USAGE: {} <name> <default> <min> <max>", cmd));
+        com::println(0.into(), &format!("USAGE: {} <name> <default> <min> <max>", cmd));
         return;
     }
 
@@ -8381,7 +8382,7 @@ fn register_float_f() {
     let max = cmd::argv(4).parse::<f32>().ok();
 
     if min > max {
-        com::println(&format!(
+        com::println(0.into(), &format!(
             "dvar {}: min {} should not be greater than max {}i\n",
             name,
             min.unwrap_or(0.0),
@@ -8421,7 +8422,7 @@ fn register_float_f() {
             }
             DvarValue::Float(_) => {}
             _ => {
-                com::println(&format!(
+                com::println(0.into(), &format!(
                     "dvar {} is not an integer dvar",
                     d.name
                 ));
@@ -8441,7 +8442,7 @@ fn register_color_f() {
     // and return
     if argc != 5 && argc != 6 {
         let cmd = cmd::argv(0);
-        com::println(&format!("USAGE: {} <name> <r> <g> <b> [a]", cmd));
+        com::println(0.into(), &format!("USAGE: {} <name> <r> <g> <b> [a]", cmd));
         return;
     }
 
@@ -8492,7 +8493,7 @@ fn register_color_f() {
 fn setu_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println("USAGE: setu <variable> <value>");
+        com::println(0.into(), "USAGE: setu <variable> <value>");
         return;
     }
 
@@ -8520,7 +8521,7 @@ fn restore_dvars() {
 fn display_dvar(dvar: &Dvar, i: &mut i32) {
     if dvar.flags.contains(DvarFlags::SAVED) {
         *i += 1;
-        com::println(&format!(" {} \"{}\"", dvar.name, dvar));
+        com::println(0.into(), &format!(" {} \"{}\"", dvar.name, dvar));
     }
 }
 
@@ -8535,7 +8536,7 @@ fn list_saved_dvars() {
         i = j;
     });
 
-    com::println(&format!("\n{} total SAVED dvars", i));
+    com::println(0.into(), &format!("\n{} total SAVED dvars", i));
 }
 
 macro_rules! todo_nopanic {
@@ -8547,7 +8548,7 @@ macro_rules! todo_nopanic {
 /// Adds commands for Dvar module
 pub fn add_commands() {
     cmd::add_internal("toggle", toggle_f);
-    cmd::add_internal("togglep", toggle_print);
+    cmd::add_internal("togglep", toggle_print_f);
     cmd::add_internal("set", set_f);
     cmd::add_internal("sets", sets_f);
     cmd::add_internal("seta", seta_f);
