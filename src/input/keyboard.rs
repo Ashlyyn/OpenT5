@@ -138,7 +138,7 @@ fn key_down(code: KeybindCode) {
         bind.down[0] = i;
     } else {
         if bind.down[1] != 0 {
-            com::print("Three keys down for a button!".to_string());
+            com::print(14.into(), "Three keys down for a button!".to_string());
             return;
         }
         bind.down[1] = i;

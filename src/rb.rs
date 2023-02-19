@@ -1,7 +1,7 @@
 use crate::*;
 
 pub fn render_thread() -> ! {
-    com::println(&format!(
+    com::println(0.into(), &format!(
         "{}: rb::render_thread()...",
         std::thread::current().name().unwrap_or("main")
     ));

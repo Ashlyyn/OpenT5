@@ -105,7 +105,7 @@ pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
     let path = path.as_ref();
 
     if path.is_relative() {
-        com::warnln(&format!(
+        com::warnln(10.into(), &format!(
             "WARNING: refusing to create relative path \"{}\"",
             path.display()
         ));

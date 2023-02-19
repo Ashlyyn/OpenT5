@@ -41,7 +41,7 @@ lazy_static! {
 pub fn startup() {
     S_MV.clone().write().unwrap().mouse_initialized = false;
     if dvar::get_bool("in_mouse").unwrap_or(false) == false {
-        com::println("Mouse control not active.");
+        com::println(16.into(), "Mouse control not active.");
     } else {
         S_MV.clone().write().unwrap().mouse_initialized = true;
         // FUN_004682b0();

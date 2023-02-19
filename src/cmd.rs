@@ -102,7 +102,7 @@ pub fn find(name: &str) -> Option<CmdFunction> {
 
 pub fn add_internal(name: &str, function: fn()) {
     match find(name) {
-        Some(_) => com::println(&format!(
+        Some(_) => com::println(16.into(), &format!(
             "cmd::add_internal: {} is already defined",
             name
         )),
