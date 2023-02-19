@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
+use crate::platform::WindowHandle;
 use crate::util::SmpEvent;
 use crate::*;
+use arrayvec::ArrayVec;
 use num_derive::FromPrimitive;
 use sysinfo::{CpuExt, SystemExt};
 
@@ -31,12 +33,12 @@ cfg_if! {
         use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_HIDDEN;
         use windows::core::PCSTR;
         use windows::Win32::Foundation::HWND;
-        use windows::Win32::UI::Input::KeyboardAndMouse::GetActiveWindow;
         use windows::Win32::UI::WindowsAndMessaging::{
             MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
             MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
             MESSAGEBOX_STYLE,
         };
+        use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
     } else {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
@@ -234,26 +236,14 @@ cfg_if! {
     }
 }
 
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        fn get_active_window() -> WindowHandle {
-            WindowHandle(unsafe { GetActiveWindow() }.0 as _)
-        }
-    } else {
-        fn get_active_window() -> WindowHandle {
-            WindowHandle(0)
-        }
-    }
-}
-
 pub fn no_free_files_error() -> ! {
     let msg_box_type = MessageBoxType::Ok;
     let msg_box_icon = MessageBoxIcon::Stop;
     let title = locale::localize_ref("WIN_DISK_FULL_TITLE");
     let text = locale::localize_ref("WIN_DISK_FULL_BODY");
-    let handle = get_active_window();
+    let handle = render::main_window_handle();
     message_box(
-        Some(handle),
+        handle,
         &title,
         &text,
         msg_box_type,
@@ -297,9 +287,9 @@ pub fn check_crash_or_rerun() -> bool {
                 let msg_box_icon = MessageBoxIcon::Stop;
                 let title = locale::localize_ref("WIN_IMPROPER_QUIT_TITLE");
                 let text = locale::localize_ref("WIN_IMPROPER_QUIT_BODY");
-                let handle = get_active_window();
+                let handle = render::main_window_handle();
                 match message_box(
-                    Some(handle),
+                    handle,
                     &title,
                     &text,
                     msg_box_type,
@@ -353,8 +343,8 @@ pub fn get_cmdline() -> String {
 }
 
 pub fn start_minidump(b: bool) {
-    com::println(&format!("Starting minidump with b = {}...", b));
-    com::println("TODO: implement.");
+    com::println(0.into(), &format!("Starting minidump with b = {}...", b));
+    com::println(0.into(), "TODO: implement.");
 }
 
 // Abstracted out in case a certain platform needs an implementation using
@@ -504,9 +494,9 @@ pub fn render_fatal_error() -> ! {
     let msg_box_icon = MessageBoxIcon::Stop;
     let title = locale::localize_ref("WIN_RENDER_INIT_TITLE");
     let text = locale::localize_ref("WIN_RENDER_INIT_BODY");
-    let handle = get_active_window();
+    let handle = render::main_window_handle();
     message_box(
-        Some(handle),
+        handle,
         &title,
         &text,
         msg_box_type,
@@ -571,7 +561,7 @@ pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
         }) {
         Ok(h) => Some(h),
         Err(e) => {
-            com::println(&format!(
+            com::println(1.into(), &format!(
                 "error {} while creating thread {}",
                 e, name
             ));
@@ -822,20 +812,18 @@ fn should_update_for_info_change() -> bool {
     let msg_box_icon = MessageBoxIcon::Information;
     let title = locale::localize_ref("WIN_CONFIGURE_UPDATED_TITLE");
     let text = locale::localize_ref("WIN_CONFIGURE_UPDATED_BODY");
-    let handle = get_active_window();
+    let handle = render::main_window_handle();
     matches!(
         message_box(
-            Some(handle),
+            handle,
             &title,
             &text,
             msg_box_type,
-            Some(msg_box_icon)
+            Some(msg_box_icon),
         ),
         Some(MessageBoxResult::Yes)
     )
 }
-
-pub struct WindowHandle(isize);
 
 cfg_if! {
     if #[cfg(windows)] {
@@ -950,6 +938,11 @@ cfg_if! {
             msg_box_type: MessageBoxType,
             msg_box_icon: Option<MessageBoxIcon>
         ) -> Option<MessageBoxResult> {
+            let hwnd = match handle {
+                Some(h) => h.get_win32().unwrap().hwnd,
+                None => 0 as _,
+            };
+        
             let ctext = match CString::new(text) {
                 Ok(s) => s,
                 Err(_) => return None,
@@ -967,7 +960,7 @@ cfg_if! {
 
             let res: MessageBoxResult = num::FromPrimitive::from_i32(unsafe {
                 MessageBoxA(
-                    HWND(handle.unwrap_or(WindowHandle(0)).0),
+                    HWND(hwnd as _),
                     PCSTR(ctext.as_ptr() as *const _),
                     PCSTR(ctitle.as_ptr() as *const _),
                     ctype
@@ -1047,5 +1040,96 @@ cfg_if! {
 
             Some(response.into())
         }
+    }
+}
+
+cfg_if! {
+    if #[cfg(debug_assertions)] {
+        static DEBUG_OUTPUT: AtomicBool = AtomicBool::new(true);
+    } else {
+        static DEBUG_OUTPUT: AtomicBool = AtomicBool::new(false);
+    }
+}
+
+cfg_if! {
+    if #[cfg(target_os = "windows")] {
+        fn output_debug_string(string: &str) {
+            unsafe { OutputDebugStringA(PCSTR(string.as_ptr())) };
+        }
+    } else {
+        fn output_debug_string(_string: &str) {
+
+        }
+    }
+}
+
+pub fn print(text: &str) {
+    if DEBUG_OUTPUT.load(Ordering::Relaxed) {
+        output_debug_string(&text);
+    }
+
+    conbuf::append_text_in_main_thread(text);
+}
+
+fn create_console() {
+
+}
+
+pub fn show_console() {
+    let lock = conbuf::S_WCD.clone();
+    let mut s_wcd = lock.write().unwrap();
+    if s_wcd.window.is_none() {
+        create_console();
+    }
+    s_wcd.window.as_mut().unwrap().set_visible(true);   
+}
+
+fn post_error(error: &str) {
+    {
+        let lock = conbuf::S_WCD.clone();
+        let mut s_wcd = lock.write().unwrap();
+        s_wcd.error_string = error.into();
+        s_wcd.input_line_window = None;
+    }
+    
+    // DestroyWindow(s_wcd.hwndInputLine);
+
+    let handle = render::main_window_handle();
+    message_box(handle, "Error", error, MessageBoxType::Ok, MessageBoxIcon::Stop.into()).unwrap();
+}
+
+pub fn error(error: &str) -> ! {
+    com::ERROR_ENTERED.store(true, Ordering::Relaxed);
+    // Sys_SuspendOtherThreads()
+
+    // FixWindowsDesktop() (probably shouldn't be necessary)
+
+    // if Sys_IsMainThread() (no clue how necessary this check is, 
+    // probably have to do some restructuring)
+    show_console();
+    conbuf::append_text(&format!("\n\n{}\n", error));
+    post_error(error);
+    // Finish processing events
+    // DoSetEvent_UNK();
+    std::process::exit(0);
+}
+
+thread_local! {
+    static VALUES: Arc<RwLock<ArrayVec<i32, 15>>> = Arc::new(RwLock::new(ArrayVec::new()));
+}
+
+pub fn get_value(index: usize) -> Option<i32> {
+    if index > 15 {
+        None
+    } else {
+        Some(VALUES.try_with(|a| a.clone().read().unwrap()[index]).unwrap())
+    }
+}
+
+pub fn set_value(index: usize, value: i32) {
+    if index > 15 {
+        return;
+    } else {
+        VALUES.try_with(|a| a.clone().write().unwrap()[index] = value).unwrap();
     }
 }
