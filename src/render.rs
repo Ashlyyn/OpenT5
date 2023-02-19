@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 
-use crate::{util::*, *};
+use crate::{util::*, *, platform::WindowHandle};
 use pollster::block_on;
+use raw_window_handle::HasRawWindowHandle;
 use sscanf::scanf;
-use std::collections::HashSet;
+use winit::dpi::Position;
+use std::collections::{HashSet, VecDeque};
 use std::sync::RwLock;
 
 use winit::{
@@ -16,10 +18,6 @@ use winit::{
 pub const MIN_HORIZONTAL_RESOLUTION: u16 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u16 = 480;
 
-lazy_static! {
-    pub static ref ALIVE: AtomicBool = AtomicBool::new(false);
-}
-
 fn init_render_thread() {
     if !sys::spawn_render_thread(rb::render_thread) {
         com::errorln(com::ErrorParm::FATAL, "Failed to create render thread");
@@ -27,21 +25,20 @@ fn init_render_thread() {
 }
 
 pub fn init_threads() {
-    ALIVE.store(true, Ordering::SeqCst);
-    com::println(&format!(
+    com::println(8.into(), &format!(
         "{}: Trying SMP acceleration...",
         std::thread::current().name().unwrap_or("main")
     ));
     init_render_thread();
     //init_worker_threads();
-    com::println(&format!(
+    com::println(8.into(), &format!(
         "{}: ...succeeded",
         std::thread::current().name().unwrap_or("main")
     ));
 }
 
 pub fn begin_registration_internal() -> Result<(), ()> {
-    com::println(&format!(
+    com::println(8.into(), &format!(
         "{}: render::begin_registration_internal()...",
         std::thread::current().name().unwrap_or("main")
     ));
@@ -57,6 +54,10 @@ fn register() {
     register_dvars();
 }
 
+fn reflection_probe_register_dvars() {
+    dvar::register_bool("r_reflectionProbeGenerate", false, dvar::DvarFlags::empty(), "Generate cube maps for reflection probes.".into()).unwrap();
+}
+
 const ASPECT_RATIO_AUTO: &str = "auto";
 const ASPECT_RATIO_STANDARD: &str = "standard";
 const ASPECT_RATIO_16_10: &str = "wide 16:10";
@@ -65,12 +66,23 @@ const ASPECT_RATIO_16_9: &str = "wide 16:9";
 fn register_dvars() {
     dvar::register_bool(
         "r_fullscreen",
-        false,
+        true,
         dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
         Some("Display game full screen"),
     )
     .unwrap();
-    dvar::register_enumeration("r_aspectRatio", "auto".into(), Some(vec![ASPECT_RATIO_AUTO.into(), ASPECT_RATIO_STANDARD.into(), ASPECT_RATIO_16_10.into(), ASPECT_RATIO_16_9.into()]), dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, Some("Screen aspect ratio.  Most widescreen monitors are 16:10 instead of 16:9.")).unwrap();
+    dvar::register_enumeration(
+        "r_aspectRatio", 
+        "auto".into(), 
+        Some(vec![
+            ASPECT_RATIO_AUTO.into(), 
+            ASPECT_RATIO_STANDARD.into(), 
+            ASPECT_RATIO_16_10.into(), 
+            ASPECT_RATIO_16_9.into()
+            ]), 
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, 
+        Some("Screen aspect ratio.  Most widescreen monitors are 16:10 instead of 16:9.")
+    ).unwrap();
     dvar::register_int(
         "r_aaSamples",
         1,
@@ -80,7 +92,12 @@ fn register_dvars() {
         Some("Anti-aliasing sample count; 1 disables anti-aliasing"),
     )
     .unwrap();
-    dvar::register_bool("r_vsync", true, dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, Some("Enable v-sync before drawing the next frame to avoid \'tearing\' artifacts.")).unwrap();
+    dvar::register_bool(
+        "r_vsync", 
+        true, 
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, 
+        Some("Enable v-sync before drawing the next frame to avoid \'tearing\' artifacts.")
+    ).unwrap();
     dvar::register_string(
         "r_customMode",
         "",
@@ -106,10 +123,12 @@ fn register_dvars() {
         "game window vertical position".into(),
     )
     .unwrap();
+
+    reflection_probe_register_dvars();
 }
 
 fn init() -> Result<(), ()> {
-    com::println(&format!(
+    com::println(8.into(), &format!(
         "{}: render::init()...",
         std::thread::current().name().unwrap_or("main")
     ));
@@ -122,12 +141,19 @@ fn init() -> Result<(), ()> {
     Ok(())
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum WinitCustomEvent {
+    CreateConsole,
+    DestroyConsole,
+}
+
 #[derive(Default)]
 struct WinitGlobals {
     current_monitor_handle: Option<winit::monitor::MonitorHandle>,
     best_monitor_handle: Option<winit::monitor::MonitorHandle>,
     video_modes: Vec<winit::monitor::VideoMode>,
-    window: Option<winit::window::Window>,
+    window_handle: Option<WindowHandle>,
+    proxy_events: VecDeque<WinitCustomEvent>
 }
 
 lazy_static! {
@@ -135,9 +161,16 @@ lazy_static! {
         Arc::new(RwLock::new(WinitGlobals {
             current_monitor_handle: None,
             best_monitor_handle: None,
-            window: None,
+            window_handle: None,
             video_modes: Vec::new(),
+            proxy_events: VecDeque::new(),
         }));
+}
+
+pub fn main_window_handle() -> Option<WindowHandle> {
+    let lock = WINIT_GLOBALS.clone();
+    let wg = lock.read().unwrap();
+    wg.window_handle
 }
 
 pub struct RenderGlobals {
@@ -184,9 +217,9 @@ lazy_static! {
 }
 
 fn fatal_init_error(error: &str) -> ! {
-    com::println("********** Device returned an unrecoverable error code during initialization  **********");
-    com::println("********** Initialization also happens while playing if Renderer loses a device **********");
-    com::println(error);
+    com::println(8.into(), "********** Device returned an unrecoverable error code during initialization  **********");
+    com::println(8.into(), "********** Initialization also happens while playing if Renderer loses a device **********");
+    com::println(8.into(), error);
     sys::render_fatal_error();
 }
 
@@ -436,14 +469,14 @@ fn choose_adapter() -> Option<sys::gpu::Adapter> {
 }
 
 fn pre_create_window() -> Result<(), ()> {
-    com::println("Getting Device interface...");
+    com::println(8.into(), "Getting Device interface...");
     let instance = sys::gpu::Instance::new();
     let adapter = block_on(sys::gpu::Adapter::new(&instance, None));
     RENDER_GLOBALS.clone().write().expect("").device =
         match block_on(sys::gpu::Device::new(&adapter)) {
             Some(d) => Some(d),
             None => {
-                com::println("Device failed to initialize.");
+                com::println(8.into(), "Device failed to initialize.");
                 return Err(());
             }
         };
@@ -494,12 +527,12 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     }
 
     if wnd_parms.fullscreen {
-        com::println(&format!(
+        com::println(8.into(), &format!(
             "Attempting {} x {} fullscreen with 32 bpp at {} hz",
             wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz
         ));
     } else {
-        com::println(&format!(
+        com::println(8.into(), &format!(
             "Attempting {} x {} window at ({}, {})",
             wnd_parms.display_width,
             wnd_parms.display_height,
@@ -528,7 +561,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     let y = wnd_parms.y;
 
     let event_loop = EventLoop::new();
-    let window = match WindowBuilder::new()
+    let main_window = match WindowBuilder::new()
         .with_title(window_name)
         .with_position(PhysicalPosition::<i32>::new(x as _, y as _))
         .with_inner_size(PhysicalSize::new(width, height))
@@ -540,7 +573,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     {
         Ok(w) => w,
         Err(e) => {
-            com::println("couldn't create a window.");
+            com::println(8.into(), "couldn't create a window.");
             println!("{}", e);
             {
                 let lock = WINDOW_INITIALIZING.clone();
@@ -556,17 +589,96 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         }
     };
 
-    window.set_visible(true);
+    main_window.set_visible(true);
 
     if fullscreen == false {
-        window.focus_window();
+        main_window.focus_window();
     }
 
-    com::println("Game window successfully created.");
+    {
+        let lock = WINIT_GLOBALS.clone();
+        let mut wg = lock.write().unwrap();
+        wg.window_handle = Some(main_window.window_handle());
+    }
+
+    com::println(8.into(), "Game window successfully created.");
+
+    // ========================================================================
+    // This part is supposed to be done in sys::create_console, but you can't
+    // bind windows to an event loop after calling event_loop::run, so instead
+    // we create them here, set them to invisible, and then set them to visible
+    // in sys::create_console instead of creating them there.
+    //
+    // I'm not entirely sure how we're going to implement the console for
+    // other platforms, so this logic might end up being handled with, e.g.,
+    // GTK, instead, but for now we're just going to keep things simple. If
+    // we have to move things around later, we can.
+
+    let console_title = com::get_build_display_name();
+    let monitor = main_window.current_monitor().or(main_window.available_monitors().nth(0)).unwrap();
+    let horzres = (monitor.size().width - 450) / 2;
+    let vertres = (monitor.size().height - 600) / 2;
+    let s_wcd_lock = conbuf::S_WCD.clone();
+    let mut s_wcd = s_wcd_lock.write().unwrap();
+    let console_width = s_wcd.window_width;
+    let console_height = s_wcd.window_height;
+    let console_window = winit::window::WindowBuilder::new()
+        .with_title(console_title)
+        .with_position(Position::Physical(PhysicalPosition::new(horzres as _, vertres as _)))
+        .with_inner_size(PhysicalSize::new(console_width, console_height))
+        .build(&event_loop)
+        .unwrap();
+
+    s_wcd.window = Some(console_window);
+    
+    const CODLOGO_POS_X: i32 = 5;
+    const CODLOGO_POS_Y: i32 = 5;
+    const INPUT_LINE_POS_X: i32 = 6;
+    const INPUT_LINE_POS_Y: i32 = 400;
+    const INPUT_LINE_SIZE_W: i32 = 608;
+    const INPUT_LINE_SIZE_H: i32 = 20;
+    const BUFFER_POS_X: i32 = 6;
+    const BUFFER_POS_Y: i32 = 70;
+    const BUFFER_SIZE_W: i32 = 606;
+    const BUFFER_SIZE_H: i32 = 324;
+
+    let parent = Some(s_wcd.window.as_mut().unwrap().raw_window_handle());
+    let (cod_logo_window, input_line_window, buffer_window) = unsafe {
+        let cod_logo_window = winit::window::WindowBuilder::new()
+            .with_parent_window(parent)
+            .with_position(PhysicalPosition::new(CODLOGO_POS_X, CODLOGO_POS_Y))
+            .with_decorations(false)
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+
+        let input_line_window = winit::window::WindowBuilder::new()
+            .with_parent_window(parent)
+            .with_position(PhysicalPosition::new(INPUT_LINE_POS_X, INPUT_LINE_POS_Y))
+            .with_inner_size(PhysicalSize::new(INPUT_LINE_SIZE_H, INPUT_LINE_SIZE_W))
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+
+        let buffer_window = winit::window::WindowBuilder::new()
+            .with_parent_window(parent)
+            .with_position(PhysicalPosition::new(BUFFER_POS_X, BUFFER_POS_Y))
+            .with_inner_size(PhysicalSize::new(BUFFER_SIZE_H, BUFFER_SIZE_W))
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+
+        (cod_logo_window, input_line_window, buffer_window)
+    };
+
+    conbuf::s_wcd_set_cod_logo_window(cod_logo_window);
+    conbuf::s_wcd_set_input_line_window(input_line_window);
+    conbuf::s_wcd_set_buffer_window(buffer_window);
+    // ========================================================================
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(StartCause::Init) => {
-            let monitor = window.current_monitor().or(window.available_monitors().nth(0)).unwrap();
+            let monitor = main_window.current_monitor().or(main_window.available_monitors().nth(0)).unwrap();
             let mut modes: Vec<winit::monitor::VideoMode> = monitor.video_modes().collect();
             modes.sort_by(|a, b| a.size().width.cmp(&b.size().width));
             let mut valid_modes: Vec<&winit::monitor::VideoMode> = modes
@@ -630,12 +742,12 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         Some("Renderer resolution mode"),
             ).unwrap();
 
-    /*
-    modes.sort_by(|a, b| {
-        a.refresh_rate_millihertz()
-            .cmp(&b.refresh_rate_millihertz())
-    });
-    */
+            /*
+            modes.sort_by(|a, b| {
+                a.refresh_rate_millihertz()
+                    .cmp(&b.refresh_rate_millihertz())
+            });
+            */
 
             modes.iter().for_each(|m| {
                 RENDER_GLOBALS
@@ -690,15 +802,15 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             let hz = wnd_parms.hz;
 
             let window_fullscreen = if fullscreen {
-                let modes = window.current_monitor().unwrap().video_modes();
+                let modes = main_window.current_monitor().unwrap().video_modes();
                 {
                     let lock = WINIT_GLOBALS.clone();
                     let mut winit_globals = lock.write().unwrap();
                     winit_globals.video_modes = modes.collect();
                 }
-                let modes = window.current_monitor().unwrap().video_modes();
+                let modes = main_window.current_monitor().unwrap().video_modes();
                 modes.for_each(|v| println!("{}", v));
-                let mut modes = window.current_monitor().unwrap().video_modes();
+                let mut modes = main_window.current_monitor().unwrap().video_modes();
                 let mode = modes
                     .find(|m| {
                         m.size().width == width as _
@@ -712,14 +824,13 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 None
             };
 
-            window.set_fullscreen(window_fullscreen);
+            main_window.set_fullscreen(window_fullscreen);
             if dvar::get_bool("r_reflectionProbeGenerate").unwrap()
                 && dvar::get_bool("r_fullscreen").unwrap() 
             {
                 dvar::set_bool_internal("r_fullscreen", false).unwrap();
                 cbuf::add_textln(0, "vid_restart");
             }
-            
             dvar::register_bool("r_autopriority",
                 false,
                 dvar::DvarFlags::ARCHIVE,
@@ -740,7 +851,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         Event::WindowEvent {
             ref event,
             window_id,
-        } if window_id == window.id() => match event {
+        } if window_id == main_window.id() => match event {
             WindowEvent::Destroyed => {
                 //FUN_004dfd60()
                 platform::clear_window_handle();
@@ -858,9 +969,9 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 render_globals.window.width = wnd_parms.display_width;
                 render_globals.window.height = wnd_parms.display_height;
                 if !wnd_parms.fullscreen {
-                    com::println(&format!("Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
+                    com::println(8.into(), &format!("Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
                 } else {
-                    com::println(&format!("Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
+                    com::println(8.into(), &format!("Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
                 }
             },
             _ => {}
@@ -871,12 +982,12 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
 fn init_hardware(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     store_window_settings(wnd_parms).unwrap();
-    com::println("TODO: render::init_hardware");
+    com::println(8.into(), "TODO: render::init_hardware");
     Ok(())
 }
 
 pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
-    com::println(&format!(
+    com::println(8.into(), &format!(
         "{}: render::create_window()...",
         std::thread::current().name().unwrap_or("main")
     ));
@@ -888,12 +999,12 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         let mut writer = lock.write().expect("");
         *writer = *wnd_parms;
     }
-    com::println(&format!(
+    com::println(8.into(), &format!(
         "{}: written WND_PARMS.",
         std::thread::current().name().unwrap_or("main")
     ));
 
-    com::println(&format!(
+    com::println(8.into(), &format!(
         "{}: waiting for init...",
         std::thread::current().name().unwrap_or("main")
     ));
@@ -913,7 +1024,7 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             }
         }
     };
-    com::println(&format!(
+    com::println(8.into(), &format!(
         "{}: init complete, res={:?}...",
         std::thread::current().name().unwrap_or("main"),
         res
@@ -935,7 +1046,7 @@ lazy_static! {
 }
 
 fn init_graphics_api() -> Result<(), ()> {
-    com::println(&format!(
+    com::println(8.into(), &format!(
         "{}: render::init_graphics_api()...",
         std::thread::current().name().unwrap_or("main")
     ));
@@ -947,10 +1058,6 @@ fn init_graphics_api() -> Result<(), ()> {
         loop {
             let mut wnd_parms: gfx::WindowParms = gfx::WindowParms::new();
             set_wnd_parms(&mut wnd_parms);
-            println!(
-                "{}, {}, {}",
-                wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz
-            );
             if create_window(&mut wnd_parms).is_err() {
                 break;
             }
