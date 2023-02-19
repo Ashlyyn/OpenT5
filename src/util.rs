@@ -4,6 +4,10 @@ use std::time::Duration;
 
 use std::sync::{Condvar, Mutex};
 
+use raw_window_handle::HasRawWindowHandle;
+
+use crate::platform::WindowHandle;
+
 pub struct SmpEvent<T: Sized> {
     manual_reset: bool,
     condvar: Condvar,
@@ -336,5 +340,17 @@ impl<T: Sized + Clone> SmpEvent<T> {
         self.clear_signaled()?;
         self.notify_one();
         Ok(())
+    }
+}
+
+pub struct Module;
+
+pub trait EasierWindowHandle: HasRawWindowHandle {
+    fn window_handle(&self) -> WindowHandle;
+}
+
+impl<T: HasRawWindowHandle> EasierWindowHandle for T {
+    fn window_handle(&self) -> WindowHandle {
+        WindowHandle::new(self.raw_window_handle())
     }
 }
