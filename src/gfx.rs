@@ -2,7 +2,7 @@
 
 use crate::{
     render::{MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION},
-    *,
+    *, platform::WindowHandle,
 };
 use arrayvec::ArrayVec;
 use common::*;
@@ -380,7 +380,7 @@ pub struct ListBoxDef {
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct WindowParms {
-    pub window_handle: platform::WindowHandle,
+    pub window_handle: Option<WindowHandle>,
     pub hz: u16,
     pub fullscreen: bool,
     pub x: u16,
