@@ -6,32 +6,62 @@ use std::sync::{Arc, RwLock};
 
 use lazy_static::lazy_static;
 
-use raw_window_handle::RawWindowHandle;
+use raw_window_handle::{RawWindowHandle, Win32WindowHandle, XlibWindowHandle, XcbWindowHandle, WaylandWindowHandle, UiKitWindowHandle, AppKitWindowHandle};
 
 #[derive(Copy, Clone, Debug)]
-pub struct WindowHandle {
-    pub raw_window_handle: Option<RawWindowHandle>,
-}
+pub struct WindowHandle(RawWindowHandle);
 
 unsafe impl Sync for WindowHandle {}
 unsafe impl Send for WindowHandle {}
 
-impl Default for WindowHandle {
-    fn default() -> Self {
-        WindowHandle::new()
-    }
-}
-
 impl WindowHandle {
-    pub fn new() -> Self {
-        WindowHandle {
-            raw_window_handle: None,
+    pub fn new(handle: RawWindowHandle) -> Self {
+        Self(handle)
+    }
+
+    pub fn get(&self) -> RawWindowHandle {
+        self.0
+    }
+
+    pub fn get_win32(&self) -> Option<Win32WindowHandle> {
+        match self.get() {
+            RawWindowHandle::Win32(handle) => Some(handle),
+            _ => None,
         }
     }
 
-    pub fn with_handle(handle: RawWindowHandle) -> Self {
-        WindowHandle {
-            raw_window_handle: Some(handle),
+    pub fn get_xlib(&self) -> Option<XlibWindowHandle> {
+        match self.get() {
+            RawWindowHandle::Xlib(handle) => Some(handle),
+            _ => None,
+        }
+    }
+
+    pub fn get_xcb(&self) -> Option<XcbWindowHandle> {
+        match self.get() {
+            RawWindowHandle::Xcb(handle) => Some(handle),
+            _ => None,
+        }
+    }
+
+    pub fn get_wayland(&self) -> Option<WaylandWindowHandle> {
+        match self.get() {
+            RawWindowHandle::Wayland(handle) => Some(handle),
+            _ => None,
+        }
+    }
+
+    pub fn get_ui_kit(&self) -> Option<UiKitWindowHandle> {
+        match self.get() {
+            RawWindowHandle::UiKit(handle) => Some(handle),
+            _ => None,
+        }
+    }
+
+    pub fn get_app_kit(&self) -> Option<AppKitWindowHandle> {
+        match self.get() {
+            RawWindowHandle::AppKit(handle) => Some(handle),
+            _ => None,
         }
     }
 }
@@ -113,3 +143,6 @@ pub fn get_msg_time() -> isize {
 pub fn set_msg_time(msg_time: isize) {
     G_PLATFORM_VARS.try_write().expect("").sys_msg_time = msg_time;
 }
+
+#[derive(Copy, Clone, Debug)]
+pub struct FontHandle(pub isize);
