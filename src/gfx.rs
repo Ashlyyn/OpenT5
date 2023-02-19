@@ -273,10 +273,10 @@ struct AnimParamsDef {
     name: String,
     rect_client: RectDef,
     border_size: f32,
-    foreColor: Vec4f32,
-    backColor: Vec4f32,
-    borderColor: Vec4f32,
-    outlineColor: Vec4f32,
+    fore_color: Vec4f32,
+    back_color: Vec4f32,
+    border_color: Vec4f32,
+    outline_color: Vec4f32,
     text_scale: f32,
     rotation: f32,
     on_event: GenericEventHandler,
@@ -288,10 +288,10 @@ impl AnimParamsDef {
             name: "".to_string(),
             rect_client: RectDef::new(),
             border_size: 0.0,
-            foreColor: (0.0, 0.0, 0.0, 0.0),
-            backColor: (0.0, 0.0, 0.0, 0.0),
-            borderColor: (0.0, 0.0, 0.0, 0.0),
-            outlineColor: (0.0, 0.0, 0.0, 0.0),
+            fore_color: (0.0, 0.0, 0.0, 0.0),
+            back_color: (0.0, 0.0, 0.0, 0.0),
+            border_color: (0.0, 0.0, 0.0, 0.0),
+            outline_color: (0.0, 0.0, 0.0, 0.0),
             text_scale: 0.0,
             rotation: 0.0,
             on_event: GenericEventHandler::new(),
@@ -301,25 +301,25 @@ impl AnimParamsDef {
 
 #[derive(Clone, Default)]
 pub struct UIAnimInfo {
-    animStateCount: i32,
-    animStates: Vec<AnimParamsDef>,
-    currentAnimState: AnimParamsDef,
-    nextAnimState: AnimParamsDef,
+    anim_state_count: i32,
+    anim_states: Vec<AnimParamsDef>,
+    current_anim_state: AnimParamsDef,
+    next_anim_state: AnimParamsDef,
     animating: i32,
-    animStartTime: i32,
-    animDuration: i32,
+    anim_start_time: i32,
+    anim_duration: i32,
 }
 
 impl UIAnimInfo {
     pub fn new() -> Self {
         UIAnimInfo {
-            animStateCount: 0,
-            animStates: Vec::new(),
-            currentAnimState: AnimParamsDef::new(),
-            nextAnimState: AnimParamsDef::new(),
+            anim_state_count: 0,
+            anim_states: Vec::new(),
+            current_anim_state: AnimParamsDef::new(),
+            next_anim_state: AnimParamsDef::new(),
             animating: 0,
-            animStartTime: 0,
-            animDuration: 0,
+            anim_start_time: 0,
+            anim_duration: 0,
         }
     }
 }

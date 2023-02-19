@@ -1,4 +1,3 @@
-#![allow(non_snake_case, clippy::bool_comparison)]
 #![feature(thread_spawn_unchecked)]
 #![feature(never_type)]
 #![feature(local_key_cell_methods)]

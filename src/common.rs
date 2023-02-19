@@ -60,7 +60,7 @@ enum ExpressionRpn {
 struct ExpressionStatement {
     file_name: String,
     line: i32,
-    numRpn: i32,
+    num_rpn: i32,
     rpn: Vec<ExpressionRpn>,
 }
 
@@ -69,7 +69,7 @@ impl ExpressionStatement {
         ExpressionStatement {
             file_name: "".to_string(),
             line: 0,
-            numRpn: 0,
+            num_rpn: 0,
             rpn: Vec::new(),
         }
     }
@@ -333,7 +333,7 @@ pub struct ItemDef {
     forecolor_a_exp: ExpressionStatement,
     ui_3d_window_id: i32,
     on_event: GenericEventHandler,
-    animInfo: UIAnimInfo,
+    anim_info: UIAnimInfo,
 }
 
 impl ItemDef {
@@ -354,7 +354,7 @@ impl ItemDef {
             forecolor_a_exp: ExpressionStatement::new(),
             ui_3d_window_id: 0,
             on_event: GenericEventHandler::new(),
-            animInfo: UIAnimInfo::new(),
+            anim_info: UIAnimInfo::new(),
         }
     }
 }
