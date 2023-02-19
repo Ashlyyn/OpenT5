@@ -1,11 +1,14 @@
 #![allow(dead_code)]
 
 use crate::*;
-use arrayvec::ArrayVec;
+use crate::console::Channel;
+use arrayvec::{ArrayVec};
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
 use std::sync::{Arc, RwLock};
+
+pub static ERROR_ENTERED: AtomicBool = AtomicBool::new(false);
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Debug)]
@@ -90,24 +93,35 @@ lazy_static! {
     static ref PRINT_LOCK: Arc<Mutex<()>> = Arc::new(Mutex::new(()));
 }
 
+fn print_internal(channel: Channel, _param_2: i32, message: String) {
+    if channel.get() > 32 {
+        return;
+    }
+
+
+
+    print!("({}) - {}", channel.get(), message);
+}
+
 // Needs to be actually implemented
 // Just a wrapper around print! currently
-pub fn print(message: String) {
+pub fn print(channel: Channel, message: String) {
     let lock = PRINT_LOCK.clone();
     let _lock = lock.lock().unwrap();
-    print!("{}", message);
+
+    print_internal(channel, 0, message)
 }
 
-pub fn println(message: &str) {
-    print(format!("{}\n", message));
+pub fn println(channel: Channel, message: &str) {
+    print(channel, format!("{}\n", message));
 }
 
-pub fn warn(message: &str) {
-    print(format!("^3{}", message));
+pub fn warn(channel: Channel, message: &str) {
+    print(channel, format!("^3{}", message));
 }
 
-pub fn warnln(message: &str) {
-    warn(&format!("{}\n", message));
+pub fn warnln(channel: Channel, message: &str) {
+    warn(channel, &format!("{}\n", message));
 }
 
 lazy_static! {
@@ -151,11 +165,29 @@ lazy_static! {
         Arc::new(RwLock::new(ArrayVec::new()));
 }
 
-pub fn get_official_build_name_r() -> String {
-    "Call of Duty: BlackOps".to_string()
+pub fn get_official_build_name_r() -> &'static str {
+    "Call of Duty: BlackOps"
+}
+
+pub fn get_build_display_name() -> &'static str {
+    "Call of Duty Singleplayer - Ship"
+}
+
+thread_local! {
+    static G_ERROR: Arc<RwLock<ArrayVec<i32, 16>>> = Arc::new(RwLock::new(ArrayVec::new()));
+}
+
+lazy_static! {
+    static ref ERROR_MESSAGE: Arc<RwLock<String>> = Arc::new(RwLock::new(String::new()));
 }
 
 pub fn init() {
+    let com_error = sys::get_value(2).unwrap();
+
+    if com_error != 0 {
+        sys::error(&format!("Error during initialization:\n{}", *ERROR_MESSAGE.clone().read().unwrap()));
+    }
+
     init_try_block_function();
 }
 
@@ -185,7 +217,7 @@ pub fn get_icon_rgba() -> Option<winit::window::Icon> {
 
 // TODO - implement
 pub fn startup_variable(name: &str) {
-    println(&format!("com::startup_variable: {}", name));
+    println(16.into(), &format!("com::startup_variable: {}", name));
 }
 
 lazy_static! {
