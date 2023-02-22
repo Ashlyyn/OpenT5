@@ -2,7 +2,6 @@
 
 use crate::{util::*, *, platform::WindowHandle};
 use pollster::block_on;
-use raw_window_handle::HasRawWindowHandle;
 use sscanf::scanf;
 use winit::dpi::Position;
 use std::collections::{HashSet, VecDeque};
@@ -66,7 +65,7 @@ const ASPECT_RATIO_16_9: &str = "wide 16:9";
 fn register_dvars() {
     dvar::register_bool(
         "r_fullscreen",
-        true,
+        false,
         dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
         Some("Display game full screen"),
     )
@@ -281,9 +280,9 @@ fn closest_refresh_rate_for_mode(
     let mode = video_modes.iter().find(|&m| {
         ((m.refresh_rate_millihertz() - (m.refresh_rate_millihertz() % 1000))
             / 1000
-            == hz as _)
-            && m.size().width == width as _
-            && m.size().height == height as _
+            == hz as u32)
+            && m.size().width == width as u32
+            && m.size().height == height as u32
     });
 
     if let Some(..) = mode {
@@ -292,13 +291,13 @@ fn closest_refresh_rate_for_mode(
 
     let mode = video_modes
         .iter()
-        .find(|&m| (m.refresh_rate_millihertz() / 1000) == hz as _);
+        .find(|&m| (m.refresh_rate_millihertz() / 1000) == hz as u32);
     if let Some(..) = mode {
-        return Some((mode.unwrap().refresh_rate_millihertz() / 1000) as _);
+        return Some((mode.unwrap().refresh_rate_millihertz() / 1000) as u16);
     }
 
     let mode = video_modes.iter().find(|&m| {
-        m.size().width == width as _ && m.size().height == height as _
+        m.size().width == width as u32 && m.size().height == height as u32
     });
 
     if let Some(..) = mode {
@@ -618,18 +617,17 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     let monitor = main_window.current_monitor().or(main_window.available_monitors().nth(0)).unwrap();
     let horzres = (monitor.size().width - 450) / 2;
     let vertres = (monitor.size().height - 600) / 2;
-    let s_wcd_lock = conbuf::S_WCD.clone();
-    let mut s_wcd = s_wcd_lock.write().unwrap();
-    let console_width = s_wcd.window_width;
-    let console_height = s_wcd.window_height;
+    let console_width = conbuf::s_wcd_window_width();
+    let console_height = conbuf::s_wcd_window_height();
     let console_window = winit::window::WindowBuilder::new()
         .with_title(console_title)
         .with_position(Position::Physical(PhysicalPosition::new(horzres as _, vertres as _)))
         .with_inner_size(PhysicalSize::new(console_width, console_height))
+        .with_visible(false)
         .build(&event_loop)
         .unwrap();
 
-    s_wcd.window = Some(console_window);
+    conbuf::s_wcd_set_window(console_window);
     
     const CODLOGO_POS_X: i32 = 5;
     const CODLOGO_POS_Y: i32 = 5;
@@ -642,7 +640,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     const BUFFER_SIZE_W: i32 = 606;
     const BUFFER_SIZE_H: i32 = 324;
 
-    let parent = Some(s_wcd.window.as_mut().unwrap().raw_window_handle());
+    let parent = Some(conbuf::s_wcd_window_handle());
     let (cod_logo_window, input_line_window, buffer_window) = unsafe {
         let cod_logo_window = winit::window::WindowBuilder::new()
             .with_parent_window(parent)
@@ -813,10 +811,10 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 let mut modes = main_window.current_monitor().unwrap().video_modes();
                 let mode = modes
                     .find(|m| {
-                        m.size().width == width as _
-                            && m.size().height == height as _
+                        m.size().width == width as u32
+                            && m.size().height == height as u32
                             && m.refresh_rate_millihertz().div_floor(1000)
-                                == hz as _
+                                == hz as u32
                     })
                     .unwrap();
                 Some(Fullscreen::Exclusive(mode))
