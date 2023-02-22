@@ -12,7 +12,7 @@ use lazy_static::lazy_static;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::hash::Hash;
-use std::mem::MaybeUninit;
+use std::marker::PhantomData;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::{Arc, RwLock};
 use std::vec::Vec;
@@ -1527,38 +1527,87 @@ zero_variant_enum!(DvarBuilderTypeColorXYZDomainState);
 zero_variant_enum!(DvarBuilderTypeColorXYZCurrentValueState);
 zero_variant_enum!(DvarBuilderTypeColorXYZOtherValuesState);
 
+#[derive(Clone)]
+struct DvarInProgress {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub flags: Option<DvarFlags>,
+    pub modified: Option<bool>,
+    pub loaded_from_save_game: Option<bool>,
+    pub domain: Option<DvarLimits>,
+    pub current: Option<DvarValue>,
+    latched: Option<DvarValue>,
+    reset: Option<DvarValue>,
+    saved: Option<DvarValue>,
+}
+
+macro_rules! unwrap_or_return {
+    ($i:expr, $r:expr) => {
+        match $i {
+            Some(i) => i,
+            None => return $r,
+        }
+    };
+}
+
+impl TryFrom<DvarInProgress> for Dvar {
+    type Error = ();
+    fn try_from(value: DvarInProgress) -> Result<Self, Self::Error>  {
+        let name = value.name.unwrap_or_default();
+        let description = value.description.unwrap_or_default();
+        let flags = value.flags.unwrap_or_default();
+        let modified = value.modified.unwrap_or_default();
+        let loaded_from_save_game = value.loaded_from_save_game.unwrap_or_default();
+        let domain = unwrap_or_return!(value.domain, Err(()));
+        let current = unwrap_or_return!(value.current, Err(()));
+        let latched = unwrap_or_return!(value.latched, Err(()));
+        let reset = unwrap_or_return!(value.reset, Err(()));
+        let saved = unwrap_or_return!(value.saved, Err(()));
+
+        Ok(Self {
+            name,
+            description,
+            flags,
+            modified,
+            loaded_from_save_game,
+            domain,
+            current,
+            latched,
+            reset,
+            saved,
+        })
+    }
+}
+
 // Helper impl to make constructing Dvars easier
 struct DvarBuilder<T> {
-    dvar: Dvar,
-    extra: T,
+    dvar: DvarInProgress,
+    extra: PhantomData<T>,
 }
 
 impl DvarBuilder<DvarBuilderStartState> {
     fn new() -> DvarBuilder<DvarBuilderDataState> {
-        unsafe {
-            #[allow(clippy::uninit_assumed_init, invalid_value)]
-            DvarBuilder::<DvarBuilderDataState> {
-                dvar: Dvar {
-                    name: "".to_string(),
-                    description: "".to_string(),
-                    flags: DvarFlags::empty(),
-                    modified: false,
-                    loaded_from_save_game: false,
-                    domain: MaybeUninit::uninit().assume_init(),
-                    current: MaybeUninit::uninit().assume_init(),
-                    latched: MaybeUninit::uninit().assume_init(),
-                    reset: MaybeUninit::uninit().assume_init(),
-                    saved: MaybeUninit::uninit().assume_init(),
-                },
-                extra: Default::default(),
-            }
+        DvarBuilder::<DvarBuilderDataState> {
+            dvar: DvarInProgress {
+                name: None,
+                description: None,
+                flags: None,
+                modified: None,
+                loaded_from_save_game: None,
+                domain: None,
+                current: None,
+                latched: None,
+                reset: None,
+                saved: None,
+            },
+            extra: Default::default(),
         }
     }
 }
 
 impl DvarBuilder<DvarBuilderDataState> {
     fn name(mut self, name: &str) -> DvarBuilder<DvarBuilderDataState> {
-        self.dvar.name = name.to_string();
+        self.dvar.name = name.to_string().into();
         self
     }
 
@@ -1566,12 +1615,12 @@ impl DvarBuilder<DvarBuilderDataState> {
         mut self,
         description: String,
     ) -> DvarBuilder<DvarBuilderDataState> {
-        self.dvar.description = description;
+        self.dvar.description = description.into();
         self
     }
 
     fn flags(mut self, flags: DvarFlags) -> DvarBuilder<DvarBuilderDataState> {
-        self.dvar.flags = flags;
+        self.dvar.flags = flags.into();
         self
     }
 
@@ -1579,11 +1628,8 @@ impl DvarBuilder<DvarBuilderDataState> {
         mut self,
         b: bool,
     ) -> DvarBuilder<DvarBuilderDataState> {
-        self.dvar.loaded_from_save_game = b;
-        DvarBuilder::<DvarBuilderDataState> {
-            dvar: self.dvar,
-            extra: Default::default(),
-        }
+        self.dvar.loaded_from_save_game = b.into();
+        self
     }
 
     fn type_bool(self) -> DvarBuilder<DvarBuilderTypeBoolCurrentValueState> {
@@ -1683,7 +1729,7 @@ impl DvarBuilder<DvarBuilderTypeFloatDomainState> {
         min: f32,
         max: f32,
     ) -> DvarBuilder<DvarBuilderTypeFloatCurrentValueState> {
-        self.dvar.domain = DvarLimits::Float(DvarLimitsFloat::new(min, max));
+        self.dvar.domain = DvarLimits::Float(DvarLimitsFloat::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeFloatCurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1698,7 +1744,7 @@ impl DvarBuilder<DvarBuilderTypeVector2DomainState> {
         max: f32,
     ) -> DvarBuilder<DvarBuilderTypeVector2CurrentValueState> {
         self.dvar.domain =
-            DvarLimits::Vector2(DvarLimitsVector2::new(min, max));
+            DvarLimits::Vector2(DvarLimitsVector2::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeVector2CurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1713,7 +1759,7 @@ impl DvarBuilder<DvarBuilderTypeVector3DomainState> {
         max: f32,
     ) -> DvarBuilder<DvarBuilderTypeVector3CurrentValueState> {
         self.dvar.domain =
-            DvarLimits::Vector3(DvarLimitsVector3::new(min, max));
+            DvarLimits::Vector3(DvarLimitsVector3::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeVector3CurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1728,7 +1774,7 @@ impl DvarBuilder<DvarBuilderTypeVector4DomainState> {
         max: f32,
     ) -> DvarBuilder<DvarBuilderTypeVector4CurrentValueState> {
         self.dvar.domain =
-            DvarLimits::Vector4(DvarLimitsVector4::new(min, max));
+            DvarLimits::Vector4(DvarLimitsVector4::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeVector4CurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1742,7 +1788,7 @@ impl DvarBuilder<DvarBuilderTypeIntDomainState> {
         min: i32,
         max: i32,
     ) -> DvarBuilder<DvarBuilderTypeIntCurrentValueState> {
-        self.dvar.domain = DvarLimits::Int(DvarLimitsInt::new(min, max));
+        self.dvar.domain = DvarLimits::Int(DvarLimitsInt::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeIntCurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1756,7 +1802,7 @@ impl DvarBuilder<DvarBuilderTypeEnumerationDomainState> {
         domain: Vec<String>,
     ) -> DvarBuilder<DvarBuilderTypeEnumerationCurrentValueState> {
         self.dvar.domain =
-            DvarLimits::Enumeration(DvarLimitsEnumeration::new(&domain));
+            DvarLimits::Enumeration(DvarLimitsEnumeration::new(&domain)).into();
         DvarBuilder::<DvarBuilderTypeEnumerationCurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1770,7 +1816,7 @@ impl DvarBuilder<DvarBuilderTypeInt64DomainState> {
         min: i64,
         max: i64,
     ) -> DvarBuilder<DvarBuilderTypeInt64CurrentValueState> {
-        self.dvar.domain = DvarLimits::Int64(DvarLimitsInt64::new(min, max));
+        self.dvar.domain = DvarLimits::Int64(DvarLimitsInt64::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeInt64CurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1785,7 +1831,7 @@ impl DvarBuilder<DvarBuilderTypeLinearColorRGBDomainState> {
         max: f32,
     ) -> DvarBuilder<DvarBuilderTypeLinearColorRGBCurrentValueState> {
         self.dvar.domain =
-            DvarLimits::LinearColorRGB(DvarLimitsLinearColorRGB::new(min, max));
+            DvarLimits::LinearColorRGB(DvarLimitsLinearColorRGB::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeLinearColorRGBCurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1800,7 +1846,7 @@ impl DvarBuilder<DvarBuilderTypeColorXYZDomainState> {
         max: f32,
     ) -> DvarBuilder<DvarBuilderTypeColorXYZCurrentValueState> {
         self.dvar.domain =
-            DvarLimits::ColorXYZ(DvarLimitsColorXYZ::new(min, max));
+            DvarLimits::ColorXYZ(DvarLimitsColorXYZ::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeColorXYZCurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1813,11 +1859,11 @@ impl DvarBuilder<DvarBuilderTypeBoolCurrentValueState> {
         mut self,
         value: bool,
     ) -> DvarBuilder<DvarBuilderTypeBoolOtherValuesState> {
-        self.dvar.domain = DvarLimits::Bool(DvarLimitsBool::new());
-        self.dvar.current = DvarValue::Bool(value);
-        self.dvar.latched = DvarValue::Bool(value);
-        self.dvar.saved = DvarValue::Bool(value);
-        self.dvar.reset = DvarValue::Bool(value);
+        self.dvar.domain = DvarLimits::Bool(DvarLimitsBool::new()).into();
+        self.dvar.current = DvarValue::Bool(value).into();
+        self.dvar.latched = DvarValue::Bool(value).into();
+        self.dvar.saved = DvarValue::Bool(value).into();
+        self.dvar.reset = DvarValue::Bool(value).into();
         DvarBuilder::<DvarBuilderTypeBoolOtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1830,10 +1876,10 @@ impl DvarBuilder<DvarBuilderTypeFloatCurrentValueState> {
         mut self,
         value: f32,
     ) -> DvarBuilder<DvarBuilderTypeFloatOtherValuesState> {
-        self.dvar.current = DvarValue::Float(value);
-        self.dvar.latched = DvarValue::Float(value);
-        self.dvar.saved = DvarValue::Float(value);
-        self.dvar.reset = DvarValue::Float(value);
+        self.dvar.current = DvarValue::Float(value).into();
+        self.dvar.latched = DvarValue::Float(value).into();
+        self.dvar.saved = DvarValue::Float(value).into();
+        self.dvar.reset = DvarValue::Float(value).into();
         DvarBuilder::<DvarBuilderTypeFloatOtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1846,10 +1892,10 @@ impl DvarBuilder<DvarBuilderTypeVector2CurrentValueState> {
         mut self,
         value: Vec2f32,
     ) -> DvarBuilder<DvarBuilderTypeVector2OtherValuesState> {
-        self.dvar.current = DvarValue::Vector2(value);
-        self.dvar.latched = DvarValue::Vector2(value);
-        self.dvar.saved = DvarValue::Vector2(value);
-        self.dvar.reset = DvarValue::Vector2(value);
+        self.dvar.current = DvarValue::Vector2(value).into();
+        self.dvar.latched = DvarValue::Vector2(value).into();
+        self.dvar.saved = DvarValue::Vector2(value).into();
+        self.dvar.reset = DvarValue::Vector2(value).into();
         DvarBuilder::<DvarBuilderTypeVector2OtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1862,10 +1908,10 @@ impl DvarBuilder<DvarBuilderTypeVector3CurrentValueState> {
         mut self,
         value: Vec3f32,
     ) -> DvarBuilder<DvarBuilderTypeVector3OtherValuesState> {
-        self.dvar.current = DvarValue::Vector3(value);
-        self.dvar.latched = DvarValue::Vector3(value);
-        self.dvar.saved = DvarValue::Vector3(value);
-        self.dvar.reset = DvarValue::Vector3(value);
+        self.dvar.current = DvarValue::Vector3(value).into();
+        self.dvar.latched = DvarValue::Vector3(value).into();
+        self.dvar.saved = DvarValue::Vector3(value).into();
+        self.dvar.reset = DvarValue::Vector3(value).into();
         DvarBuilder::<DvarBuilderTypeVector3OtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1878,10 +1924,10 @@ impl DvarBuilder<DvarBuilderTypeVector4CurrentValueState> {
         mut self,
         value: Vec4f32,
     ) -> DvarBuilder<DvarBuilderTypeVector4OtherValuesState> {
-        self.dvar.current = DvarValue::Vector4(value);
-        self.dvar.latched = DvarValue::Vector4(value);
-        self.dvar.saved = DvarValue::Vector4(value);
-        self.dvar.reset = DvarValue::Vector4(value);
+        self.dvar.current = DvarValue::Vector4(value).into();
+        self.dvar.latched = DvarValue::Vector4(value).into();
+        self.dvar.saved = DvarValue::Vector4(value).into();
+        self.dvar.reset = DvarValue::Vector4(value).into();
         DvarBuilder::<DvarBuilderTypeVector4OtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1894,10 +1940,10 @@ impl DvarBuilder<DvarBuilderTypeIntCurrentValueState> {
         mut self,
         value: i32,
     ) -> DvarBuilder<DvarBuilderTypeIntOtherValuesState> {
-        self.dvar.current = DvarValue::Int(value);
-        self.dvar.latched = DvarValue::Int(value);
-        self.dvar.saved = DvarValue::Int(value);
-        self.dvar.reset = DvarValue::Int(value);
+        self.dvar.current = DvarValue::Int(value).into();
+        self.dvar.latched = DvarValue::Int(value).into();
+        self.dvar.saved = DvarValue::Int(value).into();
+        self.dvar.reset = DvarValue::Int(value).into();
         DvarBuilder::<DvarBuilderTypeIntOtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1910,11 +1956,11 @@ impl DvarBuilder<DvarBuilderTypeStringCurrentValueState> {
         mut self,
         value: String,
     ) -> DvarBuilder<DvarBuilderTypeStringOtherValuesState> {
-        self.dvar.domain = DvarLimits::String(DvarLimitsString::new());
-        self.dvar.current = DvarValue::String(value.clone());
-        self.dvar.latched = DvarValue::String(value.clone());
-        self.dvar.saved = DvarValue::String(value.clone());
-        self.dvar.reset = DvarValue::String(value);
+        self.dvar.domain = DvarLimits::String(DvarLimitsString::new()).into();
+        self.dvar.current = DvarValue::String(value.clone()).into();
+        self.dvar.latched = DvarValue::String(value.clone()).into();
+        self.dvar.saved = DvarValue::String(value.clone()).into();
+        self.dvar.reset = DvarValue::String(value).into();
         DvarBuilder::<DvarBuilderTypeStringOtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1927,10 +1973,10 @@ impl DvarBuilder<DvarBuilderTypeEnumerationCurrentValueState> {
         mut self,
         value: String,
     ) -> DvarBuilder<DvarBuilderTypeEnumerationOtherValuesState> {
-        self.dvar.current = DvarValue::Enumeration(value.clone());
-        self.dvar.latched = DvarValue::Enumeration(value.clone());
-        self.dvar.saved = DvarValue::Enumeration(value.clone());
-        self.dvar.reset = DvarValue::Enumeration(value);
+        self.dvar.current = DvarValue::Enumeration(value.clone()).into();
+        self.dvar.latched = DvarValue::Enumeration(value.clone()).into();
+        self.dvar.saved = DvarValue::Enumeration(value.clone()).into();
+        self.dvar.reset = DvarValue::Enumeration(value).into();
         DvarBuilder::<DvarBuilderTypeEnumerationOtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1943,11 +1989,11 @@ impl DvarBuilder<DvarBuilderTypeColorCurrentValueState> {
         mut self,
         value: Vec4f32,
     ) -> DvarBuilder<DvarBuilderTypeColorOtherValuesState> {
-        self.dvar.domain = DvarLimits::Color(DvarLimitsColor::new());
-        self.dvar.current = DvarValue::Color(value);
-        self.dvar.latched = DvarValue::Color(value);
-        self.dvar.saved = DvarValue::Color(value);
-        self.dvar.reset = DvarValue::Color(value);
+        self.dvar.domain = DvarLimits::Color(DvarLimitsColor::new()).into();
+        self.dvar.current = DvarValue::Color(value).into();
+        self.dvar.latched = DvarValue::Color(value).into();
+        self.dvar.saved = DvarValue::Color(value).into();
+        self.dvar.reset = DvarValue::Color(value).into();
         DvarBuilder::<DvarBuilderTypeColorOtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1960,10 +2006,10 @@ impl DvarBuilder<DvarBuilderTypeInt64CurrentValueState> {
         mut self,
         value: i64,
     ) -> DvarBuilder<DvarBuilderTypeInt64OtherValuesState> {
-        self.dvar.current = DvarValue::Int64(value);
-        self.dvar.latched = DvarValue::Int64(value);
-        self.dvar.saved = DvarValue::Int64(value);
-        self.dvar.reset = DvarValue::Int64(value);
+        self.dvar.current = DvarValue::Int64(value).into();
+        self.dvar.latched = DvarValue::Int64(value).into();
+        self.dvar.saved = DvarValue::Int64(value).into();
+        self.dvar.reset = DvarValue::Int64(value).into();
         DvarBuilder::<DvarBuilderTypeInt64OtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1976,10 +2022,10 @@ impl DvarBuilder<DvarBuilderTypeLinearColorRGBCurrentValueState> {
         mut self,
         value: Vec3f32,
     ) -> DvarBuilder<DvarBuilderTypeLinearColorRGBOtherValuesState> {
-        self.dvar.current = DvarValue::LinearColorRGB(value);
-        self.dvar.latched = DvarValue::LinearColorRGB(value);
-        self.dvar.saved = DvarValue::LinearColorRGB(value);
-        self.dvar.reset = DvarValue::LinearColorRGB(value);
+        self.dvar.current = DvarValue::LinearColorRGB(value).into();
+        self.dvar.latched = DvarValue::LinearColorRGB(value).into();
+        self.dvar.saved = DvarValue::LinearColorRGB(value).into();
+        self.dvar.reset = DvarValue::LinearColorRGB(value).into();
         DvarBuilder::<DvarBuilderTypeLinearColorRGBOtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -1992,10 +2038,10 @@ impl DvarBuilder<DvarBuilderTypeColorXYZCurrentValueState> {
         mut self,
         value: Vec3f32,
     ) -> DvarBuilder<DvarBuilderTypeColorXYZOtherValuesState> {
-        self.dvar.current = DvarValue::ColorXYZ(value);
-        self.dvar.latched = DvarValue::ColorXYZ(value);
-        self.dvar.saved = DvarValue::ColorXYZ(value);
-        self.dvar.reset = DvarValue::ColorXYZ(value);
+        self.dvar.current = DvarValue::ColorXYZ(value).into();
+        self.dvar.latched = DvarValue::ColorXYZ(value).into();
+        self.dvar.saved = DvarValue::ColorXYZ(value).into();
+        self.dvar.reset = DvarValue::ColorXYZ(value).into();
         DvarBuilder::<DvarBuilderTypeColorXYZOtherValuesState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -2005,253 +2051,253 @@ impl DvarBuilder<DvarBuilderTypeColorXYZCurrentValueState> {
 
 impl DvarBuilder<DvarBuilderTypeBoolOtherValuesState> {
     fn latched(mut self, value: bool) -> Self {
-        self.dvar.latched = DvarValue::Bool(value);
+        self.dvar.latched = DvarValue::Bool(value).into();
         self
     }
 
     fn saved(mut self, value: bool) -> Self {
-        self.dvar.saved = DvarValue::Bool(value);
+        self.dvar.saved = DvarValue::Bool(value).into();
         self
     }
 
     fn reset(mut self, value: bool) -> Self {
-        self.dvar.reset = DvarValue::Bool(value);
+        self.dvar.reset = DvarValue::Bool(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeFloatOtherValuesState> {
     fn latched(mut self, value: f32) -> Self {
-        self.dvar.latched = DvarValue::Float(value);
+        self.dvar.latched = DvarValue::Float(value).into();
         self
     }
 
     fn saved(mut self, value: f32) -> Self {
-        self.dvar.saved = DvarValue::Float(value);
+        self.dvar.saved = DvarValue::Float(value).into();
         self
     }
 
     fn reset(mut self, value: f32) -> Self {
-        self.dvar.reset = DvarValue::Float(value);
+        self.dvar.reset = DvarValue::Float(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeVector2OtherValuesState> {
     fn latched(mut self, value: Vec2f32) -> Self {
-        self.dvar.latched = DvarValue::Vector2(value);
+        self.dvar.latched = DvarValue::Vector2(value).into();
         self
     }
 
     fn saved(mut self, value: Vec2f32) -> Self {
-        self.dvar.saved = DvarValue::Vector2(value);
+        self.dvar.saved = DvarValue::Vector2(value).into();
         self
     }
 
     fn reset(mut self, value: Vec2f32) -> Self {
-        self.dvar.reset = DvarValue::Vector2(value);
+        self.dvar.reset = DvarValue::Vector2(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeVector3OtherValuesState> {
     fn latched(mut self, value: Vec3f32) -> Self {
-        self.dvar.latched = DvarValue::Vector3(value);
+        self.dvar.latched = DvarValue::Vector3(value).into();
         self
     }
 
     fn saved(mut self, value: Vec3f32) -> Self {
-        self.dvar.saved = DvarValue::Vector3(value);
+        self.dvar.saved = DvarValue::Vector3(value).into();
         self
     }
 
     fn reset(mut self, value: Vec3f32) -> Self {
-        self.dvar.reset = DvarValue::Vector3(value);
+        self.dvar.reset = DvarValue::Vector3(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeVector4OtherValuesState> {
     fn latched(mut self, value: Vec4f32) -> Self {
-        self.dvar.latched = DvarValue::Vector4(value);
+        self.dvar.latched = DvarValue::Vector4(value).into();
         self
     }
 
     fn saved(mut self, value: Vec4f32) -> Self {
-        self.dvar.saved = DvarValue::Vector4(value);
+        self.dvar.saved = DvarValue::Vector4(value).into();
         self
     }
 
     fn reset(mut self, value: Vec4f32) -> Self {
-        self.dvar.reset = DvarValue::Vector4(value);
+        self.dvar.reset = DvarValue::Vector4(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeIntOtherValuesState> {
     fn latched(mut self, value: i32) -> Self {
-        self.dvar.latched = DvarValue::Int(value);
+        self.dvar.latched = DvarValue::Int(value).into();
         self
     }
 
     fn saved(mut self, value: i32) -> Self {
-        self.dvar.saved = DvarValue::Int(value);
+        self.dvar.saved = DvarValue::Int(value).into();
         self
     }
 
     fn reset(mut self, value: i32) -> Self {
-        self.dvar.reset = DvarValue::Int(value);
+        self.dvar.reset = DvarValue::Int(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeStringOtherValuesState> {
     fn latched(mut self, value: String) -> Self {
-        self.dvar.latched = DvarValue::String(value);
+        self.dvar.latched = DvarValue::String(value).into();
         self
     }
 
     fn saved(mut self, value: String) -> Self {
-        self.dvar.saved = DvarValue::String(value);
+        self.dvar.saved = DvarValue::String(value).into();
         self
     }
 
     fn reset(mut self, value: String) -> Self {
-        self.dvar.reset = DvarValue::String(value);
+        self.dvar.reset = DvarValue::String(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeEnumerationOtherValuesState> {
     fn latched(mut self, value: String) -> Self {
-        self.dvar.latched = DvarValue::Enumeration(value);
+        self.dvar.latched = DvarValue::Enumeration(value).into();
         self
     }
 
     fn saved(mut self, value: String) -> Self {
-        self.dvar.saved = DvarValue::Enumeration(value);
+        self.dvar.saved = DvarValue::Enumeration(value).into();
         self
     }
 
     fn reset(mut self, value: String) -> Self {
-        self.dvar.reset = DvarValue::Enumeration(value);
+        self.dvar.reset = DvarValue::Enumeration(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeColorOtherValuesState> {
     fn latched(mut self, value: Vec4f32) -> Self {
-        self.dvar.latched = DvarValue::Color(value);
+        self.dvar.latched = DvarValue::Color(value).into();
         self
     }
 
     fn saved(mut self, value: Vec4f32) -> Self {
-        self.dvar.saved = DvarValue::Color(value);
+        self.dvar.saved = DvarValue::Color(value).into();
         self
     }
 
     fn reset(mut self, value: Vec4f32) -> Self {
-        self.dvar.reset = DvarValue::Color(value);
+        self.dvar.reset = DvarValue::Color(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeInt64OtherValuesState> {
     fn latched(mut self, value: i64) -> Self {
-        self.dvar.latched = DvarValue::Int64(value);
+        self.dvar.latched = DvarValue::Int64(value).into();
         self
     }
 
     fn saved(mut self, value: i64) -> Self {
-        self.dvar.saved = DvarValue::Int64(value);
+        self.dvar.saved = DvarValue::Int64(value).into();
         self
     }
 
     fn reset(mut self, value: i64) -> Self {
-        self.dvar.reset = DvarValue::Int64(value);
+        self.dvar.reset = DvarValue::Int64(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeLinearColorRGBOtherValuesState> {
     fn latched(mut self, value: Vec3f32) -> Self {
-        self.dvar.latched = DvarValue::LinearColorRGB(value);
+        self.dvar.latched = DvarValue::LinearColorRGB(value).into();
         self
     }
 
     fn saved(mut self, value: Vec3f32) -> Self {
-        self.dvar.saved = DvarValue::LinearColorRGB(value);
+        self.dvar.saved = DvarValue::LinearColorRGB(value).into();
         self
     }
 
     fn reset(mut self, value: Vec3f32) -> Self {
-        self.dvar.reset = DvarValue::LinearColorRGB(value);
+        self.dvar.reset = DvarValue::LinearColorRGB(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
 impl DvarBuilder<DvarBuilderTypeColorXYZOtherValuesState> {
     fn latched(mut self, value: Vec3f32) -> Self {
-        self.dvar.latched = DvarValue::ColorXYZ(value);
+        self.dvar.latched = DvarValue::ColorXYZ(value).into();
         self
     }
 
     fn saved(mut self, value: Vec3f32) -> Self {
-        self.dvar.saved = DvarValue::ColorXYZ(value);
+        self.dvar.saved = DvarValue::ColorXYZ(value).into();
         self
     }
 
     fn reset(mut self, value: Vec3f32) -> Self {
-        self.dvar.reset = DvarValue::ColorXYZ(value);
+        self.dvar.reset = DvarValue::ColorXYZ(value).into();
         self
     }
 
     fn build(self) -> Dvar {
-        self.dvar
+        self.dvar.try_into().unwrap()
     }
 }
 
