@@ -3,7 +3,6 @@
 use crate::platform::WindowHandle;
 use crate::util::SmpEvent;
 use crate::*;
-use arrayvec::ArrayVec;
 use num_derive::FromPrimitive;
 use sysinfo::{CpuExt, SystemExt};
 
@@ -1076,20 +1075,17 @@ fn create_console() {
 }
 
 pub fn show_console() {
-    let lock = conbuf::S_WCD.clone();
-    let mut s_wcd = lock.write().unwrap();
-    if s_wcd.window.is_none() {
+    if conbuf::s_wcd_window_is_none() {
         create_console();
     }
-    s_wcd.window.as_mut().unwrap().set_visible(true);   
+    
+    conbuf::s_wcd_window_set_visible(true);
 }
 
 fn post_error(error: &str) {
     {
-        let lock = conbuf::S_WCD.clone();
-        let mut s_wcd = lock.write().unwrap();
-        s_wcd.error_string = error.into();
-        s_wcd.input_line_window = None;
+        conbuf::s_wcd_set_error_string(error.into());
+        conbuf::s_wcd_clear_input_line_window();
     }
     
     // DestroyWindow(s_wcd.hwndInputLine);
@@ -1112,24 +1108,4 @@ pub fn error(error: &str) -> ! {
     // Finish processing events
     // DoSetEvent_UNK();
     std::process::exit(0);
-}
-
-thread_local! {
-    static VALUES: Arc<RwLock<ArrayVec<i32, 15>>> = Arc::new(RwLock::new(ArrayVec::new()));
-}
-
-pub fn get_value(index: usize) -> Option<i32> {
-    if index > 15 {
-        None
-    } else {
-        Some(VALUES.try_with(|a| a.clone().read().unwrap()[index]).unwrap())
-    }
-}
-
-pub fn set_value(index: usize, value: i32) {
-    if index > 15 {
-        return;
-    } else {
-        VALUES.try_with(|a| a.clone().write().unwrap()[index] = value).unwrap();
-    }
 }
