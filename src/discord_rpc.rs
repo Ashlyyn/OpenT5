@@ -26,7 +26,16 @@ pub fn init() -> Result<(), Box<dyn Error>> {
 
     client.connect()?;
 
-    set_start_time(std::time::SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as _);
+    // Can't use sys::milliseconds here, because sys::milliseconds tracks the 
+    // timespan since the program was launched instead of since the Unix Epoch.
+    // If we set the start time as sys::milliseconds, Discord simply won't 
+    // display the application's rich presence.
+    let now = std::time::SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+
+    set_start_time(now);
 
     client.set_activity(
         Activity::new()
@@ -45,6 +54,8 @@ pub fn set_activity(activity: Activity) -> Result<(), Box<dyn Error>> {
     let lock = CLIENT.clone();
     let mut client = lock.write().unwrap();
     
+    // Always add the icon and start time to whatever other activity info
+    // was passed, overwriting if necessary
     client.set_activity(
         activity
             .assets(Assets::new().small_image(OPENT5_DISCORD_RPC_ICON_URL))
