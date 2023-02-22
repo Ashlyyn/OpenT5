@@ -9,12 +9,12 @@
 
 #![deny(missing_debug_implementations)]
 
-use discord_rich_presence::activity::Activity;
+use discord_rich_presence::activity::{Activity};
 use lazy_static::lazy_static;
-use std::sync::{
+use std::{sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
-};
+}};
 extern crate num_derive;
 
 mod cbuf;
