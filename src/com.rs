@@ -182,10 +182,10 @@ lazy_static! {
 }
 
 pub fn init() {
-    let com_error = sys::get_value(2).unwrap();
+    let com_error = 0; // TODO - implement sys::get_value correctly
 
     if com_error != 0 {
-        sys::error(&format!("Error during initialization:\n{}", *ERROR_MESSAGE.clone().read().unwrap()));
+        //sys::error(&format!("Error during initialization:\n{}", *ERROR_MESSAGE.clone().read().unwrap()));
     }
 
     init_try_block_function();
