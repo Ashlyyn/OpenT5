@@ -1,7 +1,6 @@
 #![feature(thread_spawn_unchecked)]
 #![feature(never_type)]
 #![feature(local_key_cell_methods)]
-#![feature(cstr_from_bytes_until_nul)]
 #![feature(io_error_more)]
 #![feature(const_option)]
 #![feature(int_roundings)]
@@ -10,6 +9,7 @@
 
 #![deny(missing_debug_implementations)]
 
+use discord_rich_presence::activity::Activity;
 use lazy_static::lazy_static;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -39,6 +39,7 @@ mod vid;
 mod pb;
 mod console;
 mod conbuf;
+mod discord_rpc;
 
 lazy_static! {
     #[allow(dead_code)]
@@ -79,6 +80,9 @@ fn main() {
     }
 
     dvar::init();
+
+    discord_rpc::set_activity(Activity::new().state("Testing...")).unwrap();
+
     // ========================================================================
     // This is probably the most opaque part of the program so far, so some
     // explanation is in order
