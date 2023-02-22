@@ -5,7 +5,8 @@ use std::{sync::{atomic::{AtomicUsize}, Arc, RwLock}};
 use arrayvec::ArrayString;
 use lazy_static::lazy_static;
 use cfg_if::cfg_if;
-use crate::{platform::{FontHandle}};
+use raw_window_handle::{RawWindowHandle, HasRawWindowHandle};
+use crate::{platform::{FontHandle, WindowHandle}};
 
 cfg_if! {
     if #[cfg(target_os = "windows")] {
@@ -101,23 +102,80 @@ pub fn s_wcd_set_input_line_window(window: winit::window::Window) {
     s_wcd.input_line_window = Some(window);
 }
 
+pub fn s_wcd_clear_input_line_window() {
+    let lock = S_WCD.clone();
+    let mut s_wcd = lock.write().unwrap();
+    s_wcd.input_line_window = None;
+}
+
 pub fn s_wcd_set_cod_logo_window(window: winit::window::Window) {
     let lock = S_WCD.clone();
     let mut s_wcd = lock.write().unwrap();
     s_wcd.cod_logo_window = Some(window);
 }
 
+pub fn s_wcd_set_error_string(error: String) {
+    let lock = S_WCD.clone();
+    let mut s_wcd = lock.write().unwrap();
+    s_wcd.error_string = error;
+}
+
+pub fn s_wcd_window_is_none() -> bool {
+    let lock = S_WCD.clone();
+    let s_wcd = lock.read().unwrap();
+    s_wcd.window.is_none()
+}
+
+pub fn s_wcd_window_set_visible(visible: bool) {
+    let lock = S_WCD.clone();
+    let mut s_wcd = lock.write().unwrap();
+    s_wcd.window.as_mut().unwrap().set_visible(visible);
+}
+
+pub fn s_wcd_buffer_window_handle() -> WindowHandle {
+    let lock = S_WCD.clone();
+    let s_wcd = lock.read().unwrap();
+    s_wcd.buffer_window.as_ref().unwrap().window_handle()
+}
+
+pub fn s_wcd_buffer_is_none() -> bool {
+    let lock = S_WCD.clone();
+    let s_wcd = lock.read().unwrap();
+    s_wcd.buffer_window.is_none()
+}
+
+pub fn s_wcd_set_window_width(width: i16) { 
+    let lock = S_WCD.clone();
+    let mut s_wcd = lock.write().unwrap();
+    s_wcd.window_width = width;
+}
+
+pub fn s_wcd_window_width() -> i16 {
+    let lock = S_WCD.clone();
+    let s_wcd = lock.read().unwrap();
+    s_wcd.window_width
+}
+
+pub fn s_wcd_window_height() -> i16 {
+    let lock = S_WCD.clone();
+    let s_wcd = lock.read().unwrap();
+    s_wcd.window_height
+}
+
+pub fn s_wcd_window_handle() -> RawWindowHandle {
+    let lock = S_WCD.clone();
+    let s_wcd = lock.read().unwrap();
+    s_wcd.window.as_ref().unwrap().raw_window_handle()
+}
+
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         pub fn append_text(text: &str) {
-            let lock = S_WCD.clone();
-            let mut s_wcd = lock.write().unwrap();
-        
             let clean_text = clean_text(text);
             let clean_len = clean_text.len();
             TEXT_APPENDED.store(TEXT_APPENDED.load(Ordering::Relaxed) + clean_len, Ordering::Relaxed);
 
-            let buffer_window_handle = s_wcd.buffer_window.as_mut().unwrap().window_handle();
+            let buffer_window_handle = s_wcd_buffer_window_handle();
             let hwnd = buffer_window_handle.get_win32().unwrap().hwnd;
 
             if TEXT_APPENDED.load(Ordering::Relaxed) > 0x4000 {
@@ -139,12 +197,8 @@ cfg_if! {
 }
 
 pub fn append_text_in_main_thread(text: &str) {
-    {
-        let lock = S_WCD.clone();
-        let s_wcd = lock.read().unwrap();
-        if s_wcd.buffer_window.is_none() {
-            return;
-        }
+    if s_wcd_buffer_is_none() {
+        return;
     }
 
     //if sys::is_main_thread() {
