@@ -1,12 +1,10 @@
-#![feature(thread_spawn_unchecked)]
 #![feature(never_type)]
-#![feature(local_key_cell_methods)]
 #![feature(io_error_more)]
 #![feature(const_option)]
 #![feature(int_roundings)]
+
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::iter_nth_zero)]
-
 #![deny(missing_debug_implementations)]
 
 use discord_rich_presence::activity::{Activity};
