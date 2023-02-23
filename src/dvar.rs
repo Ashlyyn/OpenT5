@@ -8282,6 +8282,10 @@ fn set_admin_f() {
     };
 }
 
+fn set_mod_dvar_f() {
+    todo!()
+}
+
 fn set_from_dvar_f() {
     let argc = cmd::argc();
     if argc != 3 {
@@ -8302,6 +8306,10 @@ fn set_from_dvar_f() {
             &format!("dvar \'{}\' doesn\'t exist\n", source_dvar_name),
         );
     }
+}
+
+fn set_from_localized_string_f() {
+    todo!()
 }
 
 fn set_to_time_f() {
@@ -8605,6 +8613,10 @@ fn setu_f() {
     dvar::add_flags(&name, DvarFlags::USER_INFO).unwrap();
 }
 
+fn set_all_client_dvars_f() {
+    todo!()
+}
+
 fn restore_dvars() {
     if find("sv_restoreDvars").unwrap().current.as_bool().unwrap() == false {
         return;
@@ -8642,12 +8654,6 @@ fn list_saved_dvars() {
     com::println(0.into(), &format!("\n{} total SAVED dvars", i));
 }
 
-macro_rules! todo_nopanic {
-    ($s:expr) => {
-        println!("TODO: {}", $s);
-    };
-}
-
 /// Adds commands for Dvar module
 pub fn add_commands() {
     cmd::add_internal("toggle", toggle_f).unwrap();
@@ -8656,9 +8662,9 @@ pub fn add_commands() {
     cmd::add_internal("sets", sets_f).unwrap();
     cmd::add_internal("seta", seta_f).unwrap();
     cmd::add_internal("setadminvar", set_admin_f).unwrap();
-    todo_nopanic!("setmoddvar");
+    cmd::add_internal("setmoddvar", set_mod_dvar_f).unwrap();
     cmd::add_internal("setfromdvar", set_from_dvar_f).unwrap();
-    todo_nopanic!("setfromlocString");
+    cmd::add_internal("setfromlocString", set_from_localized_string_f).unwrap();
     cmd::add_internal("reset", reset_f).unwrap();
     cmd::add_internal("dvarlist", list_f).unwrap();
     cmd::add_internal("dvardump", dump_f).unwrap();
@@ -8667,7 +8673,7 @@ pub fn add_commands() {
     cmd::add_internal("dvar_float", register_float_f).unwrap();
     cmd::add_internal("dvar_color", register_color_f).unwrap();
     cmd::add_internal("setu", setu_f).unwrap();
-    todo_nopanic!("setAllClientDvars");
+    cmd::add_internal("setAllClientDvars", set_all_client_dvars_f).unwrap();
     cmd::add_internal("restoreDvars", restore_dvars).unwrap();
     cmd::add_internal("dvarlist_saved", list_saved_dvars).unwrap();
 }
