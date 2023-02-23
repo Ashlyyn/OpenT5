@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use std::sync::{Condvar, Mutex};
@@ -352,5 +353,23 @@ pub trait EasierWindowHandle: HasRawWindowHandle {
 impl<T: HasRawWindowHandle> EasierWindowHandle for T {
     fn window_handle(&self) -> WindowHandle {
         WindowHandle::new(self.raw_window_handle())
+    }
+}
+
+pub trait EasierAtomic {
+    type ValueType;
+    fn load_relaxed(&self) -> Self::ValueType;
+    fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType;
+}
+
+impl EasierAtomic for AtomicBool {
+    type ValueType = bool;
+    fn load_relaxed(&self) -> Self::ValueType {
+        self.load(Ordering::Relaxed)
+    }
+
+    fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType {
+        self.store(value, Ordering::Relaxed);
+        value
     }
 }
