@@ -116,7 +116,7 @@ pub fn is_channel_visible(
         return false;
     }
 
-    return true;
+    true
 }
 
 pub struct ConsoleBuffer {

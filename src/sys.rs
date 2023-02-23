@@ -1046,7 +1046,7 @@ cfg_if! {
 
 pub fn print(text: &str) {
     if DEBUG_OUTPUT.load(Ordering::Relaxed) {
-        output_debug_string(&text);
+        output_debug_string(text);
     }
 
     conbuf::append_text_in_main_thread(text);
