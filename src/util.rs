@@ -386,7 +386,7 @@ impl Module {
             /// Returns [`Some`] if the library was successfully loaded, 
             /// [`None`] if not.
             pub fn load(name: &Path) -> Option<Self> {
-                // OsStrExt::encode_wide doesn't add the null-terminator that
+                // [`OsStrExt::encode_wide`] doesn't add the null-terminator that
                 // LoadLibraryW is going to expect, so we have to add it 
                 // manually
                 let mut name = 
@@ -397,7 +397,9 @@ impl Module {
                 unsafe { LoadLibraryW(PCWSTR(name)) }.ok().map(|h| Module { ptr: h.0 as *mut () })
             }
 
-            pub fn unload(&mut self) {
+            /// Unloads the library loaded by [`Module::load`]. Should only be 
+            /// used when dropped.
+            fn unload(&mut self) {
                 unsafe { FreeLibrary(HINSTANCE(self.ptr as _)) };
             }
         } else if #[cfg(target_family = "unix")] {
@@ -414,7 +416,7 @@ impl Module {
             /// Returns [`Some`] if the library was successfully loaded, 
             /// [`None`] if not.
             pub fn load(name: &Path) -> Option<Self> {
-                // OsStrExt::as_bytes doesn't yield a null-terminated string
+                // [`OsStrExt::as_bytes`] doesn't yield a null-terminated string
                 // like dlopen is going to expect, so we have to add it 
                 // manually
                 let mut name = name.as_os_str().as_bytes().collect::<Vec<_>>();
@@ -429,6 +431,8 @@ impl Module {
                 }
             }
 
+            /// Unloads the library loaded by [`Module::load`]. Should only be 
+            /// used when dropped.
             fn unload(&mut self) {
                 unsafe { dlclose(self.ptr as *mut _) };
             }
@@ -437,7 +441,7 @@ impl Module {
                 todo!()
             }
 
-            pub fn unload(&mut self) {
+            fn unload(&mut self) {
                 todo!()
             }
         }
