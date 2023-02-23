@@ -2,17 +2,16 @@
 #![feature(io_error_more)]
 #![feature(const_option)]
 #![feature(int_roundings)]
-
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::iter_nth_zero)]
 #![deny(missing_debug_implementations)]
 
-use discord_rich_presence::activity::{Activity};
+use discord_rich_presence::activity::Activity;
 use lazy_static::lazy_static;
-use std::{sync::{
+use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
-}};
+};
 extern crate num_derive;
 
 mod cbuf;
@@ -20,12 +19,16 @@ mod cl;
 mod cmd;
 mod com;
 mod common;
+mod conbuf;
+mod console;
+mod discord_rpc;
 mod dvar;
 mod fs;
 mod gfx;
 mod input;
 mod key;
 mod locale;
+mod pb;
 mod platform;
 mod pmem;
 mod rb;
@@ -34,10 +37,6 @@ mod seh;
 mod sys;
 mod util;
 mod vid;
-mod pb;
-mod console;
-mod conbuf;
-mod discord_rpc;
 
 lazy_static! {
     #[allow(dead_code)]
@@ -138,10 +137,13 @@ fn main() {
         com::init();
     });
 
-    com::println(0.into(), &format!(
-        "{}: com::init spawned, looping until ready for window init...",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        0.into(),
+        &format!(
+            "{}: com::init spawned, looping until ready for window init...",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
 
     // The loop here is necessary so that the lock isn't continuously held,
     // otherwise we run into a deadlock where render::create_window tries to
@@ -170,10 +172,13 @@ fn main() {
     let lock = render::WND_PARMS.clone();
     let mut wnd_parms = *lock.write().unwrap();
 
-    com::println(0.into(), &format!(
-        "{}: ready for window init, creating window...",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        0.into(),
+        &format!(
+            "{}: ready for window init, creating window...",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
 
     // Finally, we send the main thread off to die in render::create_window_2.
     // Anything past this point will only execute if window creation fails.
@@ -181,7 +186,7 @@ fn main() {
     // window is destroyed, due to another set of platform restrictions
     match render::create_window_2(&mut wnd_parms) {
         Ok(_) => unreachable!(),
-        Err(_) => panic!("failed to create window")
+        Err(_) => panic!("failed to create window"),
     }
     // ========================================================================
 }

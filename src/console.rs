@@ -2,8 +2,8 @@
 
 use std::sync::{Arc, RwLock};
 
-use lazy_static::lazy_static;
 use arrayvec::{ArrayString, ArrayVec};
+use lazy_static::lazy_static;
 
 #[derive(Clone, Debug)]
 pub struct PrintChannel {
@@ -36,7 +36,8 @@ impl PrintChannelGlob {
 }
 
 lazy_static! {
-    static ref PC_GLOB: Arc<RwLock<PrintChannelGlob>> = Arc::new(RwLock::new(PrintChannelGlob::new()));
+    static ref PC_GLOB: Arc<RwLock<PrintChannelGlob>> =
+        Arc::new(RwLock::new(PrintChannelGlob::new()));
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -82,7 +83,11 @@ channel_from!(i32);
 channel_from!(i64);
 channel_from!(isize);
 
-pub fn is_channel_visible(mut msg_dest: PrintMessageDest, channel: Channel, param_3: i32) -> bool {
+pub fn is_channel_visible(
+    mut msg_dest: PrintMessageDest,
+    channel: Channel,
+    param_3: i32,
+) -> bool {
     let lock = PC_GLOB.clone();
     let pcglob = lock.read().unwrap();
 
@@ -101,8 +106,12 @@ pub fn is_channel_visible(mut msg_dest: PrintMessageDest, channel: Channel, para
         return true;
     }
 
-    if (pcglob.filters[msg_dest as usize][channel.get() as usize >> 5] & 1 << channel.get() & 0x1F) == 0 
-        && ((param_3 >> 5 & 0x1F != 3 && param_3 >> 5 & 0x1F != 2) || pcglob.filters[msg_dest as usize][0] & 2 != 0)
+    if (pcglob.filters[msg_dest as usize][channel.get() as usize >> 5]
+        & 1 << channel.get()
+        & 0x1F)
+        == 0
+        && ((param_3 >> 5 & 0x1F != 3 && param_3 >> 5 & 0x1F != 2)
+            || pcglob.filters[msg_dest as usize][0] & 2 != 0)
     {
         return false;
     }

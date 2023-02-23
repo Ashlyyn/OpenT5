@@ -102,10 +102,10 @@ pub fn find(name: &str) -> Option<CmdFunction> {
 
 pub fn add_internal(name: &str, function: fn()) {
     match find(name) {
-        Some(_) => com::println(16.into(), &format!(
-            "cmd::add_internal: {} is already defined",
-            name
-        )),
+        Some(_) => com::println(
+            16.into(),
+            &format!("cmd::add_internal: {} is already defined", name),
+        ),
         None => {
             CMD_FUNCTIONS.write().unwrap().insert(
                 name.to_string(),

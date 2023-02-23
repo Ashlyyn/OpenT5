@@ -1,10 +1,13 @@
 use crate::*;
 
 pub fn render_thread() -> ! {
-    com::println(0.into(), &format!(
-        "{}: rb::render_thread()...",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        0.into(),
+        &format!(
+            "{}: rb::render_thread()...",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
     loop {
         println!("loop1");
         loop {

@@ -6,7 +6,10 @@ use std::sync::{Arc, RwLock};
 
 use lazy_static::lazy_static;
 
-use raw_window_handle::{RawWindowHandle, Win32WindowHandle, XlibWindowHandle, XcbWindowHandle, WaylandWindowHandle, UiKitWindowHandle, AppKitWindowHandle};
+use raw_window_handle::{
+    AppKitWindowHandle, RawWindowHandle, UiKitWindowHandle,
+    WaylandWindowHandle, Win32WindowHandle, XcbWindowHandle, XlibWindowHandle,
+};
 
 #[derive(Copy, Clone, Debug)]
 pub struct WindowHandle(RawWindowHandle);

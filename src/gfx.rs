@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 
 use crate::{
+    platform::WindowHandle,
     render::{MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION},
-    *, platform::WindowHandle,
+    *,
 };
 use arrayvec::ArrayVec;
 use common::*;

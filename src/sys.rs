@@ -241,13 +241,7 @@ pub fn no_free_files_error() -> ! {
     let title = locale::localize_ref("WIN_DISK_FULL_TITLE");
     let text = locale::localize_ref("WIN_DISK_FULL_BODY");
     let handle = render::main_window_handle();
-    message_box(
-        handle,
-        &title,
-        &text,
-        msg_box_type,
-        Some(msg_box_icon),
-    );
+    message_box(handle, &title, &text, msg_box_type, Some(msg_box_icon));
     // DoSetEvent_UNK();
     std::process::exit(-1);
 }
@@ -494,13 +488,7 @@ pub fn render_fatal_error() -> ! {
     let title = locale::localize_ref("WIN_RENDER_INIT_TITLE");
     let text = locale::localize_ref("WIN_RENDER_INIT_BODY");
     let handle = render::main_window_handle();
-    message_box(
-        handle,
-        &title,
-        &text,
-        msg_box_type,
-        Some(msg_box_icon),
-    );
+    message_box(handle, &title, &text, msg_box_type, Some(msg_box_icon));
     //DoSetEvent_UNK();
     std::process::exit(-1);
 }
@@ -560,10 +548,10 @@ pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
         }) {
         Ok(h) => Some(h),
         Err(e) => {
-            com::println(1.into(), &format!(
-                "error {} while creating thread {}",
-                e, name
-            ));
+            com::println(
+                1.into(),
+                &format!("error {} while creating thread {}", e, name),
+            );
             None
         }
     }
@@ -813,13 +801,7 @@ fn should_update_for_info_change() -> bool {
     let text = locale::localize_ref("WIN_CONFIGURE_UPDATED_BODY");
     let handle = render::main_window_handle();
     matches!(
-        message_box(
-            handle,
-            &title,
-            &text,
-            msg_box_type,
-            Some(msg_box_icon),
-        ),
+        message_box(handle, &title, &text, msg_box_type, Some(msg_box_icon),),
         Some(MessageBoxResult::Yes)
     )
 }
@@ -941,7 +923,7 @@ cfg_if! {
                 Some(h) => h.get_win32().unwrap().hwnd,
                 None => 0 as _,
             };
-        
+
             let ctext = match CString::new(text) {
                 Ok(s) => s,
                 Err(_) => return None,
@@ -1070,15 +1052,13 @@ pub fn print(text: &str) {
     conbuf::append_text_in_main_thread(text);
 }
 
-fn create_console() {
-
-}
+fn create_console() {}
 
 pub fn show_console() {
     if conbuf::s_wcd_window_is_none() {
         create_console();
     }
-    
+
     conbuf::s_wcd_window_set_visible(true);
 }
 
@@ -1087,11 +1067,18 @@ fn post_error(error: &str) {
         conbuf::s_wcd_set_error_string(error.into());
         conbuf::s_wcd_clear_input_line_window();
     }
-    
+
     // DestroyWindow(s_wcd.hwndInputLine);
 
     let handle = render::main_window_handle();
-    message_box(handle, "Error", error, MessageBoxType::Ok, MessageBoxIcon::Stop.into()).unwrap();
+    message_box(
+        handle,
+        "Error",
+        error,
+        MessageBoxType::Ok,
+        MessageBoxIcon::Stop.into(),
+    )
+    .unwrap();
 }
 
 pub fn error(error: &str) -> ! {
@@ -1100,7 +1087,7 @@ pub fn error(error: &str) -> ! {
 
     // FixWindowsDesktop() (probably shouldn't be necessary)
 
-    // if Sys_IsMainThread() (no clue how necessary this check is, 
+    // if Sys_IsMainThread() (no clue how necessary this check is,
     // probably have to do some restructuring)
     show_console();
     conbuf::append_text(&format!("\n\n{}\n", error));

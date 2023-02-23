@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use crate::*;
 use crate::console::Channel;
-use arrayvec::{ArrayVec};
+use crate::*;
+use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
@@ -98,8 +98,6 @@ fn print_internal(channel: Channel, _param_2: i32, message: String) {
         return;
     }
 
-
-
     print!("({}) - {}", channel.get(), message);
 }
 
@@ -178,7 +176,8 @@ thread_local! {
 }
 
 lazy_static! {
-    static ref ERROR_MESSAGE: Arc<RwLock<String>> = Arc::new(RwLock::new(String::new()));
+    static ref ERROR_MESSAGE: Arc<RwLock<String>> =
+        Arc::new(RwLock::new(String::new()));
 }
 
 pub fn init() {

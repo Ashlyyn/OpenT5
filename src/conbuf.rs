@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
-use std::{sync::{atomic::{AtomicUsize}, Arc, RwLock}};
+use std::sync::{atomic::AtomicUsize, Arc, RwLock};
 
+use crate::platform::{FontHandle, WindowHandle};
 use arrayvec::ArrayString;
-use lazy_static::lazy_static;
 use cfg_if::cfg_if;
-use raw_window_handle::{RawWindowHandle, HasRawWindowHandle};
-use crate::{platform::{FontHandle, WindowHandle}};
+use lazy_static::lazy_static;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
 cfg_if! {
     if #[cfg(target_os = "windows")] {
@@ -19,7 +19,7 @@ cfg_if! {
 
 pub fn clean_text(text: &str) -> String {
     let mut clean = String::new();
-    
+
     let mut chars = text.chars();
     while let Some(c) = chars.next() {
         if c == '\n' {
@@ -81,7 +81,8 @@ pub struct ConsoleData {
 }
 
 lazy_static! {
-    pub static ref S_WCD: Arc<RwLock<ConsoleData>> = Arc::new(RwLock::new(Default::default()));
+    pub static ref S_WCD: Arc<RwLock<ConsoleData>> =
+        Arc::new(RwLock::new(Default::default()));
 }
 
 pub fn s_wcd_set_window(window: winit::window::Window) {
@@ -144,7 +145,7 @@ pub fn s_wcd_buffer_is_none() -> bool {
     s_wcd.buffer_window.is_none()
 }
 
-pub fn s_wcd_set_window_width(width: i16) { 
+pub fn s_wcd_set_window_width(width: i16) {
     let lock = S_WCD.clone();
     let mut s_wcd = lock.write().unwrap();
     s_wcd.window_width = width;
@@ -202,6 +203,6 @@ pub fn append_text_in_main_thread(text: &str) {
     }
 
     //if sys::is_main_thread() {
-        append_text(text);
+    append_text(text);
     //}
 }
