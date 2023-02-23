@@ -100,17 +100,20 @@ pub fn find(name: &str) -> Option<CmdFunction> {
     reader.get(name).cloned()
 }
 
-pub fn add_internal(name: &str, function: fn()) {
+pub fn add_internal(name: &str, function: fn()) -> Result<CmdFunction, ()> {
     match find(name) {
-        Some(_) => com::println(
-            16.into(),
-            &format!("cmd::add_internal: {} is already defined", name),
-        ),
+        Some(_) => {
+            com::println(
+                16.into(),
+                &format!("cmd::add_internal: {} is already defined", name),
+            );
+            Err(())
+        },
         None => {
             CMD_FUNCTIONS.write().unwrap().insert(
                 name.to_string(),
                 CmdFunction::new(name, "", "", function),
-            );
+            ).ok_or(())
         }
     }
 }
