@@ -346,6 +346,10 @@ impl<T: Sized + Clone> SmpEvent<T> {
 
 pub struct Module;
 
+// Made this because I got tired of importing std::sync::atomic::Ordering
+// and passing the exact same Ordering (Ordering::Relaxed) 99% of the time.
+// Purely a convenience thing, absolutely meaningless in terms of 
+// functionality
 pub trait EasierWindowHandle: HasRawWindowHandle {
     fn window_handle(&self) -> WindowHandle;
 }
