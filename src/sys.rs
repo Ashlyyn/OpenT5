@@ -1110,10 +1110,8 @@ pub fn show_console() {
 }
 
 fn post_error(error: &str) {
-    {
-        conbuf::s_wcd_set_error_string(error.into());
-        conbuf::s_wcd_clear_input_line_window();
-    }
+    conbuf::s_wcd_set_error_string(error.into());
+    conbuf::s_wcd_clear_input_line_window();
 
     // DestroyWindow(s_wcd.hwndInputLine);
 
