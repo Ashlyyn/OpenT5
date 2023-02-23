@@ -37,6 +37,7 @@ mod seh;
 mod sys;
 mod util;
 mod vid;
+mod net;
 
 lazy_static! {
     #[allow(dead_code)]
