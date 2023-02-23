@@ -13,7 +13,6 @@ cfg_if! {
         use std::ptr::addr_of;
         use std::sync::atomic::Ordering;
         use windows::Win32::{UI::{WindowsAndMessaging::SendMessageA, Controls::{EM_SETSEL, EM_LINESCROLL, EM_SCROLLCARET, EM_REPLACESEL}}, Foundation::{WPARAM, LPARAM, HWND}};
-        use crate::util::EasierWindowHandle;
     }
 }
 
