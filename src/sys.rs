@@ -46,21 +46,69 @@ cfg_if! {
     }
 }
 
+fn in_restart_f() {
+    input::shutdown();
+    input::init();
+}
+
+fn net_restart_f() {
+    net::restart();
+}
+
+fn movie_start_f() {
+    todo!()
+}
+
+fn movie_stop_f() {
+    todo!()
+}
+
+fn listen_f() {
+    todo!()
+}
+
+fn connect_f() {
+    todo!()
+}
+
+pub fn init() {
+    cmd::add_internal("in_restart", in_restart_f).unwrap();
+    cmd::add_internal("net_restart", net_restart_f).unwrap();
+    cmd::add_internal("movie_start", movie_start_f).unwrap();
+    cmd::add_internal("movie_stop", movie_stop_f).unwrap();
+    cmd::add_internal("net_listen", listen_f).unwrap();
+    cmd::add_internal("net_connect", connect_f).unwrap();
+    
+    com::println(16.into(), &format!("CPU vendor is \"{}\"", get_cpu_vendor()));
+    com::println(16.into(), &format!("CPU name is \"{}\"", get_cpu_name()));
+
+    let info = find_info();
+
+    let c = if info.logical_cpu_count == 1 {
+        ""
+    } else {
+        "s"
+    };
+    com::println(16.into(), &format!("{} logical CPU{} reported", info.logical_cpu_count, c));
+
+    let c = if info.physical_cpu_count == 1 {
+        ""
+    } else {
+        "s"
+    };
+    com::println(16.into(), &format!("{} physical CPU{} detected", info.physical_cpu_count, c));
+    com::println(16.into(), &format!("Measured CPU speed is {:.2} GHz", info.cpu_ghz));
+    com::println(16.into(), &format!("Total CPU performance is estimated as {:.2} GHz", info.configure_ghz));
+    com::println(16.into(), &format!("System memory is {} MB (capped at 1 GB)", info.sys_mb));
+    com::println(16.into(), &format!("Video card is \"{}\"", info.gpu_description));
+    // TODO - vector support
+    com::println(16.into(), "");
+    input::init();
+}
+
 lazy_static! {
     static ref BASE_TIME_ACQUIRED: AtomicBool = AtomicBool::new(false);
     pub static ref TIME_BASE: AtomicIsize = AtomicIsize::new(0);
-}
-
-cfg_if! {
-    if #[cfg(windows)] {
-        pub fn init() {
-            gpu::init();
-        }
-    } else {
-        pub fn init() {
-            gpu::init();
-        }
-    }
 }
 
 pub fn milliseconds() -> isize {
@@ -414,30 +462,29 @@ impl SysInfo {
         }
     }
 
-    fn find(&mut self) {
+    fn find(&mut self) -> &mut Self {
         self.gpu_description = detect_video_card();
         self.logical_cpu_count = get_logical_cpu_count();
         self.physical_cpu_count = get_physical_cpu_count();
         self.sys_mb = get_system_ram_in_bytes() / (1024 * 1024);
         self.cpu_vendor = get_cpu_vendor();
         self.cpu_name = get_cpu_name();
+        self
     }
 }
 
 lazy_static! {
-    static ref SYS_INFO: Arc<RwLock<SysInfo>> =
-        Arc::new(RwLock::new(SysInfo::new()));
+    static ref SYS_INFO: Arc<RwLock<Option<SysInfo>>> =
+        Arc::new(RwLock::new(None));
 }
 
-pub fn find_info() {
-    SysInfo::new().find();
-}
-
-fn info() -> Option<SysInfo> {
-    match SYS_INFO.clone().read() {
-        Ok(s) => Some(s.clone()),
-        Err(_) => None,
+pub fn find_info() -> SysInfo {
+    let lock = SYS_INFO.clone();
+    let mut sys_info = lock.write().unwrap();
+    if sys_info.is_none() {
+        *sys_info = Some(SysInfo::new().find().clone());
     }
+    sys_info.as_ref().unwrap().clone()
 }
 
 pub enum EventType {
