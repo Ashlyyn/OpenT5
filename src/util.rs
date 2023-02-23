@@ -1,13 +1,11 @@
 #![allow(dead_code)]
 
-use std::ffi::c_char;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use std::sync::{Condvar, Mutex};
 
-use libc::dlclose;
 use raw_window_handle::HasRawWindowHandle;
 
 use crate::platform::WindowHandle;
@@ -15,9 +13,16 @@ use crate::platform::WindowHandle;
 use cfg_if::cfg_if;
 
 cfg_if! {
-    if #[cfg(target_family = "unix")] {
+    if #[cfg(target_os = "windows")] {
+        use std::os::windows::prelude::OsStrExt;
+        use windows::Win32::System::LibraryLoader::{LoadLibraryW, FreeLibrary};
+        use windows::Win32::Foundation::HINSTANCE;
+        use windows::core::PCWSTR;
+    }
+    else if #[cfg(target_family = "unix")] {
         use std::os::unix::prelude::OsStrExt;
-        use libc::{dlopen, RTLD_NOW};
+        use libc::{dlopen, dlclose, RTLD_NOW};
+        use std::ffi::c_char;
     }
 }
 
@@ -363,12 +368,13 @@ pub struct Module {
 impl Module {
     cfg_if! {
         if #[cfg(target_os = "windows")] {
-            pub fn load(name: Path) -> Option<Self> {
-                todo!()
+            pub fn load(name: &Path) -> Option<Self> {
+                let name = name.as_os_str().encode_wide().collect::<Vec<_>>().as_ptr();
+                unsafe { LoadLibraryW(PCWSTR(name)) }.ok().map(|h| Module { ptr: h.0 as *mut () })
             }
 
             pub fn unload(&mut self) {
-                todo!()
+                unsafe { FreeLibrary(HINSTANCE(self.ptr as _)) };
             }
         } else if #[cfg(target_family = "unix")] {
             pub fn load(name: &Path) -> Option<Self> {
