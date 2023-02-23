@@ -8650,26 +8650,26 @@ macro_rules! todo_nopanic {
 
 /// Adds commands for Dvar module
 pub fn add_commands() {
-    cmd::add_internal("toggle", toggle_f);
-    cmd::add_internal("togglep", toggle_print_f);
-    cmd::add_internal("set", set_f);
-    cmd::add_internal("sets", sets_f);
-    cmd::add_internal("seta", seta_f);
-    cmd::add_internal("setadminvar", set_admin_f);
+    cmd::add_internal("toggle", toggle_f).unwrap();
+    cmd::add_internal("togglep", toggle_print_f).unwrap();
+    cmd::add_internal("set", set_f).unwrap();
+    cmd::add_internal("sets", sets_f).unwrap();
+    cmd::add_internal("seta", seta_f).unwrap();
+    cmd::add_internal("setadminvar", set_admin_f).unwrap();
     todo_nopanic!("setmoddvar");
-    cmd::add_internal("setfromdvar", set_from_dvar_f);
+    cmd::add_internal("setfromdvar", set_from_dvar_f).unwrap();
     todo_nopanic!("setfromlocString");
-    cmd::add_internal("reset", reset_f);
-    cmd::add_internal("dvarlist", list_f);
-    cmd::add_internal("dvardump", dump_f);
-    cmd::add_internal("dvar_bool", register_bool_f);
-    cmd::add_internal("dvar_int", register_int_f);
-    cmd::add_internal("dvar_float", register_float_f);
-    cmd::add_internal("dvar_color", register_color_f);
-    cmd::add_internal("setu", setu_f);
+    cmd::add_internal("reset", reset_f).unwrap();
+    cmd::add_internal("dvarlist", list_f).unwrap();
+    cmd::add_internal("dvardump", dump_f).unwrap();
+    cmd::add_internal("dvar_bool", register_bool_f).unwrap();
+    cmd::add_internal("dvar_int", register_int_f).unwrap();
+    cmd::add_internal("dvar_float", register_float_f).unwrap();
+    cmd::add_internal("dvar_color", register_color_f).unwrap();
+    cmd::add_internal("setu", setu_f).unwrap();
     todo_nopanic!("setAllClientDvars");
-    cmd::add_internal("restoreDvars", restore_dvars);
-    cmd::add_internal("dvarlist_saved", list_saved_dvars);
+    cmd::add_internal("restoreDvars", restore_dvars).unwrap();
+    cmd::add_internal("dvarlist_saved", list_saved_dvars).unwrap();
 }
 
 lazy_static! {
