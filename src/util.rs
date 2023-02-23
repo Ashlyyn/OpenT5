@@ -1,13 +1,25 @@
 #![allow(dead_code)]
 
+use std::ffi::c_char;
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use std::sync::{Condvar, Mutex};
 
+use libc::dlclose;
 use raw_window_handle::HasRawWindowHandle;
 
 use crate::platform::WindowHandle;
+
+use cfg_if::cfg_if;
+
+cfg_if! {
+    if #[cfg(target_family = "unix")] {
+        use std::os::unix::prelude::OsStrExt;
+        use libc::{dlopen, RTLD_NOW};
+    }
+}
 
 pub struct SmpEvent<T: Sized> {
     manual_reset: bool,
@@ -344,7 +356,50 @@ impl<T: Sized + Clone> SmpEvent<T> {
     }
 }
 
-pub struct Module;
+pub struct Module {
+    ptr: *mut ()
+}
+
+impl Module {
+    cfg_if! {
+        if #[cfg(target_os = "windows")] {
+            pub fn load(name: Path) -> Option<Self> {
+                todo!()
+            }
+
+            pub fn unload(&mut self) {
+                todo!()
+            }
+        } else if #[cfg(target_family = "unix")] {
+            pub fn load(name: &Path) -> Option<Self> {
+                let ptr = unsafe { dlopen(name.as_os_str().as_bytes().as_ptr() as *const c_char, RTLD_NOW) } as *mut ();
+                if ptr.is_null() {
+                    None
+                } else {
+                    Some(Module { ptr })
+                }
+            }
+
+            fn unload(&mut self) {
+                unsafe { dlclose(self.ptr as *mut _) };
+            }
+        } else {
+            pub fn load(name: Path) -> Option<Self> {
+                todo!()
+            }
+
+            pub fn unload(&mut self) {
+                todo!()
+            }
+        }
+    }
+}
+
+impl Drop for Module {
+    fn drop(&mut self) {
+        self.unload()
+    }
+}
 
 pub trait EasierWindowHandle: HasRawWindowHandle {
     fn window_handle(&self) -> WindowHandle;
