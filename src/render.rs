@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
-use crate::{util::*, *, platform::WindowHandle};
+use crate::{platform::WindowHandle, util::*, *};
 use pollster::block_on;
 use sscanf::scanf;
-use winit::dpi::Position;
 use std::collections::{HashSet, VecDeque};
 use std::sync::RwLock;
+use winit::dpi::Position;
 
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -24,23 +24,32 @@ fn init_render_thread() {
 }
 
 pub fn init_threads() {
-    com::println(8.into(), &format!(
-        "{}: Trying SMP acceleration...",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        8.into(),
+        &format!(
+            "{}: Trying SMP acceleration...",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
     init_render_thread();
     //init_worker_threads();
-    com::println(8.into(), &format!(
-        "{}: ...succeeded",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        8.into(),
+        &format!(
+            "{}: ...succeeded",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
 }
 
 pub fn begin_registration_internal() -> Result<(), ()> {
-    com::println(8.into(), &format!(
-        "{}: render::begin_registration_internal()...",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        8.into(),
+        &format!(
+            "{}: render::begin_registration_internal()...",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
 
     if init().is_err() {
         return Err(());
@@ -54,7 +63,13 @@ fn register() {
 }
 
 fn reflection_probe_register_dvars() {
-    dvar::register_bool("r_reflectionProbeGenerate", false, dvar::DvarFlags::empty(), "Generate cube maps for reflection probes.".into()).unwrap();
+    dvar::register_bool(
+        "r_reflectionProbeGenerate",
+        false,
+        dvar::DvarFlags::empty(),
+        "Generate cube maps for reflection probes.".into(),
+    )
+    .unwrap();
 }
 
 const ASPECT_RATIO_AUTO: &str = "auto";
@@ -74,12 +89,12 @@ fn register_dvars() {
         "r_aspectRatio", 
         "auto".into(), 
         Some(vec![
-            ASPECT_RATIO_AUTO.into(), 
-            ASPECT_RATIO_STANDARD.into(), 
-            ASPECT_RATIO_16_10.into(), 
+            ASPECT_RATIO_AUTO.into(),
+            ASPECT_RATIO_STANDARD.into(),
+            ASPECT_RATIO_16_10.into(),
             ASPECT_RATIO_16_9.into()
-            ]), 
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, 
+            ]),
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
         Some("Screen aspect ratio.  Most widescreen monitors are 16:10 instead of 16:9.")
     ).unwrap();
     dvar::register_int(
@@ -92,9 +107,9 @@ fn register_dvars() {
     )
     .unwrap();
     dvar::register_bool(
-        "r_vsync", 
-        true, 
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED, 
+        "r_vsync",
+        true,
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
         Some("Enable v-sync before drawing the next frame to avoid \'tearing\' artifacts.")
     ).unwrap();
     dvar::register_string(
@@ -127,10 +142,13 @@ fn register_dvars() {
 }
 
 fn init() -> Result<(), ()> {
-    com::println(8.into(), &format!(
-        "{}: render::init()...",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        8.into(),
+        &format!(
+            "{}: render::init()...",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
 
     register();
 
@@ -152,7 +170,7 @@ struct WinitGlobals {
     best_monitor_handle: Option<winit::monitor::MonitorHandle>,
     video_modes: Vec<winit::monitor::VideoMode>,
     window_handle: Option<WindowHandle>,
-    proxy_events: VecDeque<WinitCustomEvent>
+    proxy_events: VecDeque<WinitCustomEvent>,
 }
 
 lazy_static! {
@@ -526,18 +544,24 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     }
 
     if wnd_parms.fullscreen {
-        com::println(8.into(), &format!(
-            "Attempting {} x {} fullscreen with 32 bpp at {} hz",
-            wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz
-        ));
+        com::println(
+            8.into(),
+            &format!(
+                "Attempting {} x {} fullscreen with 32 bpp at {} hz",
+                wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz
+            ),
+        );
     } else {
-        com::println(8.into(), &format!(
-            "Attempting {} x {} window at ({}, {})",
-            wnd_parms.display_width,
-            wnd_parms.display_height,
-            wnd_parms.x,
-            wnd_parms.y
-        ));
+        com::println(
+            8.into(),
+            &format!(
+                "Attempting {} x {} window at ({}, {})",
+                wnd_parms.display_width,
+                wnd_parms.display_height,
+                wnd_parms.x,
+                wnd_parms.y
+            ),
+        );
     }
 
     let window_name = com::get_official_build_name_r();
@@ -614,21 +638,27 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     // we have to move things around later, we can.
 
     let console_title = com::get_build_display_name();
-    let monitor = main_window.current_monitor().or(main_window.available_monitors().nth(0)).unwrap();
+    let monitor = main_window
+        .current_monitor()
+        .or(main_window.available_monitors().nth(0))
+        .unwrap();
     let horzres = (monitor.size().width - 450) / 2;
     let vertres = (monitor.size().height - 600) / 2;
     let console_width = conbuf::s_wcd_window_width();
     let console_height = conbuf::s_wcd_window_height();
     let console_window = winit::window::WindowBuilder::new()
         .with_title(console_title)
-        .with_position(Position::Physical(PhysicalPosition::new(horzres as _, vertres as _)))
+        .with_position(Position::Physical(PhysicalPosition::new(
+            horzres as _,
+            vertres as _,
+        )))
         .with_inner_size(PhysicalSize::new(console_width, console_height))
         .with_visible(false)
         .build(&event_loop)
         .unwrap();
 
     conbuf::s_wcd_set_window(console_window);
-    
+
     const CODLOGO_POS_X: i32 = 5;
     const CODLOGO_POS_Y: i32 = 5;
     const INPUT_LINE_POS_X: i32 = 6;
@@ -652,8 +682,14 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
         let input_line_window = winit::window::WindowBuilder::new()
             .with_parent_window(parent)
-            .with_position(PhysicalPosition::new(INPUT_LINE_POS_X, INPUT_LINE_POS_Y))
-            .with_inner_size(PhysicalSize::new(INPUT_LINE_SIZE_H, INPUT_LINE_SIZE_W))
+            .with_position(PhysicalPosition::new(
+                INPUT_LINE_POS_X,
+                INPUT_LINE_POS_Y,
+            ))
+            .with_inner_size(PhysicalSize::new(
+                INPUT_LINE_SIZE_H,
+                INPUT_LINE_SIZE_W,
+            ))
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -985,10 +1021,13 @@ fn init_hardware(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 }
 
 pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
-    com::println(8.into(), &format!(
-        "{}: render::create_window()...",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        8.into(),
+        &format!(
+            "{}: render::create_window()...",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
 
     init_hardware(wnd_parms).unwrap();
 
@@ -997,15 +1036,21 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         let mut writer = lock.write().expect("");
         *writer = *wnd_parms;
     }
-    com::println(8.into(), &format!(
-        "{}: written WND_PARMS.",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        8.into(),
+        &format!(
+            "{}: written WND_PARMS.",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
 
-    com::println(8.into(), &format!(
-        "{}: waiting for init...",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        8.into(),
+        &format!(
+            "{}: waiting for init...",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
 
     {
         let lock = WINDOW_AWAITING_INIT.clone();
@@ -1022,11 +1067,14 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             }
         }
     };
-    com::println(8.into(), &format!(
-        "{}: init complete, res={:?}...",
-        std::thread::current().name().unwrap_or("main"),
-        res
-    ));
+    com::println(
+        8.into(),
+        &format!(
+            "{}: init complete, res={:?}...",
+            std::thread::current().name().unwrap_or("main"),
+            res
+        ),
+    );
 
     match res {
         Ok(_) => Ok(()),
@@ -1044,10 +1092,13 @@ lazy_static! {
 }
 
 fn init_graphics_api() -> Result<(), ()> {
-    com::println(8.into(), &format!(
-        "{}: render::init_graphics_api()...",
-        std::thread::current().name().unwrap_or("main")
-    ));
+    com::println(
+        8.into(),
+        &format!(
+            "{}: render::init_graphics_api()...",
+            std::thread::current().name().unwrap_or("main")
+        ),
+    );
     if RENDER_GLOBALS.clone().read().expect("").device.is_none() {
         if pre_create_window().is_err() {
             return Err(());
