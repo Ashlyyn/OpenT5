@@ -96,26 +96,32 @@ lazy_static! {
 
 pub fn find(name: &str) -> Option<CmdFunction> {
     let lock = CMD_FUNCTIONS.clone();
-    let reader = lock.read().unwrap();
-    reader.get(name).cloned()
+    let cmd_functions = lock.read().unwrap();
+    cmd_functions.get(name).cloned()
 }
 
-pub fn add_internal(name: &str, function: fn()) -> Result<CmdFunction, ()> {
-    match find(name) {
-        Some(_) => {
-            com::println(
-                16.into(),
-                &format!("cmd::add_internal: {} is already defined", name),
-            );
-            Err(())
-        },
-        None => {
-            CMD_FUNCTIONS.write().unwrap().insert(
-                name.to_string(),
-                CmdFunction::new(name, "", "", function),
-            ).ok_or(())
-        }
+pub fn exists(name: &str) -> bool {
+    let lock = CMD_FUNCTIONS.clone();
+    let cmd_functions = lock.read().unwrap();
+    cmd_functions.contains_key(name) 
+}
+
+pub fn add_internal(name: &str, function: fn()) -> Option<CmdFunction> {
+    if exists(name) {
+        com::println(
+            16.into(),
+            &format!("cmd::add_internal: {} is already defined", name),
+        );
+        return None;
     }
+
+    let lock = CMD_FUNCTIONS.clone();
+    let mut cmd_functions = lock.write().unwrap();
+    cmd_functions.insert(
+        name.to_string(),
+        CmdFunction::new(name, "", "", function),
+    );
+    Some(cmd_functions.get(name).unwrap().clone())
 }
 
 thread_local! {
