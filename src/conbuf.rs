@@ -2,7 +2,7 @@
 
 use std::sync::{atomic::AtomicUsize, Arc, RwLock};
 
-use crate::platform::{FontHandle, WindowHandle};
+use crate::{platform::{FontHandle, WindowHandle}, util::EasierWindowHandle};
 use arrayvec::ArrayString;
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
