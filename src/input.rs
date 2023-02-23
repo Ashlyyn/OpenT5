@@ -29,7 +29,7 @@ fn startup() {
     dvar::clear_modified("in_mouse").unwrap();
 }
 
-fn init() {
+pub fn init() {
     dvar::register_bool(
         "in_mouse",
         true,
@@ -42,4 +42,8 @@ fn init() {
 
 fn is_foreground_window() -> bool {
     platform::get_platform_vars().active_app
+}
+
+pub fn shutdown() {
+    mouse::deactivate();
 }
