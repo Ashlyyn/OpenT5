@@ -361,15 +361,39 @@ impl<T: Sized + Clone> SmpEvent<T> {
     }
 }
 
+/// Wrapper for a dynamic library loaded at runtime
 pub struct Module {
+    // In the future, I woud like to make the inner member a &[u8] rather than
+    // a thin pointer, but Windows doesn't make getting the size of a loaded
+    // library easier, so we're just going to use a pointer (which will work 
+    // on both Windows and Unix platforms)
     ptr: *mut ()
 }
 
 impl Module {
     cfg_if! {
         if #[cfg(target_os = "windows")] {
+            /// Loads a library from the supplied path using [`LoadLibraryW`].
+            /// Refer to [`LoadLibraryW`]'s documentation for what paths are
+            /// valid.
+            /// 
+            /// # Arguments
+            /// 
+            /// * `name` - the name or or path of the library to be loaded.
+            /// 
+            /// # Return Value
+            /// 
+            /// Returns [`Some`] if the library was successfully loaded, 
+            /// [`None`] if not.
             pub fn load(name: &Path) -> Option<Self> {
-                let name = name.as_os_str().encode_wide().collect::<Vec<_>>().as_ptr();
+                // OsStrExt::encode_wide doesn't add the null-terminator that
+                // LoadLibraryW is going to expect, so we have to add it 
+                // manually
+                let mut name = 
+                    name.as_os_str().encode_wide().collect::<Vec<_>>();
+                name.push(0x0000);
+                let name = name.as_ptr();
+
                 unsafe { LoadLibraryW(PCWSTR(name)) }.ok().map(|h| Module { ptr: h.0 as *mut () })
             }
 
@@ -377,8 +401,27 @@ impl Module {
                 unsafe { FreeLibrary(HINSTANCE(self.ptr as _)) };
             }
         } else if #[cfg(target_family = "unix")] {
+            /// Loads a library from the supplied path using [`dlopen`].
+            /// Refer to [`dlopen`]'s documentation for what paths are
+            /// valid.
+            /// 
+            /// # Arguments
+            /// 
+            /// * `name` - the name or or path of the library to be loaded.
+            /// 
+            /// # Return Value
+            /// 
+            /// Returns [`Some`] if the library was successfully loaded, 
+            /// [`None`] if not.
             pub fn load(name: &Path) -> Option<Self> {
-                let ptr = unsafe { dlopen(name.as_os_str().as_bytes().as_ptr() as *const c_char, RTLD_NOW) } as *mut ();
+                // OsStrExt::as_bytes doesn't yield a null-terminated string
+                // like dlopen is going to expect, so we have to add it 
+                // manually
+                let mut name = name.as_os_str().as_bytes().collect::<Vec<_>>();
+                name.push(b'\0');
+                let name = name.as_ptr() as *const c_char;
+
+                let ptr = unsafe { dlopen(name, RTLD_NOW) } as *mut ();
                 if ptr.is_null() {
                     None
                 } else {
@@ -402,6 +445,7 @@ impl Module {
 }
 
 impl Drop for Module {
+    /// Unloads the module when dropped.
     fn drop(&mut self) {
         self.unload()
     }
