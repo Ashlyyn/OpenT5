@@ -2,7 +2,7 @@
 #![feature(io_error_more)]
 #![feature(const_option)]
 #![feature(int_roundings)]
-#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::uninlined_format_args, clippy::bool_comparison)]
 #![allow(clippy::iter_nth_zero)]
 #![deny(missing_debug_implementations)]
 
@@ -12,7 +12,6 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-extern crate num_derive;
 
 mod cbuf;
 mod cl;
