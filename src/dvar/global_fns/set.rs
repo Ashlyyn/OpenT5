@@ -1068,7 +1068,7 @@ pub fn set_string_from_source(
     value: &str,
     source: SetSource,
 ) -> Result<(), ()> {
-    set_variant_from_source(name, DvarValue::String(value.to_string()), source)
+    set_variant_from_source(name, DvarValue::String(value.to_owned()), source)
 }
 
 /// Sets the value of an existing [`Dvar`].
@@ -1242,7 +1242,7 @@ pub fn set_enumeration_from_source(
     };
     set_variant_from_source(
         name,
-        DvarValue::Enumeration(value.to_string()),
+        DvarValue::Enumeration(value.to_owned()),
         source,
     )
 }
@@ -1341,10 +1341,7 @@ pub fn set_enumeration(name: &str, value: &str) -> Result<(), ()> {
 /// }
 /// ```
 pub fn set_enumeration_next(name: &str) -> Result<(), ()> {
-    let current = match get_enumeration(name) {
-        Some(d) => d,
-        None => return Err(()),
-    };
+    let Some(current) = get_enumeration(name) else { return Err(()) };
 
     match find(name) {
         Some(d) => match d.current {
@@ -1404,20 +1401,13 @@ pub fn set_enumeration_prev(name: &str) -> Result<(), ()> {
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(s) => {
-                let domain = match d.domain {
-                    DvarLimits::Enumeration(l) => l,
-                    _ => return Err(()),
-                };
+                let DvarLimits::Enumeration(domain) = d.domain else { return Err(()) };
 
-                let i = match domain
-                    .strings
+                let Some((i, _)) = domain.strings
                     .iter()
                     .enumerate()
-                    .find(|(_, u)| **u == *s)
-                {
-                    Some((j, _)) => j,
-                    None => return Err(()),
-                };
+                    .find(|(_, u)| **u == *s
+                ) else { return Err(()) };
 
                 let value =
                     domain.strings.iter().nth(i - 1).unwrap_or_else(|| {
@@ -1446,7 +1436,7 @@ pub fn add_to_enumeration_domain(
                 let d = writer.get_mut(name).unwrap();
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
-                        l.strings.insert(domain_str.to_string());
+                        l.strings.insert(domain_str.to_owned());
                         Ok(())
                     }
                     _ => Err(()),
@@ -1470,7 +1460,7 @@ pub fn remove_from_enumeration_domain(
                 let d = writer.get_mut(name).unwrap();
                 match &mut d.domain {
                     DvarLimits::Enumeration(l) => {
-                        l.strings.remove(&domain_str.to_string());
+                        l.strings.remove(&domain_str.to_owned());
                         Ok(())
                     }
                     _ => Err(()),
@@ -1511,7 +1501,7 @@ pub fn remove_from_enumeration_domain(
 /// let name = "sv_test";
 /// let dvar = find(name);
 /// let value = "test";
-/// let domain = vec!["test".to_string(), "test2".to_string()];
+/// let domain = vec!["test".to_owned(), "test2".to_owned()];
 /// let flags = DvarFlags::External;
 /// let description = "External Dvar";
 /// set_or_register_enumeration(

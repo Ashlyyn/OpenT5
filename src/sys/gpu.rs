@@ -1,7 +1,7 @@
-#![allow(dead_code)]
+#![allow(dead_code, clippy::todo)]
 
 use num_derive::FromPrimitive;
-use std::sync::atomic::{AtomicIsize, Ordering};
+use core::sync::atomic::{AtomicIsize, Ordering};
 
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
@@ -30,6 +30,7 @@ cfg_if! {
 }
 
 lazy_static! {
+    #[allow(clippy::as_conversions)]
     static ref RENDER_API: AtomicIsize =
         AtomicIsize::new(RENDER_API_DEFAULT as isize);
 }
@@ -63,7 +64,7 @@ pub struct Instance {
 impl Instance {
     pub fn new() -> Self {
         if render_api_implemented_by_wgpu!() {
-            Instance {
+            Self {
                 wgpu_instance: Some(wgpu::Instance::new(
                     wgpu::Backends::VULKAN
                         | wgpu::Backends::DX12
@@ -83,7 +84,9 @@ pub struct Surface {
 impl Surface {
     pub fn new(instance: &Instance, window: &winit::window::Window) -> Self {
         if render_api_implemented_by_wgpu!() {
-            Surface {
+            Self {
+                // SAFETY:
+                // Will be safe as long as window is valid.
                 wgpu_surface: Some(unsafe {
                     instance
                         .wgpu_instance
@@ -111,7 +114,7 @@ pub struct AdapterInfo {
 }
 
 impl AdapterInfo {
-    pub fn new(name: String, device_type: DeviceType) -> Self {
+    pub const fn new(name: String, device_type: DeviceType) -> Self {
         Self { name, device_type }
     }
 }
@@ -124,7 +127,7 @@ impl Adapter {
     pub async fn new(instance: &Instance, surface: Option<&Surface>) -> Self {
         if render_api_implemented_by_wgpu!() {
             if surface.is_some() {
-                Adapter {
+                Self {
                     wgpu_adapter: Some(
                         instance
                             .wgpu_instance
@@ -147,7 +150,7 @@ impl Adapter {
                     .unwrap(),
                 }
             } else {
-                Adapter {
+                Self {
                     wgpu_adapter: Some(
                         instance
                             .wgpu_instance
@@ -169,6 +172,7 @@ impl Adapter {
         }
     }
 
+    #[allow(clippy::as_conversions)]
     pub fn get_info(&self) -> AdapterInfo {
         if render_api_implemented_by_wgpu!() {
             let info = self.wgpu_adapter.as_ref().unwrap().get_info();
@@ -206,7 +210,7 @@ impl Device {
                 .await;
 
             match device {
-                Ok((d, _)) => Some(Device {
+                Ok((d, _)) => Some(Self {
                     wgpu_device: Some(d),
                 }),
                 Err(_) => None,
@@ -239,7 +243,7 @@ impl Queue {
                 .await
                 .unwrap();
 
-            Queue {
+            Self {
                 wgpu_queue: Some(queue),
             }
         } else {
@@ -262,13 +266,13 @@ impl Config {
         if render_api_implemented_by_wgpu!() {
             let config = wgpu::SurfaceConfiguration {
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                format: surface
+                format: *surface
                     .wgpu_surface
                     .as_ref()
                     .unwrap()
                     .get_supported_formats(
                         adapter.wgpu_adapter.as_ref().unwrap(),
-                    )[0],
+                    ).get(0).unwrap(),
                 width,
                 height,
                 present_mode: wgpu::PresentMode::AutoNoVsync,

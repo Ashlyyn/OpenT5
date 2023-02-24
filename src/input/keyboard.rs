@@ -2,8 +2,11 @@
 
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{RwLock},
 };
+
+extern crate alloc;
+use alloc::sync::Arc;
 
 use lazy_static::lazy_static;
 use num_derive::FromPrimitive;
@@ -84,8 +87,8 @@ struct Keybind {
 }
 
 impl Keybind {
-    fn new() -> Self {
-        Keybind {
+    const fn new() -> Self {
+        Self {
             down: [0, 0],
             downtime: 0,
             msec: 0,
@@ -103,15 +106,12 @@ lazy_static! {
 
 fn find_keybind(code: KeybindCode) -> Option<Keybind> {
     let lock = KEYBINDS.clone();
-    let reader = lock.try_read().expect("");
+    let reader = lock.read().unwrap();
     reader.get(&code).copied()
 }
 
 fn key_down(code: KeybindCode) {
-    let mut bind = match find_keybind(code) {
-        Some(k) => k,
-        None => return,
-    };
+    let Some(mut bind) = find_keybind(code) else { return };
 
     let arg = cmd::argv(1);
     let i = if arg.is_empty() {
@@ -129,7 +129,7 @@ fn key_down(code: KeybindCode) {
 
     if bind.down[0] == i || bind.down[1] == i {
         let lock = KEYBINDS.clone();
-        let mut writer = lock.try_write().expect("");
+        let mut writer = lock.write().unwrap();
         writer.insert(code, bind);
         return;
     }
@@ -138,7 +138,7 @@ fn key_down(code: KeybindCode) {
         bind.down[0] = i;
     } else {
         if bind.down[1] != 0 {
-            com::print(14.into(), "Three keys down for a button!".to_string());
+            com::print(14.into(), "Three keys down for a button!");
             return;
         }
         bind.down[1] = i;
@@ -146,25 +146,19 @@ fn key_down(code: KeybindCode) {
 
     if !bind.active {
         let arg = cmd::argv(2);
-        let downtime = match arg.parse::<usize>() {
-            Ok(d) => d,
-            Err(_) => return,
-        };
+        let Ok(downtime) = arg.parse::<usize>() else { return };
         bind.downtime = downtime;
         bind.active = true;
         bind.was_pressed = true;
     }
 
     let lock = KEYBINDS.clone();
-    let mut writer = lock.try_write().expect("");
+    let mut writer = lock.write().unwrap();
     writer.insert(code, bind);
 }
 
 fn key_up(code: KeybindCode) {
-    let mut bind = match find_keybind(code) {
-        Some(k) => k,
-        None => return,
-    };
+    let Some(mut bind) = find_keybind(code) else { return };
 
     let arg = cmd::argv(1);
     if arg.is_empty() {
@@ -172,7 +166,7 @@ fn key_up(code: KeybindCode) {
         bind.active = false;
 
         let lock = KEYBINDS.clone();
-        let mut writer = lock.try_write().expect("");
+        let mut writer = lock.write().unwrap();
         writer.insert(code, bind);
         return;
     }
@@ -189,17 +183,14 @@ fn key_up(code: KeybindCode) {
 
     if bind.down != [0, 0] {
         let lock = KEYBINDS.clone();
-        let mut writer = lock.try_write().expect("");
+        let mut writer = lock.write().unwrap();
         writer.insert(code, bind);
         return;
     }
 
     bind.active = false;
     let arg = cmd::argv(2);
-    let i = match arg.parse::<usize>() {
-        Ok(i) => i,
-        Err(_) => return,
-    };
+    let Ok(i) = arg.parse::<usize>() else { return };
 
     if i == 0 {
         // bind.msec = (frame_msec >> 1) + bind.msec;
@@ -210,7 +201,7 @@ fn key_up(code: KeybindCode) {
     bind.active = false;
 
     let lock = KEYBINDS.clone();
-    let mut writer = lock.try_write().expect("");
+    let mut writer = lock.write().unwrap();
     writer.insert(code, bind);
 }
 
@@ -224,12 +215,14 @@ fn activate_up() {
     key_up(KeybindCode::Activate);
 }
 
+#[allow(clippy::todo)]
 fn attack_down() {
-    todo!("attack_down");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn attack_up() {
-    todo!("attack_up");
+    todo!();
 }
 
 fn back_down() {
@@ -290,20 +283,24 @@ fn gas_up() {
     key_up(KeybindCode::Gas);
 }
 
+#[allow(clippy::todo)]
 fn go_crouch() {
-    todo!("go_crouch");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn go_prone() {
-    todo!("go_crouch");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn go_stand_down() {
-    todo!("go_stand_down");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn go_stand_up() {
-    todo!("go_stand_up");
+    todo!();
 }
 
 fn handbrake_down() {
@@ -354,8 +351,9 @@ fn lookup_up() {
     key_up(KeybindCode::LookUp);
 }
 
+#[allow(clippy::todo)]
 fn lower_stance() {
-    todo!("lower_stance");
+    todo!();
 }
 
 fn melee_down() {
@@ -378,14 +376,15 @@ fn melee_breath_up() {
 
 fn mlook_down() {
     let lock = KEYBINDS.clone();
-    let mut writer = lock.try_write().expect("");
+    let mut writer = lock.write().unwrap();
     if let Some(r) = writer.get_mut(&KeybindCode::MLook) {
-        r.active = true
+        r.active = true;
     };
 }
 
+#[allow(clippy::todo)]
 fn mlook_up() {
-    todo!("mlook_up");
+    todo!();
 }
 
 fn move_left_down() {
@@ -412,8 +411,9 @@ fn prone_up() {
     key_up(KeybindCode::Prone);
 }
 
+#[allow(clippy::todo)]
 fn raise_stance() {
-    todo!("raise_stance");
+    todo!();
 }
 
 fn reload_down() {
@@ -442,12 +442,14 @@ fn right_up() {
     key_up(KeybindCode::Right);
 }
 
+#[allow(clippy::todo)]
 fn smoke_down() {
-    todo!("smoke_down");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn smoke_up() {
-    todo!("smoke_up");
+    todo!();
 }
 
 fn spec_next_down() {
@@ -476,12 +478,14 @@ fn speed_throw_up() {
     key_up(KeybindCode::Throw);
 }
 
+#[allow(clippy::todo)]
 fn speed_down() {
-    todo!("speed_down");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn speed_up() {
-    todo!("speed_up");
+    todo!();
 }
 
 fn sprint_down() {
@@ -492,12 +496,14 @@ fn sprint_up() {
     key_up(KeybindCode::Sprint);
 }
 
+#[allow(clippy::todo)]
 fn stance_down() {
-    todo!("stance_down");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn stance_up() {
-    todo!("stance_up");
+    todo!();
 }
 
 fn strafe_down() {
@@ -532,8 +538,9 @@ fn throw_up() {
     key_up(KeybindCode::Throw);
 }
 
+#[allow(clippy::todo)]
 fn toggle_ads() {
-    todo!("toggle_ads");
+    todo!();
 }
 
 fn toggle_ads_throw_down() {
@@ -546,12 +553,14 @@ fn toggle_ads_throw_up() {
     toggle_ads();
 }
 
+#[allow(clippy::todo)]
 fn toggle_crouch() {
-    todo!("toggle_crouch");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn toggle_prone() {
-    todo!("toggle_prone");
+    todo!();
 }
 
 fn toggle_spec_down() {
@@ -562,16 +571,19 @@ fn toggle_spec_up() {
     key_up(KeybindCode::ToggleSpec);
 }
 
+#[allow(clippy::todo)]
 fn toggle_view() {
-    todo!("toggle_view");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn up_down() {
-    todo!("up_down");
+    todo!();
 }
 
+#[allow(clippy::todo)]
 fn up_up() {
-    todo!("up_up");
+    todo!();
 }
 
 fn use_reload_down() {
@@ -660,8 +672,8 @@ fn is_talk_key_held() -> bool {
     dvar::get_bool("cl_talking").unwrap_or(false)
         && KEYBINDS
             .clone()
-            .try_read()
-            .expect("")
+            .read()
+            .unwrap()
             .get(&KeybindCode::Talk)
             .unwrap_or(&Keybind::new())
             .active
@@ -791,6 +803,6 @@ lazy_static! {
 
 fn find_keybind_code(code: KeyScancode) -> Option<KeybindCode> {
     let lock = KEY_CODES.clone();
-    let reader = lock.try_read().expect("");
+    let reader = lock.read().unwrap();
     reader.get(&code).copied()
 }

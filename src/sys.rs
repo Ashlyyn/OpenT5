@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+extern crate alloc;
+
 use crate::platform::WindowHandle;
 use crate::util::SmpEvent;
 use crate::*;
@@ -10,17 +12,20 @@ pub mod gpu;
 
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
-use std::collections::{HashMap, VecDeque};
+use alloc::collections::{VecDeque};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::sync::RwLock;
 use std::thread::JoinHandle;
-use std::time::Duration;
-use std::{
+use core::{
     fmt::Display,
-    path::PathBuf,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
+    time::Duration,
+};
+use std::{
     time::SystemTime,
+    path::PathBuf,
 };
 cfg_if! {
     if #[cfg(target_os = "windows")] {
@@ -41,7 +46,7 @@ cfg_if! {
     } else if #[cfg(target_os = "linux")] {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
-        use std::cell::RefCell;
+        use core::cell::RefCell;
         use std::ffi::OsStr;
     } else if #[cfg(target_os = "macos")] {
         use core::ptr::addr_of_mut;
@@ -58,18 +63,22 @@ fn net_restart_f() {
     net::restart();
 }
 
+#[allow(clippy::todo)]
 fn movie_start_f() {
     todo!()
 }
 
+#[allow(clippy::todo)]
 fn movie_stop_f() {
     todo!()
 }
 
+#[allow(clippy::todo)]
 fn listen_f() {
     todo!()
 }
 
+#[allow(clippy::todo)]
 fn connect_f() {
     todo!()
 }
@@ -161,15 +170,15 @@ cfg_if! {
             let c_string = CStr::from_bytes_until_nul(&buf).unwrap();
             let s = c_string.to_str()
                 .unwrap()
-                .to_string();
+                .to_owned();
             let p = PathBuf::from(s);
             let s = p.file_name()
                 .unwrap()
                 .to_str()
                 .unwrap()
-                .to_string();
+                .to_owned();
             match s.strip_suffix(".exe") {
-                Some(s) => s.to_string(),
+                Some(s) => s.to_owned(),
                 None => s
             }
         }
@@ -177,19 +186,16 @@ cfg_if! {
         pub fn get_executable_name() -> String {
             let pid = std::process::id();
             let proc_path = format!("/proc/{}/exe", pid);
-            match std::fs::read_link(proc_path) {
-                Ok(f) => {
-                    let file_name = f.file_name()
-                        .unwrap_or_else(|| OsStr::new(""))
-                        .to_str()
-                        .unwrap_or("")
-                        .to_string();
-                    let pos = file_name.find('.')
-                        .unwrap_or(file_name.len());
-                    file_name[..pos].to_string()
-                },
-                Err(_) => String::new()
-            }
+            std::fs::read_link(proc_path).map_or_else(|_| String::new(), |f| {
+                let file_name = f.file_name()
+                    .unwrap_or_else(|| OsStr::new(""))
+                    .to_str()
+                    .unwrap_or("")
+                    .to_owned();
+                let pos = file_name.find('.')
+                    .unwrap_or(file_name.len());
+                file_name.get(..pos).unwrap().to_owned()
+            })
         }
     } else if #[cfg(any(
         target_os = "freebsd",
@@ -215,7 +221,7 @@ cfg_if! {
                     .unwrap()
                     .to_str()
                     .unwrap()
-                    .to_string(),
+                    .to_owned(),
                 Err(_) => {
                     let pid = libc::getpid();
                     let kinfo_proc = unsafe { libc::kinfo_getproc(pid) };
@@ -228,7 +234,7 @@ cfg_if! {
                         .unwrap())
                         .to_str()
                         .unwrap_or("")
-                        .to_string();
+                        .to_owned();
                     unsafe { libc::free(kinfo_proc) };
                     s
                 }
@@ -253,7 +259,7 @@ cfg_if! {
                 )
                 .to_str()
                 .unwrap_or("")
-                .to_string()
+                .to_owned()
         }
     }
     // Fallback method - if no platform-specific method is used, try to get the executable name from argv[0]
@@ -265,15 +271,15 @@ cfg_if! {
                 .unwrap()
                 .to_str()
                 .unwrap()
-                .to_string();
+                .to_owned();
             let pos = file_name.find('.')
                 .unwrap_or(file_name.len());
-            file_name[..pos].to_string()
+            file_name[..pos].to_owned()
         }
     }
 }
 
-fn get_application_name() -> &'static str {
+const fn get_application_name() -> &'static str {
     "Call of Duty(R) Singleplayer - Ship"
 }
 
@@ -317,14 +323,13 @@ pub fn no_free_files_error() -> ! {
 }
 
 // TODO - implement
-fn is_game_process(_pid: u32) -> bool {
+const fn is_game_process(_pid: u32) -> bool {
     true
 }
 
 pub fn check_crash_or_rerun() -> bool {
-    let semaphore_folder_path = match get_semaphore_file_path() {
-        Some(s) => s,
-        None => return true,
+    let Some(semaphore_folder_path) = get_semaphore_file_path() else {
+        return true
     };
 
     if !std::path::Path::new(&semaphore_folder_path).exists() {
@@ -382,19 +387,16 @@ pub fn check_crash_or_rerun() -> bool {
         }
     }
 
-    match file {
-        Ok(mut f) => {
-            let pid = std::process::id();
-            if f.write_all(&pid.to_ne_bytes()).is_err() {
-                no_free_files_error();
-            } else {
-                true
-            }
-        }
-        Err(_) => {
+    file.map_or_else(|_| {
+        no_free_files_error()
+    }, |mut f| {
+        let pid = std::process::id();
+        if f.write_all(&pid.to_ne_bytes()).is_err() {
             no_free_files_error();
+        } else {
+            true
         }
-    }
+    })
 }
 
 pub fn get_cmdline() -> String {
@@ -402,7 +404,7 @@ pub fn get_cmdline() -> String {
     std::env::args().for_each(|arg| {
         cmd_line.push_str(&arg);
     });
-    cmd_line.trim().to_string()
+    cmd_line.trim().to_owned()
 }
 
 pub fn start_minidump(b: bool) {
@@ -421,10 +423,7 @@ pub fn get_logical_cpu_count() -> usize {
 pub fn get_physical_cpu_count() -> usize {
     let mut system = sysinfo::System::new_all();
     system.refresh_all();
-    match system.physical_core_count() {
-        Some(u) => u,
-        None => get_logical_cpu_count(),
-    }
+    system.physical_core_count().map_or_else(get_logical_cpu_count, |u| u)
 }
 
 pub fn get_system_ram_in_bytes() -> u64 {
@@ -436,7 +435,7 @@ pub fn get_system_ram_in_bytes() -> u64 {
 pub fn get_cpu_vendor() -> String {
     let mut system = sysinfo::System::new_all();
     system.refresh_all();
-    system.global_cpu_info().vendor_id().to_string()
+    system.global_cpu_info().vendor_id().to_owned()
 }
 
 pub fn get_cpu_name() -> String {
@@ -445,9 +444,9 @@ pub fn get_cpu_name() -> String {
     system
         .global_cpu_info()
         .brand()
-        .to_string()
+        .to_owned()
         .trim()
-        .to_string()
+        .to_owned()
 }
 
 pub fn detect_video_card() -> String {
@@ -469,7 +468,7 @@ pub struct SysInfo {
 }
 
 impl Display for SysInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f,
             "GPU Description: {}\nCPU: {} ({})\nCores: {} ({} physical)\nSystem RAM: {}MiB",
             self.gpu_description, self.cpu_name, self.cpu_vendor,
@@ -479,16 +478,17 @@ impl Display for SysInfo {
 
 impl SysInfo {
     fn new() -> Self {
-        SysInfo {
+        Self {
             ..Default::default()
         }
     }
 
+    #[allow(clippy::cast_precision_loss, clippy::as_conversions, clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     fn find(&mut self) -> &mut Self {
         self.gpu_description = detect_video_card();
         self.logical_cpu_count = get_logical_cpu_count();
         self.physical_cpu_count = get_physical_cpu_count();
-        self.sys_mb = get_system_ram_in_bytes() / (1024 * 1024);
+        self.sys_mb = (get_system_ram_in_bytes() as f64 / (1024f64 * 1024f64)).clamp(0f64, f64::MAX) as u64;
         self.cpu_vendor = get_cpu_vendor();
         self.cpu_name = get_cpu_name();
         self
@@ -528,7 +528,7 @@ impl Event {
         event_type: EventType,
         data: Option<Vec<u8>>,
     ) -> Self {
-        Event {
+        Self {
             time: time.unwrap_or_default(),
             event_type,
             data: data.unwrap_or_default(),
@@ -547,8 +547,8 @@ pub fn enqueue_event(mut event: Event) {
     }
 
     let lock = EVENT_QUEUE.clone();
-    let mut writer = lock.try_write().expect("");
-    writer.push_back(event);
+    let mut event_queue = lock.write().unwrap();
+    event_queue.push_back(event);
 }
 
 pub fn render_fatal_error() -> ! {
@@ -568,33 +568,28 @@ lazy_static! {
 }
 
 pub fn create_event(manual_reset: bool, initial_state: bool, name: &str) {
-    EVENTS.clone().try_write().expect("").insert(
+    let lock = EVENTS.clone();
+    let mut events = lock.write().unwrap();
+    events.insert(
         name.to_owned(),
         SmpEvent::new((), initial_state, manual_reset),
     );
     if initial_state {
-        EVENTS
-            .clone()
-            .try_write()
-            .expect("")
-            .get_mut(&name.to_string())
+        events
+            .get_mut(&name.to_owned())
             .unwrap()
-            .send(())
-            .unwrap();
+            .send(());
     }
 }
 
+#[allow(clippy::panic, clippy::as_conversions)]
 fn wait_for_event_timeout(name: &str, timeout: usize) -> bool {
     let lock = EVENTS.clone();
-    let mut writer = lock.write().unwrap();
-    let event = writer.get_mut(&name.to_string());
-    match event {
-        Some(e) => {
-            e.acknowledge_timeout(Duration::from_millis(timeout as _));
-            e.signaled().unwrap_or(false)
-        }
-        None => panic!("sys::wait_for_event_timeout: event not found."),
-    }
+    let mut events = lock.write().unwrap();
+    events.get_mut(&name.to_owned()).map_or_else(|| panic!("sys::wait_for_event_timeout: event not found."), |e| {
+        e.acknowledge_timeout(Duration::from_millis(timeout as _));
+        e.signaled()
+    })
 }
 
 pub fn query_event(name: &str) -> bool {
@@ -610,7 +605,7 @@ pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
     function: F,
 ) -> Option<JoinHandle<()>> {
     match std::thread::Builder::new()
-        .name(name.to_string())
+        .name(name.into())
         .spawn(move || {
             std::thread::park();
             function();
@@ -646,13 +641,10 @@ pub fn spawn_render_thread<F: Fn() -> ! + Send + Sync + 'static>(
     create_event(true, false, "osScriptDebuggerDrawEvent");
     create_event(true, false, "rgRegisteredEvent");
     create_event(true, false, "renderEvent");
-    match create_thread("Backend", function) {
-        Some(h) => {
-            h.thread().unpark();
-            true
-        }
-        None => false,
-    }
+    create_thread("Backend", function).map_or(false, |h| {
+        h.thread().unpark();
+        true
+    })
 }
 
 /*
@@ -901,8 +893,8 @@ cfg_if! {
             type Error = ();
             fn try_into(self) -> Result<gtk4::ButtonsType, Self::Error> {
                 match self {
-                    MessageBoxType::Ok => Ok(gtk4::ButtonsType::Ok),
-                    MessageBoxType::YesNo => Ok(gtk4::ButtonsType::YesNo),
+                    Self::Ok => Ok(gtk4::ButtonsType::Ok),
+                    Self::YesNo => Ok(gtk4::ButtonsType::YesNo),
                     _ => Err(())
                 }
             }
@@ -944,8 +936,8 @@ cfg_if! {
             fn try_into(self) -> Result<gtk4::MessageType, Self::Error> {
                 use gtk4::MessageType::*;
                 match self {
-                    MessageBoxIcon::Information => Ok(Info),
-                    MessageBoxIcon::Stop => Ok(Error),
+                    Self::Information => Ok(Info),
+                    Self::Stop => Ok(Error),
                     _ => Err(())
                 }
             }
@@ -987,11 +979,11 @@ cfg_if! {
         impl From<gtk4::ResponseType> for MessageBoxResult {
             fn from(value: gtk4::ResponseType) -> Self {
                 match value {
-                    gtk4::ResponseType::Ok => MessageBoxResult::Ok,
-                    gtk4::ResponseType::Cancel => MessageBoxResult::Cancel,
-                    gtk4::ResponseType::Yes => MessageBoxResult::Yes,
-                    gtk4::ResponseType::No => MessageBoxResult::No,
-                    _ => MessageBoxResult::Unknown
+                    gtk4::ResponseType::Ok => Self::Ok,
+                    gtk4::ResponseType::Cancel => Self::Cancel,
+                    gtk4::ResponseType::Yes => Self::Yes,
+                    gtk4::ResponseType::No => Self::No,
+                    _ => Self::Unknown
                 }
             }
         }
@@ -1065,6 +1057,7 @@ cfg_if! {
                 = RefCell::new(SmpEvent::new(gtk4::ResponseType::Other(0xFFFF), false, false));
         }
 
+        #[allow(clippy::unnecessary_wraps)]
         pub fn message_box(
             _handle: Option<WindowHandle>,
             text: &str,
@@ -1107,12 +1100,11 @@ cfg_if! {
                     {
                         event.send(answer);
                     }
-                })
+                });
             });
 
-            let response = GTK_RESPONSE_EVENT.with_borrow(|event| {
-                while !event.signaled().unwrap_or(false) {}
-                event.get_state().unwrap()
+            let response = GTK_RESPONSE_EVENT.with_borrow_mut(|event| {
+                event.acknowledge()
             });
 
             Some(response.into())
@@ -1152,7 +1144,7 @@ cfg_if! {
             unsafe { OutputDebugStringA(PCSTR(string.as_ptr())) };
         }
     } else {
-        fn output_debug_string(_string: &str) {
+        const fn output_debug_string(_string: &str) {
 
         }
     }
@@ -1166,7 +1158,7 @@ pub fn print(text: &str) {
     conbuf::append_text_in_main_thread(text);
 }
 
-fn create_console() {}
+const fn create_console() {}
 
 pub fn show_console() {
     if conbuf::s_wcd_window_is_none() {

@@ -38,10 +38,11 @@ lazy_static! {
 }
 
 pub fn startup() {
-    init_all().unwrap();
+    init_all();
 }
 
-fn init_all() -> Result<(), ()> {
+#[allow(clippy::too_many_lines)]
+fn init_dvars() {
     dvar::register_int(
         "gpad_debug",
         0,
@@ -167,32 +168,27 @@ fn init_all() -> Result<(), ()> {
         None,
     )
     .unwrap();
-    S_GAMEPADS.clone().write().unwrap()[0]
+}
+
+fn init_all() {
+    init_dvars();
+    S_GAMEPADS.clone().write().unwrap().get_mut(0).unwrap()
         .feedback
         .rumble
         .left_motor_speed = 0;
-    S_GAMEPADS.clone().write().unwrap()[0]
+    S_GAMEPADS.clone().write().unwrap().get_mut(0).unwrap()
         .feedback
         .rumble
         .right_motor_speed = 0;
 
     for i in 0..MAX_GPADS {
         let lock = S_GAMEPADS.clone();
-        let mut writer = match lock.write() {
-            Ok(g) => g,
-            Err(_) => return Err(()),
-        };
-
-        let mut gpad = match writer.get_mut(i as usize) {
-            Some(g) => g,
-            None => return Err(()),
-        };
+        let mut gamepads = lock.write().unwrap();
+        let gpad = gamepads.get_mut(i as usize).unwrap();
 
         gpad.feedback.rumble.left_motor_speed = 0;
         gpad.feedback.rumble.right_motor_speed = 0;
     }
-
-    Ok(())
 }
 
 type GPadIdx = u8;
@@ -200,28 +196,27 @@ type GPadIdx = u8;
 const MAX_GPADS: GPadIdx = 1;
 
 fn port_index_to_id(port_index: GPadIdx) -> Option<gilrs::GamepadId> {
-    match S_GAMEPADS.clone().read() {
-        Ok(g) => g.iter().nth(port_index as _).map(|g| g.id),
-        Err(_) => None,
-    }
+    let lock = S_GAMEPADS.clone();
+    let gamepads = lock.read().unwrap();
+    let mut iter = gamepads.iter();
+    iter.nth(port_index as _).map(|g| g.id)
 }
 
+#[allow(clippy::cast_possible_truncation)]
 fn id_to_port_index(id: gilrs::GamepadId) -> Option<GPadIdx> {
-    match S_GAMEPADS.clone().read() {
-        Ok(g) => g
-            .iter()
-            .enumerate()
-            .find(|(_, &g)| g.id == id)
-            .map(|(i, _)| i as GPadIdx),
-        Err(_) => None,
-    }
+    let lock = S_GAMEPADS.clone();
+    let gamepads = lock.read().unwrap();
+    gamepads.iter()
+        .enumerate()
+        .find(|(_, &g)| g.id == id)
+        .map(|(i, _)| i as GPadIdx)
 }
 
 pub fn is_active(port_index: GPadIdx) -> Option<bool> {
-    match S_GAMEPADS.clone().read() {
-        Ok(g) => g.iter().nth(port_index as _).map(|g| g.enabled),
-        Err(_) => None,
-    }
+    let lock = S_GAMEPADS.clone();
+    let gamepads = lock.read().unwrap();
+    let mut iter = gamepads.iter();
+    iter.nth(port_index as _).map(|g| g.enabled)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -232,10 +227,7 @@ pub enum ButtonState {
 
 impl From<bool> for ButtonState {
     fn from(b: bool) -> Self {
-        match b {
-            true => ButtonState::Pressed,
-            false => ButtonState::Released,
-        }
+        if b { Self::Pressed } else { Self::Released }
     }
 }
 
@@ -285,10 +277,7 @@ impl Into<gilrs::Button> for Button {
 }
 
 pub fn get_button(port_index: GPadIdx, button: Button) -> Option<ButtonState> {
-    let gilrs = match gilrs::Gilrs::new() {
-        Ok(g) => g,
-        Err(_) => return None,
-    };
+    let Ok(gilrs) = gilrs::Gilrs::new() else { return None };
 
     let mut gamepads = gilrs.gamepads();
 
@@ -332,10 +321,7 @@ impl Into<gilrs::Button> for Stick {
 }
 
 pub fn get_stick(port_index: GPadIdx, stick: Stick) -> Option<StickState> {
-    let gilrs = match gilrs::Gilrs::new() {
-        Ok(g) => g,
-        Err(_) => return None,
-    };
+    let Ok(gilrs) = gilrs::Gilrs::new() else { return None };
 
     let mut gamepads = gilrs.gamepads();
 
@@ -344,34 +330,25 @@ pub fn get_stick(port_index: GPadIdx, stick: Stick) -> Option<StickState> {
         None => return false,
     } == port_index).map(|(_, g)| g);
 
-    match gpad {
-        Some(g) => {
-            let x_axis = match stick {
-                Stick::LStick => gilrs::Axis::LeftStickX,
-                Stick::RStick => gilrs::Axis::RightStickX,
-            };
+    gpad.map(|g| {
+        let x_axis = match stick {
+            Stick::LStick => gilrs::Axis::LeftStickX,
+            Stick::RStick => gilrs::Axis::RightStickX,
+        };
 
-            let y_axis = match stick {
-                Stick::LStick => gilrs::Axis::LeftStickY,
-                Stick::RStick => gilrs::Axis::RightStickY,
-            };
+        let y_axis = match stick {
+            Stick::LStick => gilrs::Axis::LeftStickY,
+            Stick::RStick => gilrs::Axis::RightStickY,
+        };
 
-            let x = match g.axis_data(x_axis) {
-                Some(a) => a.value(),
-                None => 0.0,
-            };
+        let x = g.axis_data(x_axis).map_or(0.0, gilrs::ev::state::AxisData::value);
 
-            let y = match g.axis_data(y_axis) {
-                Some(a) => a.value(),
-                None => 0.0,
-            };
+        let y = g.axis_data(y_axis).map_or(0.0, gilrs::ev::state::AxisData::value);
 
-            let pressed = g.is_pressed(stick.into());
+        let pressed = g.is_pressed(stick.into());
 
-            Some(StickState((x, y), pressed.into()))
-        }
-        None => None,
-    }
+        StickState((x, y), pressed.into())
+    })
 }
 
 pub fn is_button_pressed(port_index: GPadIdx, button: Button) -> Option<bool> {
@@ -396,15 +373,9 @@ fn update_sticks_down(port_index: GPadIdx) {
         dvar::get_float("gpad_stick_pressed").unwrap_or_default();
 
     let lock = S_GAMEPADS.clone();
-    let mut writer = match lock.write() {
-        Ok(w) => w,
-        Err(_) => return,
-    };
-
-    let mut gpad = match writer.iter_mut().nth(port_index as _) {
-        Some(g) => g,
-        None => return,
-    };
+    let Ok(mut gamepads) = lock.write() else { return };
+    let mut iter = gamepads.iter_mut();
+    let Some(gpad) = iter.nth(port_index as _) else { return };
 
     gpad.lstick_last.1 = gpad.lstick.1;
 
@@ -437,28 +408,15 @@ fn update_sticks_down(port_index: GPadIdx) {
     gpad.rstick.1 = (s < gpad.rstick.0 .0).into();
 }
 
+#[allow(clippy::semicolon_outside_block)]
 pub fn update_sticks(port_index: GPadIdx) {
     {
         let lock = S_GAMEPADS.clone();
-        let mut writer = match lock.write() {
-            Ok(w) => w,
-            Err(_) => return,
-        };
-
-        let mut gpad = match writer.iter_mut().nth(port_index as _) {
-            Some(s) => s,
-            None => return,
-        };
-
-        let lstick = match get_stick(port_index, Stick::LStick) {
-            Some(l) => l,
-            None => return,
-        };
-
-        let rstick = match get_stick(port_index, Stick::RStick) {
-            Some(r) => r,
-            None => return,
-        };
+        let Ok(mut gamepads) = lock.write() else { return };
+        let mut iter = gamepads.iter_mut();
+        let Some(gpad) = iter.nth(port_index as _) else { return };
+        let Some(lstick) = get_stick(port_index, Stick::LStick) else { return };
+        let Some(rstick) = get_stick(port_index, Stick::RStick) else { return };
 
         let lx = lstick.0 .0;
         let ly = lstick.0 .1;

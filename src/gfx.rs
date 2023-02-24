@@ -9,6 +9,7 @@ use arrayvec::ArrayVec;
 use common::*;
 use num::complex::Complex;
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, Default)]
 struct GfxDrawSurf {
     object_id: u16,             // 16 bits
@@ -45,7 +46,7 @@ struct MaterialStreamRouting {
 }
 
 #[derive(Copy, Clone, Default)]
-struct VertexDeclaration {}
+struct VertexDeclaration;
 
 #[derive(Clone, Default)]
 struct MaterialVertexStreamRouting {
@@ -62,7 +63,7 @@ struct MaterialVertexDeclaration {
 }
 
 #[derive(Copy, Clone, Default)]
-struct VertexShaderProgram {}
+struct VertexShaderProgram;
 
 #[derive(Copy, Clone, Default)]
 struct GfxVertexShaderLoadDef {
@@ -71,7 +72,7 @@ struct GfxVertexShaderLoadDef {
 }
 
 #[derive(Copy, Clone, Default)]
-struct VertexShader {}
+struct VertexShader;
 
 #[derive(Clone, Default)]
 struct MaterialVertexShaderProgram {
@@ -85,14 +86,14 @@ struct MaterialVertexShader {
     prog: MaterialVertexShaderProgram,
 }
 
-struct PixelShaderProgram {}
+struct PixelShaderProgram;
 
 struct GfxPixelShaderLoadDef {
     program: PixelShaderProgram,
     program_size: u16,
 }
 
-struct PixelShader {}
+struct PixelShader;
 
 struct MaterialVertexPixelProgram {
     ps: VertexShader,
@@ -154,16 +155,16 @@ struct MaterialTechniqueSet {
 }
 
 #[derive(Clone)]
-struct BaseTexture {}
+struct BaseTexture;
 
 #[derive(Clone)]
-struct Texture {}
+struct Texture;
 
 #[derive(Clone)]
-struct VolumeTexture {}
+struct VolumeTexture;
 
 #[derive(Clone)]
-struct CubeTexture {}
+struct CubeTexture;
 
 #[derive(Clone)]
 struct GfxImageLoadDef {
@@ -284,9 +285,9 @@ struct AnimParamsDef {
 }
 
 impl AnimParamsDef {
-    pub fn new() -> Self {
-        AnimParamsDef {
-            name: "".to_string(),
+    pub const fn new() -> Self {
+        Self {
+            name: String::new(),
             rect_client: RectDef::new(),
             border_size: 0.0,
             fore_color: (0.0, 0.0, 0.0, 0.0),
@@ -312,8 +313,8 @@ pub struct UIAnimInfo {
 }
 
 impl UIAnimInfo {
-    pub fn new() -> Self {
-        UIAnimInfo {
+    pub const fn new() -> Self {
+        Self {
             anim_state_count: 0,
             anim_states: Vec::new(),
             current_anim_state: AnimParamsDef::new(),
@@ -350,6 +351,7 @@ pub struct WindowDef {
     background: Material,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, Default)]
 pub struct ListBoxDef {
     mouse_pos: i32,
@@ -395,7 +397,7 @@ pub struct WindowParms {
 
 impl WindowParms {
     pub fn new() -> Self {
-        WindowParms {
+        Self {
             hz: 60,
             fullscreen: false,
             x: 0,
@@ -417,7 +419,7 @@ pub struct WindowTarget {
 }
 
 impl WindowTarget {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             width: MIN_HORIZONTAL_RESOLUTION,
             height: MIN_VERTICAL_RESOLUTION,

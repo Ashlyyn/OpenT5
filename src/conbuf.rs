@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use std::sync::{atomic::AtomicUsize, Arc, RwLock};
+use core::sync::{atomic::AtomicUsize};
+use std::sync::{RwLock};
+extern crate alloc;
+use alloc::sync::Arc;
 
 use crate::{
     platform::{FontHandle, WindowHandle},
@@ -14,7 +17,7 @@ use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         use std::ptr::addr_of;
-        use std::sync::atomic::Ordering;
+        use core::sync::atomic::Ordering;
         use windows::Win32::{UI::{WindowsAndMessaging::SendMessageA, Controls::{EM_SETSEL, EM_LINESCROLL, EM_SCROLLCARET, EM_REPLACESEL}}, Foundation::{WPARAM, LPARAM, HWND}};
     }
 }
@@ -25,20 +28,14 @@ pub fn clean_text(text: &str) -> String {
     let mut chars = text.chars();
     while let Some(c) = chars.next() {
         if c == '\n' {
-            let c2 = match chars.next() {
-                Some(c) => c,
-                None => break,
-            };
+            let Some(c2) = chars.next() else { break };
 
             clean.push_str("\r\n");
             if c2 != '\r' {
                 clean.push(c2);
             }
         } else if c == '\r' {
-            let c2 = match chars.next() {
-                Some(c) => c,
-                None => break,
-            };
+            let Some(c2) = chars.next() else { break };
 
             clean.push_str("\r\n");
             if c2 != '\n' {
@@ -68,6 +65,7 @@ lazy_static! {
     static ref TEXT_APPENDED: AtomicUsize = AtomicUsize::new(0);
 }
 
+#[allow(clippy::partial_pub_fields)]
 #[derive(Default, Debug)]
 pub struct ConsoleData {
     pub window: Option<winit::window::Window>,
@@ -84,7 +82,7 @@ pub struct ConsoleData {
 
 lazy_static! {
     pub static ref S_WCD: Arc<RwLock<ConsoleData>> =
-        Arc::new(RwLock::new(Default::default()));
+        Arc::new(RwLock::new(ConsoleData::default()));
 }
 
 pub fn s_wcd_set_window(window: winit::window::Window) {
@@ -193,6 +191,7 @@ cfg_if! {
             unsafe { SendMessageA(HWND(hwnd as _), EM_REPLACESEL, WPARAM(0), LPARAM(addr_of!(clean_text) as isize)) };
         }
     } else {
+        #[allow(clippy::print_stdout)]
         pub fn append_text(text: &str) {
             println!("{}", text);
         }

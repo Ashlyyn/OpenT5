@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use core::sync::atomic::{AtomicBool, Ordering};
+use core::time::Duration;
 
 use std::sync::{Condvar, Mutex};
 
@@ -22,7 +22,7 @@ cfg_if! {
     else if #[cfg(target_family = "unix")] {
         use std::os::unix::prelude::OsStrExt;
         use libc::{dlopen, dlclose, RTLD_NOW};
-        use std::ffi::c_char;
+        use core::ffi::c_char;
     }
 }
 
@@ -33,7 +33,7 @@ pub struct SmpEvent<T: Sized> {
 }
 
 impl<T: Sized + Clone> SmpEvent<T> {
-    /// Creates a new SmpEvent
+    /// Creates a new [`SmpEvent`]
     ///
     /// # Arguments
     /// * `state` - The initial internal state for the object.
@@ -42,7 +42,7 @@ impl<T: Sized + Clone> SmpEvent<T> {
     /// * `manual_reset` - Whether or not the event has to be manually-reset.
     /// If [`false`], [`Self::acknowledge`] and its variants will clear the
     /// signaled state. If not, this must be done manually.
-    pub fn new(state: T, signaled: bool, manual_reset: bool) -> Self {
+    pub const fn new(state: T, signaled: bool, manual_reset: bool) -> Self {
         Self {
             manual_reset,
             condvar: Condvar::new(),
@@ -50,84 +50,52 @@ impl<T: Sized + Clone> SmpEvent<T> {
         }
     }
 
-    pub fn signaled(&self) -> Option<bool> {
-        match self.mutex.lock() {
-            Ok(g) => Some(g.0),
-            Err(_) => None,
-        }
+    pub fn signaled(&self) -> bool {
+        self.mutex.lock().unwrap().0
     }
 
-    fn set_signaled(&mut self) -> Result<(), ()> {
-        match &mut self.mutex.lock() {
-            Ok(g) => {
-                g.0 = true;
-                Ok(())
-            }
-            Err(_) => Err(()),
-        }
+    fn set_signaled(&mut self) {
+        self.mutex.lock().unwrap().0 = true;
     }
 
-    fn clear_signaled(&mut self) -> Result<(), ()> {
-        match &mut self.mutex.lock() {
-            Ok(g) => {
-                g.0 = false;
-                Ok(())
-            }
-            Err(_) => Err(()),
-        }
+    fn clear_signaled(&mut self) {
+        self.mutex.lock().unwrap().0 = false;
     }
 
-    pub fn get_state(&self) -> Result<T, ()> {
-        match self.mutex.lock() {
-            Ok(g) => Ok(g.1.clone()),
-            Err(_) => Err(()),
-        }
+    pub fn get_state(&self) -> T {
+        self.mutex.lock().unwrap().1.clone()
     }
 
     pub fn try_get_state(&self) -> Result<T, ()> {
-        match self.mutex.try_lock() {
-            Ok(g) => Ok(g.1.clone()),
-            Err(_) => Err(()),
-        }
+        self.mutex.try_lock().map_or_else(|_| Err(()), |g| Ok(g.1.clone()))
     }
 
-    fn set_state(&mut self, state: T) -> Result<(), ()> {
-        match &mut self.mutex.lock() {
-            Ok(g) => {
-                g.1 = state;
-                Ok(())
-            }
-            Err(_) => Err(()),
-        }
+    fn set_state(&mut self, state: T) {
+        self.mutex.lock().unwrap().1 = state;
     }
 
     fn try_set_state(&mut self, state: T) -> Result<(), ()> {
-        match &mut self.mutex.try_lock() {
-            Ok(g) => {
-                g.1 = state;
-                Ok(())
-            }
-            Err(_) => Err(()),
-        }
-    }
-
-    fn wait(&self) -> Result<(), ()> {
-        let guard = match self.mutex.lock() {
-            Ok(g) => g,
-            Err(_) => return Err(()),
+        let Ok(guard) = &mut self.mutex.try_lock() else {
+            return Err(())
         };
 
-        #[allow(unused_must_use)]
-        {
-            self.condvar.wait(guard).unwrap();
-        }
+        guard.1 = state;
         Ok(())
     }
 
+    fn wait(&self) {
+        let guard = self.mutex.lock().unwrap();
+
+        #[allow(unused_must_use, clippy::semicolon_outside_block)]
+        {
+            self.condvar.wait(guard).unwrap();
+        }
+    }
+
+    #[allow(clippy::semicolon_outside_block, clippy::unwrap_in_result)]
     fn try_wait(&self) -> Result<(), ()> {
-        let guard = match self.mutex.try_lock() {
-            Ok(g) => g,
-            Err(_) => return Err(()),
+        let Ok(guard) = self.mutex.try_lock() else {
+            return Err(())
         };
 
         #[allow(unused_must_use)]
@@ -137,29 +105,24 @@ impl<T: Sized + Clone> SmpEvent<T> {
         Ok(())
     }
 
-    fn wait_timeout(&self, timeout: Duration) -> Result<(), ()> {
-        let guard = match self.mutex.lock() {
-            Ok(g) => g,
-            Err(_) => return Err(()),
-        };
+    fn wait_timeout(&self, timeout: Duration) {
+        let guard = self.mutex.lock().unwrap();
 
-        #[allow(unused_must_use)]
+        #[allow(unused_must_use, clippy::semicolon_outside_block)]
         {
             self.condvar.wait_timeout(guard, timeout).unwrap();
         }
-        Ok(())
     }
 
+    #[allow(clippy::map_err_ignore, clippy::semicolon_outside_block)]
     fn try_wait_timeout(&self, timeout: Duration) -> Result<(), ()> {
-        let guard = match self.mutex.try_lock() {
-            Ok(g) => g,
-            Err(_) => return Err(()),
-        };
+        let Ok(guard) = self.mutex.try_lock() else { return Err(()) };
 
         #[allow(unused_must_use)]
         {
-            self.condvar.wait_timeout(guard, timeout).unwrap();
+            self.condvar.wait_timeout(guard, timeout).map_err(|_| ())?;
         }
+
         Ok(())
     }
 
@@ -257,54 +220,41 @@ impl<T: Sized + Clone> SmpEvent<T> {
     }
 
     /// Acknowledges the event and retrieves the internal state.
-    pub fn acknowledge(&mut self) -> Option<T> {
-        let res = match self.wait() {
-            Ok(_) => self.get_state(),
-            Err(_) => Err(()),
-        };
+    pub fn acknowledge(&mut self) -> T {
+        self.wait();
 
         if !self.manual_reset {
-            self.clear_signaled().unwrap();
+            self.clear_signaled();
         }
 
-        res.ok()
+        self.get_state()
     }
 
     /// Tries to acknowledge the event, and retrieves its internal state
     /// if successful.
     #[allow(dead_code)]
     pub fn try_acknowledge(&mut self) -> Option<T> {
-        if match self.signaled() {
-            Some(s) => s,
-            None => return None,
-        } == false
-        {
+        if self.signaled() == false {
             return None;
         }
 
         if !self.manual_reset {
-            self.clear_signaled().unwrap();
+            self.clear_signaled();
         }
 
-        match self.try_get_state() {
-            Ok(s) => Some(s),
-            Err(_) => None,
-        }
+        self.try_get_state().map_or_else(|_| None, |s| Some(s))
     }
 
     /// Acknowledges the event within [`duration`], and retrieves its
     /// internal state if successful.
-    pub fn acknowledge_timeout(&mut self, duration: Duration) -> Option<T> {
-        let res = match self.wait_timeout(duration) {
-            Ok(_) => self.get_state(),
-            Err(_) => Err(()),
-        };
+    pub fn acknowledge_timeout(&mut self, duration: Duration) -> T {
+        self.wait_timeout(duration);
 
         if !self.manual_reset {
-            self.clear_signaled().unwrap();
+            self.clear_signaled();
         }
 
-        res.ok()
+        self.get_state()
     }
 
     /// Tries to acknowledge the event within [`duration`], and retrieves its
@@ -317,47 +267,47 @@ impl<T: Sized + Clone> SmpEvent<T> {
         };
 
         if !self.manual_reset {
-            self.clear_signaled().unwrap();
+            self.clear_signaled();
         }
 
         res.ok()
     }
 
     /// Sets the event's internal state and sets the signaled state.
-    pub fn send(&mut self, state: T) -> Result<(), ()> {
-        self.set_state(state)?;
-        self.set_signaled()?;
+    pub fn send(&mut self, state: T) {
+        self.set_state(state);
+        self.set_signaled();
         self.notify_one();
-        Ok(())
     }
 
     /// Tries to set the event's internal state, and sets the signaled state
     /// if successful.
     #[allow(dead_code)]
-    pub fn try_send(&mut self, state: T) -> Result<(), ()> {
-        self.try_set_state(state)?;
-        self.set_signaled()?;
+    pub fn try_send(&mut self, state: T) {
+        if self.try_set_state(state).is_err() {
+            return;
+        }
+        self.set_signaled();
         self.notify_one();
-        Ok(())
     }
 
     /// Sets the event's internal state, and clears the signaled state
     /// if successful.
-    pub fn send_cleared(&mut self, state: T) -> Result<(), ()> {
-        self.set_state(state)?;
-        self.clear_signaled()?;
+    pub fn send_cleared(&mut self, state: T) {
+        self.set_state(state);
+        self.clear_signaled();
         self.notify_one();
-        Ok(())
     }
 
     /// Tries to set the event's internal state, and clears the signaled state
     /// if successful.
     #[allow(dead_code)]
-    pub fn try_send_cleared(&mut self, state: T) -> Result<(), ()> {
-        self.try_set_state(state)?;
-        self.clear_signaled()?;
+    pub fn try_send_cleared(&mut self, state: T) {
+        if self.try_set_state(state).is_err() {
+            return;
+        }
+        self.clear_signaled();
         self.notify_one();
-        Ok(())
     }
 }
 
@@ -394,7 +344,7 @@ impl Module {
                 name.push(0x0000);
                 let name = name.as_ptr();
 
-                unsafe { LoadLibraryW(PCWSTR(name)) }.ok().map(|h| Module { ptr: h.0 as *mut () })
+                unsafe { LoadLibraryW(PCWSTR(name)) }.ok().map(|h| Self { ptr: h.0 as *mut () })
             }
 
             /// Unloads the library loaded by [`Module::load`]. Should only be
@@ -421,20 +371,31 @@ impl Module {
                 // manually
                 let mut name = name.as_os_str().as_bytes().to_vec();
                 name.push(b'\0');
-                let name = name.as_ptr() as *const c_char;
+                let name = name.as_ptr().cast::<c_char>();
 
-                let ptr = unsafe { dlopen(name, RTLD_NOW) } as *mut ();
+                // SAFETY:
+                // dlopen is an FFI function, requiring use of unsafe. 
+                // dlopen itself should never create UB, violate memory
+                // safety, etc., regardless of the pointer passed to it 
+                // in any scenario.
+                let ptr = unsafe { dlopen(name, RTLD_NOW) }.cast::<()>();
                 if ptr.is_null() {
                     None
                 } else {
-                    Some(Module { ptr })
+                    Some(Self { ptr })
                 }
             }
 
             /// Unloads the library loaded by [`Module::load`]. Should only be
             /// used when dropped.
             fn unload(&mut self) {
-                unsafe { dlclose(self.ptr as *mut _) };
+                // SAFETY:
+                // dlclose is an FFI function, requiring use of unsafe. 
+                // dlclose itself should never create UB, violate memory
+                // safety, etc., regardless of the pointer passed to it,
+                // but in any event, the pointer we pass is guaranteed to
+                // be valid since it was retrieved via dlopen.
+                unsafe { dlclose(self.ptr.cast()); }
             }
         } else {
             pub fn load(name: Path) -> Option<Self> {
@@ -451,7 +412,7 @@ impl Module {
 impl Drop for Module {
     /// Unloads the module when dropped.
     fn drop(&mut self) {
-        self.unload()
+        self.unload();
     }
 }
 
@@ -465,7 +426,7 @@ impl<T: HasRawWindowHandle> EasierWindowHandle for T {
     }
 }
 
-// Made this because I got tired of importing std::sync::atomic::Ordering
+// Made this because I got tired of importing core::sync::atomic::Ordering
 // and passing the exact same Ordering (Ordering::Relaxed) 99% of the time.
 // Purely a convenience thing, absolutely meaningless in terms of
 // functionality

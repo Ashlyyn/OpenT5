@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
-use std::sync::{Arc, RwLock};
+use std::sync::{RwLock};
+extern crate alloc;
+use alloc::sync::Arc;
 
 use arrayvec::{ArrayString, ArrayVec};
 use lazy_static::lazy_static;
@@ -40,7 +42,7 @@ lazy_static! {
         Arc::new(RwLock::new(PrintChannelGlob::new()));
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(usize)]
 pub enum PrintMessageDest {
     Console = 0x0,
@@ -51,14 +53,15 @@ pub enum PrintMessageDest {
     Game3 = 0x5,
 }
 
+#[derive(Copy, Clone, Default, Debug)]
 pub struct Channel(u8);
 
 impl Channel {
-    pub fn new(value: u8) -> Self {
+    pub const fn new(value: u8) -> Self {
         Self(value)
     }
 
-    pub fn get(&self) -> u8 {
+    pub const fn get(self) -> u8 {
         self.0
     }
 }
@@ -83,6 +86,7 @@ channel_from!(i32);
 channel_from!(i64);
 channel_from!(isize);
 
+#[allow(clippy::indexing_slicing)]
 pub fn is_channel_visible(
     mut msg_dest: PrintMessageDest,
     channel: Channel,
@@ -106,10 +110,7 @@ pub fn is_channel_visible(
         return true;
     }
 
-    if (pcglob.filters[msg_dest as usize][channel.get() as usize >> 5]
-        & 1 << channel.get()
-        & 0x1F)
-        == 0
+    if (pcglob.filters[msg_dest as usize][channel.get() as usize >> 5] & 1 << channel.get()).trailing_zeros() >= 5
         && ((param_3 >> 5 & 0x1F != 3 && param_3 >> 5 & 0x1F != 2)
             || pcglob.filters[msg_dest as usize][0] & 2 != 0)
     {
@@ -132,8 +133,8 @@ impl ConsoleBuffer {
         }
     }
 
-    pub fn append_line(&mut self, line: ArrayString<256>) {
-        self.buf[self.current_line] = line;
+    pub fn append_line(&mut self, line: &ArrayString<256>) {
+        *self.buf.get_mut(self.current_line).unwrap() = *line;
         self.current_line = if self.current_line == 256 {
             0
         } else {
@@ -141,7 +142,7 @@ impl ConsoleBuffer {
         };
     }
 
-    pub fn set_line(&mut self, line_num: u8, line: ArrayString<256>) {
-        self.buf[line_num as usize] = line;
+    pub fn set_line(&mut self, line_num: u8, line: &ArrayString<256>) {
+        *self.buf.get_mut(line_num as usize).unwrap() = *line;
     }
 }

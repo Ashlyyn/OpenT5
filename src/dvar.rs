@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(private_in_public)]
 #![deny(missing_docs)]
+#![allow(clippy::missing_trait_methods, clippy::unreadable_literal, clippy::pub_use)]
 
 mod builder;
 mod limits;
@@ -12,15 +13,17 @@ pub use global_fns::*;
 mod cmds;
 
 /// This file contains all of code related to the Dvar subsystem, including
-/// the Dvar itself, functions to get, set, and create Dvars, and CmdFunctions
-/// related to the Dvar subsystem. There is *a lot* of repeated code here
-/// due to the different types of value a Dvar can hold
+/// the [`Dvar`] itself, functions to get, set, and create Dvars, and [`CmdFunctions`]
+/// related to the [`Dvar`] subsystem. There is *a lot* of repeated code here
+/// due to the different types of value a [`Dvar`] can hold
 use crate::*;
 use bitflags::bitflags;
 use lazy_static::lazy_static;
-use std::fmt::Display;
-use std::hash::Hash;
-use std::sync::{Arc, RwLock};
+use core::fmt::Display;
+use core::hash::Hash;
+use std::sync::RwLock;
+extern crate alloc;
+use alloc::sync::Arc;
 
 use self::limits::DvarLimits;
 use self::value::DvarValue;
@@ -94,7 +97,8 @@ lazy_static! {
 }
 
 // Finally, the Dvar itself
-#[derive(Clone)]
+#[allow(clippy::partial_pub_fields)]
+#[derive(Clone, Debug)]
 struct Dvar {
     /// Name of Dvar
     pub name: String,
@@ -126,7 +130,7 @@ struct Dvar {
 }
 
 impl Display for Dvar {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{} - {} - {}", self.name, self.description, self.current)
     }
 }
@@ -145,18 +149,19 @@ impl Eq for Dvar {}
 
 // Hash only the name for the same reason as PartialEq
 impl Hash for Dvar {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
     }
 }
 
 impl Dvar {
     // Clamp a supplied value to the supplied domain if possible
+    #[allow(clippy::match_same_arms, clippy::too_many_lines)]
     fn clamp_value_to_domain(
         value: &mut DvarValue,
-        domain: DvarLimits,
+        domain: &DvarLimits,
     ) -> DvarValue {
-        match value {
+        let clamped_value = match *value {
             DvarValue::Bool(_) => value.clone(),
             DvarValue::Float(f) => DvarValue::Float(f.clamp(
                 domain.as_float_limits().unwrap().min,
@@ -207,12 +212,12 @@ impl Dvar {
             DvarValue::Int(i) => {
                 let min: i32 = domain.as_int_limits().unwrap().min;
                 let max: i32 = domain.as_int_limits().unwrap().max;
-                if *i < min {
+                if i < min {
                     DvarValue::Int(min)
-                } else if *i > max {
+                } else if i > max {
                     DvarValue::Int(max)
                 } else {
-                    DvarValue::Int(*i)
+                    DvarValue::Int(i)
                 }
             }
             DvarValue::String(_) => value.clone(),
@@ -221,12 +226,12 @@ impl Dvar {
             DvarValue::Int64(i) => {
                 let min: i64 = domain.as_int64_limits().unwrap().min;
                 let max: i64 = domain.as_int64_limits().unwrap().max;
-                if *i < min {
+                if i < min {
                     DvarValue::Int64(min)
-                } else if *i > max {
+                } else if i > max {
                     DvarValue::Int64(max)
                 } else {
-                    DvarValue::Int64(*i)
+                    DvarValue::Int64(i)
                 }
             }
             DvarValue::LinearColorRGB(v) => DvarValue::LinearColorRGB((
@@ -257,19 +262,21 @@ impl Dvar {
                     domain.as_color_xyz_limits().unwrap().max,
                 ),
             )),
-        }
+        };
+        *value = clamped_value.clone();
+        clamped_value
     }
 
     fn clamp_current_value_to_domain(&mut self) {
-        Self::clamp_value_to_domain(&mut self.current, self.domain.clone());
+        Self::clamp_value_to_domain(&mut self.current, &self.domain);
     }
 
     fn clamp_latched_value_to_domain(&mut self) {
-        Self::clamp_value_to_domain(&mut self.latched, self.domain.clone());
+        Self::clamp_value_to_domain(&mut self.latched, &self.domain);
     }
 
     fn clamp_reset_value_to_domain(&mut self) {
-        Self::clamp_value_to_domain(&mut self.reset, self.domain.clone());
+        Self::clamp_value_to_domain(&mut self.reset, &self.domain);
     }
 
     fn clamp_all_values_to_domain(&mut self) {
@@ -282,12 +289,13 @@ impl Dvar {
         self.current != self.latched
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     fn can_change_value(
         &self,
-        value: DvarValue,
+        value: &DvarValue,
         set_source: SetSource,
     ) -> bool {
-        if value == self.reset {
+        if *value == self.reset {
             return true;
         }
 
@@ -330,7 +338,7 @@ impl Dvar {
 
     fn set_value(&mut self, value: DvarValue, source: SetSource) {
         if source == SetSource::External || source == SetSource::Script {
-            if self.can_change_value(value.clone(), source) == false {
+            if self.can_change_value(&value, source) == false {
                 return;
             }
             if self.flags.contains(DvarFlags::LATCHED) {
@@ -370,7 +378,8 @@ impl Dvar {
     }
 
     // Helper function to check if supplied value is within supplied domain
-    fn value_is_in_domain(domain: DvarLimits, value: DvarValue) -> bool {
+    #[allow(clippy::match_same_arms)]
+    fn value_is_in_domain(domain: &DvarLimits, value: DvarValue) -> bool {
         match value {
             DvarValue::Bool(_) => true,
             DvarValue::Float(f) => {
@@ -448,7 +457,7 @@ impl Dvar {
             );
         }
 
-        if !Self::value_is_in_domain(self.domain.clone(), value.clone()) {
+        if !Self::value_is_in_domain(&self.domain, value.clone()) {
             com::println(
                 1.into(),
                 &format!(
@@ -458,13 +467,13 @@ impl Dvar {
             );
             com::println(1.into(), &format!("{}", self.domain));
             if let DvarValue::Enumeration(_) = value {
-                self.set_variant(self.reset.to_owned(), source);
+                self.set_variant(self.reset.clone(), source);
             }
             return;
         }
 
         if source == SetSource::External || source == SetSource::Script {
-            if self.can_change_value(value.clone(), source)
+            if self.can_change_value(&value, source)
                 && self.flags.contains(DvarFlags::LATCHED)
             {
                 self.latched = value;
@@ -475,7 +484,7 @@ impl Dvar {
                             "{} will be changed upon restarting.",
                             self.name
                         ),
-                    )
+                    );
                 }
             }
             return;

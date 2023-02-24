@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
-use std::sync::Arc;
+extern crate alloc;
+use alloc::sync::Arc;
 
 use crate::*;
 use bitflags::bitflags;
@@ -10,9 +11,9 @@ use std::sync::RwLock;
 use super::gpad;
 
 #[allow(unused_variables)]
-pub fn activate(param_1: isize) {}
+pub const fn activate(param_1: isize) {}
 
-pub fn deactivate() {}
+pub const fn deactivate() {}
 
 bitflags! {
     #[derive(Default)]
@@ -35,7 +36,7 @@ struct MouseVars {
 
 lazy_static! {
     static ref S_MV: Arc<RwLock<MouseVars>> =
-        Arc::new(RwLock::new(Default::default()));
+        Arc::new(RwLock::new(MouseVars::default()));
 }
 
 pub fn startup() {

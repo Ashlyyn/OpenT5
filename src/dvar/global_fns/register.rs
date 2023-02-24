@@ -57,12 +57,12 @@ pub fn register_bool(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_bool()
             .value(value)
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
@@ -209,13 +209,13 @@ pub fn register_float(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_float()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value(value)
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
@@ -384,13 +384,13 @@ pub fn register_vector2(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_vector2()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value(value)
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
@@ -560,13 +560,13 @@ pub fn register_vector3(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_vector3()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value(value)
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
@@ -736,13 +736,13 @@ pub fn register_vector4(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_vector4()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value(value)
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
@@ -912,13 +912,13 @@ pub fn register_int(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_int()
             .domain(min.unwrap_or(i32::MIN), max.unwrap_or(i32::MAX))
             .value(value)
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
@@ -1077,12 +1077,12 @@ pub fn register_string(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_string()
-            .value(value.to_string())
+            .value(value.to_owned())
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
@@ -1192,11 +1192,12 @@ pub fn reregister_string(
 /// ```
 /// let name = "sv_test";
 /// let value = "DEF";
-/// let domain = vec!["ABC".to_string(), "DEF".to_string(), "GHI".to_string()];
+/// let domain = vec!["ABC".to_owned(), "DEF".to_owned(), "GHI".to_owned()];
 /// let flags = DvarFlags::empty();
 /// let description = "A test Dvar of type string"
 /// register_enumeration(name, value, Some(domain), flags, Some(description));
 /// ```
+#[allow(clippy::semicolon_outside_block)]
 pub fn register_enumeration(
     name: &str,
     value: String,
@@ -1208,9 +1209,9 @@ pub fn register_enumeration(
     let _other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.write().unwrap();
+        let mut dvars = lock.write().unwrap();
 
-        if writer.len() + 1 > DVAR_COUNT_MAX {
+        if dvars.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
                 &format!(
@@ -1223,14 +1224,14 @@ pub fn register_enumeration(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_enumeration()
-            .domain(domain.unwrap_or_default())
+            .domain(&domain.unwrap_or_default())
             .value(value)
             .build();
-        _b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
-        _other_name = &writer.get(name).unwrap().name;
+        _b = dvars.insert(name.to_owned(), Box::new(dvar)).is_some();
+        _other_name = &dvars.get(name).unwrap().name;
         /*
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
@@ -1265,7 +1266,7 @@ pub fn register_enumeration(
 /// let name = "sv_test";
 /// if find(name).is_none() {
 ///     let value = "DEF";
-///     let domain = vec!["ABC".to_string(), "DEF".to_string(), "GHI".to_string()];
+///     let domain = vec!["ABC".to_owned(), "DEF".to_owned(), "GHI".to_owned()];
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type string"
 ///     register_enumeration(name, value, Some(domain), flags, Some(description));
@@ -1309,7 +1310,7 @@ pub fn register_new_enumeration(
 /// let name = "sv_test";
 /// if find(name).is_some() {
 ///     let value = "DEF";
-///     let domain = vec!["ABC".to_string(), "DEF".to_string(), "GHI".to_string()];
+///     let domain = vec!["ABC".to_owned(), "DEF".to_owned(), "GHI".to_owned()];
 ///     let flags = DvarFlags::empty();
 ///     let description = "A test Dvar of type string"
 ///     register_enumeration(name, value, Some(domain), flags, Some(description));
@@ -1363,6 +1364,7 @@ pub fn reregister_enumeration(
 /// register_color(name, red, green, blue,
 ///                alpha, flags, Some(description));
 /// ```
+#[allow(clippy::semicolon_outside_block)]
 pub fn register_color(
     name: &str,
     red: f32,
@@ -1372,21 +1374,18 @@ pub fn register_color(
     flags: DvarFlags,
     description: Option<&str>,
 ) -> Result<(), ()> {
-    let r = red.clamp(0.0, 1.0) * 255.0 + 0.001 + 9.313226e-10;
-
-    let g = green.clamp(0.0, 1.0) * 255.0 + 0.001 + 9.313226e-10;
-
-    let b = blue.clamp(0.0, 1.0) * 255.0 + 0.001 + 9.313226e-10;
-
-    let a = alpha.clamp(0.0, 1.0) * 255.0 + 0.001 + 9.313226e-10;
+    let r = red.clamp(0.0, 1.0).mul_add(255.0, 0.001);
+    let g = green.clamp(0.0, 1.0).mul_add(255.0, 0.001);
+    let b = blue.clamp(0.0, 1.0).mul_add(255.0, 0.001);
+    let a = alpha.clamp(0.0, 1.0).mul_add(255.0, 0.001);
 
     let b_2: bool;
     let other_name: &str;
     {
         let lock = DVARS.clone();
-        let mut writer = lock.write().unwrap();
+        let mut dvars = lock.write().unwrap();
 
-        if writer.len() + 1 > DVAR_COUNT_MAX {
+        if dvars.len() + 1 > DVAR_COUNT_MAX {
             com::errorln(
                 com::ErrorParm::FATAL,
                 &format!(
@@ -1399,13 +1398,13 @@ pub fn register_color(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_color()
             .value((r, g, b, a))
             .build();
-        b_2 = writer.insert(name.to_string(), Box::new(dvar)).is_some();
-        other_name = &writer.get(name).unwrap().name;
+        b_2 = dvars.insert(name.to_owned(), Box::new(dvar)).is_some();
+        other_name = &dvars.get(name).unwrap().name;
         if b_2 {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
             return Err(());
@@ -1573,13 +1572,13 @@ pub fn register_int64(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_int64()
             .domain(min.unwrap_or(i64::MIN), max.unwrap_or(i64::MAX))
             .value(value)
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
 
         if b {
@@ -1755,13 +1754,13 @@ pub fn register_linear_color_rgb(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_linear_color_rgb()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value((red, green, blue))
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
         if b {
             com::errorln(com::ErrorParm::FATAL, &format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
@@ -1968,13 +1967,13 @@ pub fn register_color_xyz(
 
         let dvar = DvarBuilder::new()
             .name(name)
-            .description(description.unwrap_or_default().to_string())
+            .description(description.unwrap_or_default().to_owned())
             .flags(flags)
             .type_color_xyz()
             .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
             .value((x, y, z))
             .build();
-        b = writer.insert(name.to_string(), Box::new(dvar)).is_some();
+        b = writer.insert(name.to_owned(), Box::new(dvar)).is_some();
         other_name = &writer.get(name).unwrap().name;
 
         if b {

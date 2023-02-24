@@ -6,7 +6,7 @@ pub mod mouse;
 
 use crate::*;
 
-use std::sync::atomic::Ordering;
+use core::sync::atomic::Ordering;
 
 use lazy_static::lazy_static;
 
@@ -44,6 +44,6 @@ fn is_foreground_window() -> bool {
     platform::get_platform_vars().active_app
 }
 
-pub fn shutdown() {
+pub const fn shutdown() {
     mouse::deactivate();
 }

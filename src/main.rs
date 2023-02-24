@@ -2,17 +2,61 @@
 #![feature(io_error_more)]
 #![feature(const_option)]
 #![feature(int_roundings)]
-#![allow(clippy::uninlined_format_args, clippy::bool_comparison)]
+#![warn(
+    clippy::all,
+    clippy::restriction,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::cargo,
+)]
+#![allow(
+    missing_docs, 
+    clippy::uninlined_format_args, 
+    clippy::bool_comparison, 
+    clippy::missing_docs_in_private_items,
+    clippy::unwrap_used,
+    clippy::default_numeric_fallback,
+    clippy::implicit_return,
+    clippy::wildcard_imports,
+    clippy::shadow_reuse,
+    clippy::blanket_clippy_restriction_lints,
+    clippy::exit,
+    clippy::wildcard_enum_match_arm,
+    clippy::match_wildcard_for_single_variants,
+    clippy::enum_glob_use,
+    clippy::as_underscore,
+    clippy::float_arithmetic,
+    clippy::module_name_repetitions,
+    clippy::unseparated_literal_suffix,
+    clippy::as_conversions,
+    clippy::integer_arithmetic,
+    clippy::arithmetic_side_effects,
+    clippy::shadow_unrelated,
+    clippy::get_unwrap,
+    clippy::unused_async,
+    clippy::if_not_else,
+    clippy::integer_division,
+    clippy::multiple_crate_versions,
+    clippy::cargo_common_metadata,
+    clippy::single_char_lifetime_names,
+    clippy::similar_names,
+    clippy::else_if_without_else,
+    clippy::self_named_module_files,
+    clippy::equatable_if_let,
+    clippy::pattern_type_mismatch,
+
+)]
 #![allow(clippy::iter_nth_zero)]
-#![deny(missing_debug_implementations)]
+#![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 #![cfg_attr(not(target_os = "windows"), feature(local_key_cell_methods))]
 
 use discord_rich_presence::activity::Activity;
 use lazy_static::lazy_static;
-use std::sync::{
+use core::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc,
 };
+extern crate alloc;
+use alloc::sync::Arc;
 
 mod cbuf;
 mod cl;
@@ -63,7 +107,7 @@ fn main() {
     locale::init();
 
     #[allow(clippy::collapsible_if)]
-    if &cmdline[0..9] != "allowdupe"
+    if cmdline.get(0..9).unwrap_or_default() != "allowdupe"
         || cmdline.chars().nth(9).unwrap_or(' ') > ' '
     {
         if !cmdline.contains("g_connectpaths 3") {
@@ -74,7 +118,7 @@ fn main() {
     }
 
     if cmdline.contains("nosnd") {
-        S_NOSND.store(true, Ordering::SeqCst)
+        S_NOSND.store(true, Ordering::SeqCst);
     }
 
     dvar::init();
@@ -185,6 +229,7 @@ fn main() {
     // Anything past this point will only execute if window creation fails.
     // If it succeeds, winit will call std::process::exit when the
     // window is destroyed, due to another set of platform restrictions
+    #[allow(clippy::panic, clippy::unreachable, clippy::match_wild_err_arm)]
     match render::create_window_2(&mut wnd_parms) {
         Ok(_) => unreachable!(),
         Err(_) => panic!("failed to create window"),

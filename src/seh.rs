@@ -17,13 +17,14 @@ pub fn update_current_language() {
             dvar::set_bool("cg_subtitles", false).unwrap();
         }
         Language::KOREAN | Language::JAPANESE => {
-            G_CURRENT_ASIAN.store(true, Ordering::SeqCst)
+            G_CURRENT_ASIAN.store(true, Ordering::SeqCst);
         }
         _ => {}
     };
     dvar::set_string("language", locale::get_str_from_lang(lang)).unwrap();
 }
 
+#[allow(clippy::as_conversions)]
 pub fn init_language() {
     dvar::register_int(
         "loc_language",

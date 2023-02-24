@@ -3,7 +3,9 @@
 use crate::{platform::WindowHandle, util::*, *};
 use pollster::block_on;
 use sscanf::scanf;
-use std::collections::{HashSet, VecDeque};
+extern crate alloc;
+use alloc::collections::VecDeque;
+use std::collections::{HashSet};
 use std::sync::RwLock;
 use winit::dpi::Position;
 
@@ -141,6 +143,7 @@ fn register_dvars() {
     reflection_probe_register_dvars();
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn init() -> Result<(), ()> {
     com::println(
         8.into(),
@@ -158,7 +161,7 @@ fn init() -> Result<(), ()> {
     Ok(())
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum WinitCustomEvent {
     CreateConsole,
     DestroyConsole,
@@ -173,6 +176,10 @@ impl VideoMode {
     }
 }
 
+// SAFETY:
+// Perfectly safe on Windows and Linux. Had to create this wrapper since
+// the macOS implementation of winit::monitor::VideoMode contains a 
+// *mut c_void, which isn't Sync. Unknown for other platforms.
 unsafe impl Sync for VideoMode {}
 
 #[derive(Default)]
@@ -205,7 +212,7 @@ pub struct RenderGlobals {
     adapter_native_width: u16,
     adapter_native_height: u16,
     adapter_fullscreen_width: u16,
-    adapter_fullscreeen_height: u16,
+    adapter_fullscreen_height: u16,
     resolution_names: HashSet<String>,
     refresh_rate_names: HashSet<String>,
     target_window_index: i32,
@@ -221,7 +228,7 @@ impl RenderGlobals {
             adapter_native_width: MIN_HORIZONTAL_RESOLUTION,
             adapter_native_height: MIN_VERTICAL_RESOLUTION,
             adapter_fullscreen_width: MIN_HORIZONTAL_RESOLUTION,
-            adapter_fullscreeen_height: MIN_VERTICAL_RESOLUTION,
+            adapter_fullscreen_height: MIN_VERTICAL_RESOLUTION,
             resolution_names: HashSet::new(),
             refresh_rate_names: HashSet::new(),
             target_window_index: 0,
@@ -241,7 +248,7 @@ impl Default for RenderGlobals {
 
 lazy_static! {
     pub static ref RENDER_GLOBALS: Arc<RwLock<RenderGlobals>> =
-        Arc::new(RwLock::new(Default::default()));
+        Arc::new(RwLock::new(RenderGlobals::default()));
 }
 
 fn fatal_init_error(error: &str) -> ! {
@@ -297,21 +304,22 @@ fn get_video_modes() -> Vec<winit::monitor::VideoMode> {
 }
 */
 
+#[allow(clippy::cast_possible_truncation)]
 fn closest_refresh_rate_for_mode(
     width: u16,
     height: u16,
     hz: u16,
 ) -> Option<u16> {
-    let video_modes = WINIT_GLOBALS.clone().read().unwrap().video_modes.iter().map(|v| v.get()).collect::<Vec<_>>();
+    let video_modes = WINIT_GLOBALS.clone().read().unwrap().video_modes.iter().map(render::VideoMode::get).collect::<Vec<_>>();
     if video_modes.is_empty() {
         return Some(60);
     }
     let mode = video_modes.iter().find(|&m| {
         ((m.refresh_rate_millihertz() - (m.refresh_rate_millihertz() % 1000))
             / 1000
-            == hz as u32)
-            && m.size().width == width as u32
-            && m.size().height == height as u32
+            == u32::from(hz))
+            && m.size().width == u32::from(width)
+            && m.size().height == u32::from(height)
     });
 
     if let Some(..) = mode {
@@ -320,13 +328,13 @@ fn closest_refresh_rate_for_mode(
 
     let mode = video_modes
         .iter()
-        .find(|&m| (m.refresh_rate_millihertz() / 1000) == hz as u32);
+        .find(|&m| (m.refresh_rate_millihertz() / 1000) == u32::from(hz));
     if let Some(..) = mode {
         return Some((mode.unwrap().refresh_rate_millihertz() / 1000) as u16);
     }
 
     let mode = video_modes.iter().find(|&m| {
-        m.size().width == width as u32 && m.size().height == height as u32
+        m.size().width == u32::from(width) && m.size().height == u32::from(height)
     });
 
     if let Some(..) = mode {
@@ -336,6 +344,7 @@ fn closest_refresh_rate_for_mode(
     None
 }
 
+#[allow(clippy::cast_sign_loss, clippy::std_instead_of_core, clippy::indexing_slicing, clippy::cast_precision_loss, clippy::cast_possible_truncation)]
 fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
     let r_fullscreen = dvar::get_bool("r_fullscreen").unwrap();
     wnd_parms.fullscreen = r_fullscreen;
@@ -354,7 +363,7 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
 
     if !wnd_parms.fullscreen {
         let lock = RENDER_GLOBALS.clone();
-        let render_globals = lock.read().expect("");
+        let render_globals = lock.read().unwrap();
 
         if render_globals.adapter_native_width < wnd_parms.display_width {
             wnd_parms.display_width = wnd_parms
@@ -385,11 +394,12 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
             .unwrap();
     }
 
-    wnd_parms.x = dvar::get_int("vid_xpos").unwrap() as _;
-    wnd_parms.y = dvar::get_int("vid_ypos").unwrap() as _;
-    wnd_parms.aa_samples = dvar::get_int("r_aaSamples").unwrap() as _;
+    wnd_parms.x = dvar::get_int("vid_xpos").unwrap().clamp(0, i32::MAX) as _;
+    wnd_parms.y = dvar::get_int("vid_ypos").unwrap().clamp(0, i32::MAX) as _;
+    wnd_parms.aa_samples = dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
 }
 
+#[allow(clippy::panic, clippy::panic_in_result_fn, clippy::unnecessary_wraps)]
 fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     let lock = vid::CONFIG.clone();
     let mut vid_config = lock.write().unwrap();
@@ -410,17 +420,17 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 let (display_width, display_height) =
                     if vid_config.is_fullscreen {
                         (
-                            render_globals.adapter_native_width as f32,
-                            render_globals.adapter_native_height as f32,
+                            f32::from(render_globals.adapter_native_width),
+                            f32::from(render_globals.adapter_native_height),
                         )
                     } else {
                         (
-                            vid_config.display_width as f32,
-                            vid_config.display_height as f32,
+                            f32::from(vid_config.display_width),
+                            f32::from(vid_config.display_height),
                         )
                     };
 
-                if display_width / display_height == 16.0 / 10.0 {
+                if (display_width / display_height - 16.0 / 10.0).abs() < f32::EPSILON {
                     16.0 / 10.0
                 } else if display_width / display_height > 16.0 / 10.0 {
                     16.0 / 9.0
@@ -439,12 +449,12 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
     dvar::set_bool_internal(
         "wideScreen",
-        vid_config.aspect_ratio_window != 4.0 / 3.0,
+        (vid_config.aspect_ratio_window - 4.0 / 3.0).abs() > f32::EPSILON
     )
     .unwrap();
-    vid_config.aspect_ratio_scene_pixel = (vid_config.scene_height as f32
+    vid_config.aspect_ratio_scene_pixel = (f32::from(vid_config.scene_height)
         * vid_config.aspect_ratio_window)
-        / vid_config.scene_width as f32;
+        / f32::from(vid_config.scene_width);
 
     let render_globals_lock = RENDER_GLOBALS.clone();
     let render_globals = render_globals_lock.write().unwrap();
@@ -452,17 +462,13 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     vid_config.aspect_ratio_display_pixel = if !vid_config.is_fullscreen {
         1.0
     } else {
-        (render_globals.adapter_fullscreeen_height as f32
+        (f32::from(render_globals.adapter_fullscreen_height)
             * vid_config.aspect_ratio_window)
-            / render_globals.adapter_fullscreen_width as f32
+            / f32::from(render_globals.adapter_fullscreen_width)
     };
 
-    vid_config.is_tool_mode =
-        if let Some(enabled) = dvar::get_bool("r_reflectionProbeGenerate") {
-            enabled
-        } else {
-            false
-        };
+    vid_config.is_tool_mode = dvar::get_bool("r_reflectionProbeGenerate")
+        .map_or(false, |enabled| enabled);
 
     Ok(())
 }
@@ -491,6 +497,7 @@ fn reduce_window_settings() -> Result<(), ()> {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn choose_adapter() -> Option<sys::gpu::Adapter> {
     let instance = sys::gpu::Instance::new();
     Some(block_on(sys::gpu::Adapter::new(&instance, None)))
@@ -500,16 +507,15 @@ fn pre_create_window() -> Result<(), ()> {
     com::println(8.into(), "Getting Device interface...");
     let instance = sys::gpu::Instance::new();
     let adapter = block_on(sys::gpu::Adapter::new(&instance, None));
-    RENDER_GLOBALS.clone().write().expect("").device =
-        match block_on(sys::gpu::Device::new(&adapter)) {
-            Some(d) => Some(d),
-            None => {
-                com::println(8.into(), "Device failed to initialize.");
-                return Err(());
-            }
-        };
+    RENDER_GLOBALS.clone().write().unwrap().device = 
+        if let Some(d) = block_on(sys::gpu::Device::new(&adapter)) { 
+            Some(d) 
+        } else {
+            com::println(8.into(), "Device failed to initialize.");
+            return Err(());
+    };
 
-    RENDER_GLOBALS.clone().write().expect("").adapter = choose_adapter();
+    RENDER_GLOBALS.clone().write().unwrap().adapter = choose_adapter();
     dvar::register_enumeration(
         "r_mode",
         "640x480".into(),
@@ -542,16 +548,30 @@ lazy_static! {
         Arc::new(RwLock::new(SmpEvent::new(false, false, false)));
 }
 
+#[allow(
+    clippy::as_conversions, 
+    clippy::items_after_statements, 
+    clippy::pattern_type_mismatch, 
+    clippy::if_then_some_else_none,
+    clippy::semicolon_outside_block,
+    clippy::indexing_slicing,
+    clippy::std_instead_of_core,
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_wrap,
+    clippy::integer_division,
+    clippy::too_many_lines,
+)]
 pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     {
         let lock = WINDOW_AWAITING_INIT.clone();
-        let mut writer = lock.write().unwrap();
-        writer.send_cleared(()).unwrap();
+        let mut window_awaiting_init = lock.write().unwrap();
+        window_awaiting_init.send_cleared(());
     }
     {
         let lock = WINDOW_INITIALIZING.clone();
         let mut writer = lock.write().unwrap();
-        writer.send(()).unwrap();
+        writer.send(());
     }
 
     if wnd_parms.fullscreen {
@@ -597,7 +617,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     let event_loop = EventLoop::new();
     let main_window = match WindowBuilder::new()
         .with_title(window_name)
-        .with_position(PhysicalPosition::<i32>::new(x as _, y as _))
+        .with_position(PhysicalPosition::<i32>::new(i32::from(x), i32::from(y)))
         .with_inner_size(PhysicalSize::new(width, height))
         .with_resizable(true)
         .with_visible(false)
@@ -607,17 +627,17 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     {
         Ok(w) => w,
         Err(e) => {
-            com::println(8.into(), "couldn't create a window.");
-            println!("{}", e);
+            com::println(8.into(), "Couldn't create a window.");
+            com::dprintln(8.into(), &format!("{}", e));
             {
                 let lock = WINDOW_INITIALIZING.clone();
-                let mut writer = lock.write().unwrap();
-                writer.send_cleared(()).unwrap();
+                let mut window_initializing = lock.write().unwrap();
+                window_initializing.send_cleared(());
             }
             {
                 let lock = WINDOW_INITIALIZED.clone();
                 let mut writer = lock.write().unwrap();
-                writer.send(false).unwrap();
+                writer.send(false);
             }
             return Err(());
         }
@@ -651,7 +671,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     let console_title = com::get_build_display_name();
     let monitor = main_window
         .current_monitor()
-        .or(main_window.available_monitors().nth(0))
+        .or_else(|| main_window.available_monitors().nth(0))
         .unwrap();
     let horzres = (monitor.size().width - 450) / 2;
     let vertres = (monitor.size().height - 600) / 2;
@@ -660,8 +680,8 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     let console_window = winit::window::WindowBuilder::new()
         .with_title(console_title)
         .with_position(Position::Physical(PhysicalPosition::new(
-            horzres as _,
-            vertres as _,
+            horzres.clamp(0, u32::MAX) as _,
+            vertres.clamp(0, u32::MAX) as _,
         )))
         .with_inner_size(PhysicalSize::new(console_width, console_height))
         .with_visible(false)
@@ -682,16 +702,24 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     const BUFFER_SIZE_H: i32 = 324;
 
     let parent = Some(conbuf::s_wcd_window_handle());
-    let (cod_logo_window, input_line_window, buffer_window) = unsafe {
-        let cod_logo_window = winit::window::WindowBuilder::new()
+    // SAFETY:
+    // Assuming the state of the program is otherwise valid, the parent window
+    // being passed will be valid.
+    let cod_logo_window = unsafe {
+        winit::window::WindowBuilder::new()
             .with_parent_window(parent)
             .with_position(PhysicalPosition::new(CODLOGO_POS_X, CODLOGO_POS_Y))
             .with_decorations(false)
             .with_visible(false)
             .build(&event_loop)
-            .unwrap();
+            .unwrap()
+    };
 
-        let input_line_window = winit::window::WindowBuilder::new()
+    // SAFETY:
+    // Assuming the state of the program is otherwise valid, the parent window
+    // being passed will be valid.
+    let input_line_window = unsafe {
+        winit::window::WindowBuilder::new()
             .with_parent_window(parent)
             .with_position(PhysicalPosition::new(
                 INPUT_LINE_POS_X,
@@ -703,17 +731,20 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             ))
             .with_visible(false)
             .build(&event_loop)
-            .unwrap();
+            .unwrap()
+    };
 
-        let buffer_window = winit::window::WindowBuilder::new()
+    // SAFETY:
+    // Assuming the state of the program is otherwise valid, the parent window
+    // being passed will be valid.
+    let buffer_window = unsafe {
+        winit::window::WindowBuilder::new()
             .with_parent_window(parent)
             .with_position(PhysicalPosition::new(BUFFER_POS_X, BUFFER_POS_Y))
             .with_inner_size(PhysicalSize::new(BUFFER_SIZE_H, BUFFER_SIZE_W))
             .with_visible(false)
             .build(&event_loop)
-            .unwrap();
-
-        (cod_logo_window, input_line_window, buffer_window)
+            .unwrap()
     };
 
     conbuf::s_wcd_set_cod_logo_window(cod_logo_window);
@@ -723,29 +754,28 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(StartCause::Init) => {
-            let monitor = main_window.current_monitor().or(main_window.available_monitors().nth(0)).unwrap();
+            let monitor = main_window.current_monitor().or_else(|| main_window.available_monitors().nth(0)).unwrap();
             let mut modes: Vec<winit::monitor::VideoMode> = monitor.video_modes().collect();
             modes.sort_by(|a, b| a.size().width.cmp(&b.size().width));
             let mut valid_modes: Vec<&winit::monitor::VideoMode> = modes
                 .iter()
                 .filter(|&m| {
-                    m.size().width > MIN_HORIZONTAL_RESOLUTION as _
-                    && m.size().height > MIN_VERTICAL_RESOLUTION as _
+                    m.size().width > u32::from(MIN_HORIZONTAL_RESOLUTION)
+                    && m.size().height > u32::from(MIN_VERTICAL_RESOLUTION)
                 })
             .collect();
 
             valid_modes.sort_by_key(|m| m.size().width);
             valid_modes.sort_by_key(|m| m.refresh_rate_millihertz());
 
-            valid_modes.iter().for_each(|&m| {
+            for m in valid_modes.clone() {
                 RENDER_GLOBALS
-                    .clone()
-                    .write()
-                    .unwrap()
-                    .resolution_names
-                    .insert(format!("{}x{}", m.size().width, m.size().height));
-                }
-            );
+                .clone()
+                .write()
+                .unwrap()
+                .resolution_names
+                .insert(format!("{}x{}", m.size().width, m.size().height));
+            }
 
             WINIT_GLOBALS.clone().write().unwrap().video_modes = valid_modes.iter().map(|v| VideoMode((*v).clone())).collect::<Vec<_>>();
             let width = monitor.size().width;
@@ -756,7 +786,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                render_globals.adapter_native_width = width as _;
                render_globals.adapter_native_height = height as _;
                render_globals.adapter_fullscreen_width = width as _;
-               render_globals.adapter_fullscreeen_height = height as _;
+               render_globals.adapter_fullscreen_height = height as _;
             }
 
             let mode = {
@@ -774,15 +804,15 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             dvar::register_enumeration(
                 "r_mode",
                 mode,
-                Some(Vec::from_iter(
-                    RENDER_GLOBALS
+                Some(RENDER_GLOBALS
                         .clone()
                         .read()
                         .unwrap()
                         .resolution_names
                         .iter()
-                        .cloned(),
-                )),
+                        .cloned()
+                        .collect(),
+                ),
                 dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
         Some("Renderer resolution mode"),
             ).unwrap();
@@ -794,19 +824,20 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             });
             */
 
-            modes.iter().for_each(|m| {
+            #[allow(clippy::integer_division)]
+            for m in modes {
                 RENDER_GLOBALS
-                    .clone()
-                    .write()
-                    .unwrap()
-                    .refresh_rate_names
-                    .insert(format!(
-                        "{} Hz",
-                        (m.refresh_rate_millihertz()
-                            - (m.refresh_rate_millihertz() % 1000))
-                            / 1000
-                    ));
-            });
+                .clone()
+                .write()
+                .unwrap()
+                .refresh_rate_names
+                .insert(format!(
+                    "{} Hz",
+                    (m.refresh_rate_millihertz()
+                        - (m.refresh_rate_millihertz() % 1000))
+                        / 1000
+                ));
+            }
 
             let refresh = {
                 let lock = RENDER_GLOBALS.clone();
@@ -853,15 +884,13 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                     let mut winit_globals = lock.write().unwrap();
                     winit_globals.video_modes = modes.map(VideoMode).collect();
                 }
-                let modes = main_window.current_monitor().unwrap().video_modes();
-                modes.for_each(|v| println!("{}", v));
                 let mut modes = main_window.current_monitor().unwrap().video_modes();
                 let mode = modes
                     .find(|m| {
-                        m.size().width == width as u32
-                            && m.size().height == height as u32
+                        m.size().width == u32::from(width)
+                            && m.size().height == u32::from(height)
                             && m.refresh_rate_millihertz().div_floor(1000)
-                                == hz as u32
+                                == u32::from(hz)
                     })
                     .unwrap();
                 Some(Fullscreen::Exclusive(mode))
@@ -882,15 +911,17 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 Some("Automatically set the priority of the windows process when the game is minimized"),
             ).unwrap();
 
+            #[allow(clippy::semicolon_outside_block)]
             {
                 let lock = WINDOW_INITIALIZING.clone();
-                let mut writer = lock.write().unwrap();
-                writer.send_cleared(()).unwrap();
+                let mut window_initializing = lock.write().unwrap();
+                window_initializing.send_cleared(());
             }
+            #[allow(clippy::semicolon_outside_block)]
             {
                 let lock = WINDOW_INITIALIZED.clone();
                 let mut writer = lock.write().unwrap();
-                writer.send(true).unwrap();
+                writer.send(true);
             }
         },
         Event::WindowEvent {
@@ -928,6 +959,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 delta,
                 ..
             } => {
+                #[allow(clippy::panic)]
                 let lines = match delta {
                     MouseScrollDelta::LineDelta(f, _) => *f,
                     MouseScrollDelta::PixelDelta(_) =>
@@ -966,6 +998,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 input,
                 ..
             } => {
+                #[allow(clippy::as_conversions, clippy::cast_possible_truncation)]
                 let scancode: input::keyboard::KeyScancode =
                     num::FromPrimitive::from_u8(input.scancode as u8)
                     .unwrap();
@@ -990,6 +1023,8 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                             cbuf::add_textln(0, "vid_restart");
                     }
                         // FUN_0053f880()
+                } else { 
+
                 }
             },
             WindowEvent::Resized(size) => {
@@ -1014,9 +1049,9 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 render_globals.window.width = wnd_parms.display_width;
                 render_globals.window.height = wnd_parms.display_height;
                 if !wnd_parms.fullscreen {
-                    com::println(8.into(), &format!("Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
+                    com::println(8.into(), &format!("Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y));
                 } else {
-                    com::println(8.into(), &format!("Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y))
+                    com::println(8.into(), &format!("Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y));
                 }
             },
             _ => {}
@@ -1025,12 +1060,14 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     });
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn init_hardware(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     store_window_settings(wnd_parms).unwrap();
     com::println(8.into(), "TODO: render::init_hardware");
     Ok(())
 }
 
+#[allow(clippy::semicolon_outside_block)]
 pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     com::println(
         8.into(),
@@ -1044,8 +1081,8 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
     {
         let lock = WND_PARMS.clone();
-        let mut writer = lock.write().expect("");
-        *writer = *wnd_parms;
+        let mut g_wnd_parms = lock.write().unwrap();
+        *g_wnd_parms = *wnd_parms;
     }
     com::println(
         8.into(),
@@ -1065,8 +1102,8 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
     {
         let lock = WINDOW_AWAITING_INIT.clone();
-        let mut writer = lock.write().expect("");
-        writer.send(()).unwrap();
+        let mut window_awaiting_init = lock.write().unwrap();
+        window_awaiting_init.send(());
     }
 
     let res = loop {
@@ -1087,19 +1124,21 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         ),
     );
 
-    match res {
-        Ok(_) => Ok(()),
-        Err(_) => Err(()),
+    if res {
+        Ok(())
+    } else {
+        Err(())
     }
 }
 
-fn init_systems() -> Result<(), ()> {
+#[allow(clippy::unnecessary_wraps)]
+const fn init_systems() -> Result<(), ()> {
     Ok(())
 }
 
 lazy_static! {
     pub static ref WND_PARMS: Arc<RwLock<gfx::WindowParms>> =
-        Arc::new(RwLock::new(Default::default()));
+        Arc::new(RwLock::new(gfx::WindowParms::default()));
 }
 
 fn init_graphics_api() -> Result<(), ()> {
@@ -1110,7 +1149,7 @@ fn init_graphics_api() -> Result<(), ()> {
             std::thread::current().name().unwrap_or("main")
         ),
     );
-    if RENDER_GLOBALS.clone().read().expect("").device.is_none() {
+    if RENDER_GLOBALS.clone().read().unwrap().device.is_none() {
         if pre_create_window().is_err() {
             return Err(());
         }

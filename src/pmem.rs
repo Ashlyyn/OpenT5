@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
 use std::{
-    num::NonZeroUsize,
     sync::{
-        atomic::{AtomicBool, Ordering},
         RwLock,
     },
 };
+use core::num::NonZeroUsize;
+use core::sync::atomic::{AtomicBool, Ordering};
 
 use arrayvec::ArrayVec;
 use cfg_if::cfg_if;
@@ -91,8 +91,8 @@ struct PhysicalMemoryAllocation {
 }
 
 impl PhysicalMemoryAllocation {
-    fn new(n: String, p: usize) -> Self {
-        PhysicalMemoryAllocation { name: n, pos: p }
+    pub const fn new(n: String, p: usize) -> Self {
+        Self { name: n, pos: p }
     }
 }
 
@@ -107,7 +107,7 @@ struct PhysicalMemoryPrim {
 
 impl PhysicalMemoryPrim {
     fn new(n: String, c: usize, p: usize, m: MemTrack) -> Self {
-        PhysicalMemoryPrim {
+        Self {
             alloc_name: n,
             alloc_list_count: c,
             pos: p,
@@ -126,12 +126,12 @@ struct PhysicalMemory<'a> {
 
 impl<'a> PhysicalMemory<'a> {
     fn new(n: String, b: Option<&'a mut [u8]>, s: usize) -> Self {
-        PhysicalMemory {
+        Self {
             name: n,
             buf: b,
             prim: [
-                PhysicalMemoryPrim::new("".to_string(), 0, 0, MemTrack::DEBUG),
-                PhysicalMemoryPrim::new("".to_string(), 0, s, MemTrack::DEBUG),
+                PhysicalMemoryPrim::new(String::new(), 0, 0, MemTrack::DEBUG),
+                PhysicalMemoryPrim::new(String::new(), 0, s, MemTrack::DEBUG),
             ],
             size: s,
         }
@@ -152,6 +152,8 @@ cfg_if! {
         }
     } else if #[cfg(target_family = "unix")] {
         fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
+            // SAFETY:
+            // mmap being called with None (NULL) should always be safe.
             let p = unsafe {
                 mmap(
                     None,
@@ -160,11 +162,16 @@ cfg_if! {
                     MapFlags::MAP_PRIVATE | MapFlags::MAP_ANON,
                     0,
                     0,
-                ).unwrap() as *mut u8
+                ).unwrap().cast::<u8>()
             };
-            match p.is_null() {
-                true => None,
-                false => unsafe { Some(core::slice::from_raw_parts_mut(p, size.get())) },
+            if p.is_null() { 
+                None 
+            } else { 
+                // SAFETY:
+                // We've already verified p isn't null, and if mmap returns a
+                // non-null pointer, an allocation with at least the size
+                // supplied should've been mapped.
+                Some(unsafe { core::slice::from_raw_parts_mut(p, size.get()) }) 
             }
         }
     } else {
@@ -181,19 +188,19 @@ cfg_if! {
 lazy_static! {
     static ref G_PHYSICAL_MEMORY_INIT: AtomicBool = AtomicBool::new(false);
     static ref G_MEM: RwLock<PhysicalMemory<'static>> =
-        RwLock::new(PhysicalMemory::new("".to_string(), None, 0));
+        RwLock::new(PhysicalMemory::new(String::new(), None, 0));
 }
 
+#[allow(clippy::items_after_statements)]
 pub fn init() {
     if G_PHYSICAL_MEMORY_INIT.load(Ordering::SeqCst) == false {
         G_PHYSICAL_MEMORY_INIT.store(true, Ordering::SeqCst);
 
         const SIZE: NonZeroUsize = NonZeroUsize::new(0x12C0_0000).unwrap();
         *G_MEM.write().unwrap() = PhysicalMemory::new(
-            "main".to_string(),
+            "main".to_owned(),
             Some(alloc(SIZE).unwrap()),
             SIZE.get(),
         );
-        println!("Successfully allocated {} bytes.", SIZE);
     }
 }

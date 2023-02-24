@@ -1,11 +1,15 @@
 use std::{
     error::Error,
-    sync::{
-        atomic::{AtomicBool, AtomicI64, Ordering},
-        Arc, RwLock,
-    },
+    sync::RwLock,
     time::UNIX_EPOCH,
 };
+
+use core::sync::{
+    atomic::{AtomicBool, AtomicI64, Ordering},
+};
+
+extern crate alloc;
+use alloc::sync::Arc;
 
 use discord_rich_presence::{
     activity::{Activity, Assets, Timestamps},
@@ -32,6 +36,7 @@ fn set_start_time(time: i64) {
     START_TIME.store(time, Ordering::Relaxed);
 }
 
+#[allow(clippy::cast_possible_truncation)]
 pub fn init() -> Result<(), Box<dyn Error>> {
     let lock = CLIENT.clone();
     let mut client = lock.write().unwrap();

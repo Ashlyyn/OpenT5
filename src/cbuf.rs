@@ -1,3 +1,4 @@
+#[allow(clippy::print_stdout)]
 pub fn add_text(i: i32, text: &str) {
     println!("cbuf::add_text: ({}) {}", i, text);
 }

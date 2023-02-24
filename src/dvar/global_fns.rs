@@ -1,7 +1,12 @@
+#![allow(clippy::pub_use)]
+
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{RwLock},
 };
+
+extern crate alloc;
+use alloc::sync::Arc;
 
 use lazy_static::lazy_static;
 

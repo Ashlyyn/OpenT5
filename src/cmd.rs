@@ -1,13 +1,14 @@
-#![allow(dead_code)]
+#![allow(dead_code, clippy::missing_trait_methods)]
 
 use arrayvec::ArrayVec;
 use std::{
-    cell::RefCell,
     collections::HashMap,
-    hash::{Hash, Hasher},
-    rc::Rc,
     sync::RwLock,
 };
+extern crate alloc;
+use alloc::rc::Rc;
+use core::hash::{Hash, Hasher};
+use core::cell::RefCell;
 
 use lazy_static::lazy_static;
 
@@ -56,7 +57,7 @@ struct CmdArgs {
 
 impl CmdArgs {
     fn new() -> Self {
-        CmdArgs {
+        Self {
             nesting: 0,
             local_client_num: [0; 8],
             controller_index: [0; 8],
@@ -80,10 +81,10 @@ impl CmdFunction {
         auto_complete_ext: &str,
         function: fn(),
     ) -> Self {
-        CmdFunction {
-            name: name.to_string(),
-            auto_complete_dir: auto_complete_dir.to_string(),
-            auto_complete_ext: auto_complete_ext.to_string(),
+        Self {
+            name: name.to_owned(),
+            auto_complete_dir: auto_complete_dir.to_owned(),
+            auto_complete_ext: auto_complete_ext.to_owned(),
             function,
         }
     }
@@ -118,7 +119,7 @@ pub fn add_internal(name: &str, function: fn()) -> Option<CmdFunction> {
     let lock = CMD_FUNCTIONS.clone();
     let mut cmd_functions = lock.write().unwrap();
     cmd_functions
-        .insert(name.to_string(), CmdFunction::new(name, "", "", function));
+        .insert(name.to_owned(), CmdFunction::new(name, "", "", function));
     Some(cmd_functions.get(name).unwrap().clone())
 }
 
@@ -137,7 +138,7 @@ pub fn argc() -> usize {
     });
 
     // Get argc
-    let argc = args.argc[args.nesting];
+    let argc = *args.argc.get(args.nesting).unwrap();
 
     // Replace
     ARGS.with(|arg| {
@@ -151,7 +152,7 @@ pub fn argc() -> usize {
 pub fn argv(idx: usize) -> String {
     // Return "" if idx is out of range
     if idx >= argc() {
-        return "".to_string();
+        return String::new();
     }
 
     // Create temporary to use for take/replace
@@ -162,7 +163,7 @@ pub fn argv(idx: usize) -> String {
     });
 
     // Get actual arg
-    let argv = args.argv[args.nesting][idx].clone();
+    let argv = args.argv.get(args.nesting).unwrap().get(idx).unwrap().clone();
 
     // Replace ARGS
     ARGS.with(|arg| {

@@ -539,7 +539,7 @@ pub fn get_or_register_string(
         if register_string(name, value, flags, description).is_err() {
             return None;
         }
-        Some(value.to_string())
+        Some(value.to_owned())
     })
 }
 
@@ -922,7 +922,7 @@ pub fn get_color_xyz(name: &str) -> Option<Vec3f32> {
 /// # Return Value
 ///
 /// Returns [`Some`] if a [`Dvar`] with name `name` exists and has a value of
-/// type [`DvarValue::ColorXYZ], [`None`] otherwise.
+/// type [`DvarValue::ColorXYZ`], [`None`] otherwise.
 ///
 /// # Panics
 /// Panics if the write lock for [`DVARS`] can't be acquired (usually because

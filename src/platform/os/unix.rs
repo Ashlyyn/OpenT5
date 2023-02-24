@@ -1,6 +1,8 @@
 // This file is for any Unix-specific initialization that
 // should be done before the rest of main() executes
 
+#![allow(clippy::pub_use)]
+
 use cfg_if::cfg_if;
 
 cfg_if! {
@@ -15,5 +17,4 @@ cfg_if! {
 
 pub fn main() {
     target::main();
-    println!("Exiting Unix main()!");
 }

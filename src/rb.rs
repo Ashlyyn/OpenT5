@@ -1,5 +1,6 @@
 use crate::*;
 
+#[allow(clippy::panic, clippy::print_stdout)]
 pub fn render_thread() -> ! {
     com::println(
         0.into(),

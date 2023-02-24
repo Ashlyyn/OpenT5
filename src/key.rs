@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
-use std::sync::{Arc, RwLock};
+use std::sync::{RwLock};
+extern crate alloc;
+use alloc::sync::Arc;
 
 use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
@@ -48,11 +50,11 @@ struct PlayerKeyState {
 
 lazy_static! {
     static ref PLAYER_KEYS: Arc<RwLock<PlayerKeyState>> =
-        Arc::new(RwLock::new(Default::default()));
+        Arc::new(RwLock::new(PlayerKeyState::default()));
 }
 
-#[allow(unused_variables)]
+#[allow(unused_variables, clippy::print_stdout)]
 pub fn clear_states(ids: isize) {
-    PLAYER_KEYS.clone().try_write().expect("").any_key_down = 0;
+    PLAYER_KEYS.clone().write().unwrap().any_key_down = 0;
     println!("TODO - key::clear_states");
 }

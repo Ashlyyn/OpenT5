@@ -1,6 +1,6 @@
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::AtomicIsize;
-use std::sync::atomic::Ordering;
+use core::sync::atomic::AtomicBool;
+use core::sync::atomic::AtomicIsize;
+use core::sync::atomic::Ordering;
 
 use crate::cmd;
 use crate::com;
@@ -30,6 +30,7 @@ use super::DVARS;
 use lazy_static::lazy_static;
 
 // Toggle current value of Dvar if possible
+#[allow(clippy::todo, clippy::match_same_arms, clippy::panic_in_result_fn, clippy::too_many_lines)]
 fn toggle_simple(name: &str) -> Result<(), ()> {
     if !exists(name) {
         return Err(());
@@ -45,9 +46,7 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
             if domain.as_float_limits().unwrap().min > 0.0
                 || domain.as_float_limits().unwrap().max < 1.0
             {
-                if value.as_float().unwrap()
-                    == domain.as_float_limits().unwrap().min
-                {
+                if (value.as_float().unwrap() - domain.as_float_limits().unwrap().min).abs() < f32::EPSILON {
                     set_float_from_source(
                         name,
                         domain.as_float_limits().unwrap().max,
@@ -192,12 +191,9 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
 
 fn index_string_to_enum_string(
     name: &str,
-    index_string: String,
+    index_string: &str,
 ) -> Option<String> {
-    let dvar = match find(name) {
-        Some(d) => d,
-        None => return None,
-    };
+    let Some(dvar) = find(name) else { return None };
 
     if dvar
         .domain
@@ -283,6 +279,7 @@ lazy_static! {
     static ref DVAR_COUNT_LOCAL: AtomicIsize = AtomicIsize::new(0);
 }
 
+#[allow(clippy::many_single_char_names)]
 fn list_single(dvar: &Dvar, name: &str) {
     if !dvar.flags.contains(DvarFlags::CON_ACCESS)
         && get_bool("con_access_restricted").unwrap_or(false) == true
@@ -372,7 +369,7 @@ fn toggle_internal() -> Result<(), ()> {
     let argc = cmd::argc();
 
     let name = if argc < 1 {
-        "".to_string()
+        String::new()
     } else {
         cmd::argv(1)
     };
@@ -404,7 +401,7 @@ fn toggle_internal() -> Result<(), ()> {
         if let DvarValue::Enumeration(_) =
             DvarValue::Enumeration(get_enumeration(&name).unwrap())
         {
-            if let Some(s) = index_string_to_enum_string(&name, argv_i.clone())
+            if let Some(s) = index_string_to_enum_string(&name, &argv_i)
             {
                 if s.len() != 1 {
                     argv_i = s;
@@ -419,7 +416,7 @@ fn toggle_internal() -> Result<(), ()> {
 
     let mut argv_2 = cmd::argv(2);
     if let DvarValue::Enumeration(_) = find(&name).unwrap().current {
-        if let Some(s) = index_string_to_enum_string(&name, argv_2.clone()) {
+        if let Some(s) = index_string_to_enum_string(&name, &argv_2) {
             if s.len() != 1 {
                 argv_2 = s;
             }
@@ -507,25 +504,24 @@ fn set_admin_f() {
 
     let name = cmd::argv(1);
     let lock = DVARS.clone();
-    let mut writer = lock.write().unwrap();
-    let dvar = writer.get_mut(&name);
-    match dvar {
-        Some(d) => {
-            if d.flags.contains(DvarFlags::CON_ACCESS) {
-                d.add_flags(DvarFlags::ARCHIVE);
-            }
-            set_f();
+    let mut dvars = lock.write().unwrap();
+    let dvar = dvars.get_mut(&name);
+
+    if let Some(d) = dvar {
+        if d.flags.contains(DvarFlags::CON_ACCESS) {
+            d.add_flags(DvarFlags::ARCHIVE);
         }
-        None => {
-            let name = cmd::argv(1);
-            com::println(
-                0.into(),
-                &format!("setadmindvar failed: dvar \'{}\' not found.", name),
-            );
-        }
-    };
+        set_f();
+    } else {
+        let name = cmd::argv(1);
+        com::println(
+            0.into(),
+            &format!("setadmindvar failed: dvar \'{}\' not found.", name),
+        );
+    }
 }
 
+#[allow(clippy::todo)]
 fn set_mod_dvar_f() {
     todo!()
 }
@@ -552,6 +548,7 @@ fn set_from_dvar_f() {
     }
 }
 
+#[allow(clippy::todo)]
 fn set_from_localized_string_f() {
     todo!()
 }
@@ -592,13 +589,14 @@ fn reset_f() {
     }
 }
 
+#[allow(clippy::semicolon_outside_block)]
 fn list_f() {
     DVAR_COUNT_LOCAL.store(0, Ordering::SeqCst);
     let argv_1 = cmd::argv(1);
     {
         let lock = DVARS.clone();
-        let reader = lock.read().unwrap();
-        let iter = reader.values();
+        let dvars = lock.read().unwrap();
+        let iter = dvars.values();
         iter.for_each(|d| list_single(d, &argv_1));
     }
     com::println(
@@ -608,7 +606,7 @@ fn list_f() {
 }
 
 fn dump_f() {
-    com::dvar_dump(0, cmd::argv(1));
+    com::dvar_dump(0, &cmd::argv(1));
 }
 
 fn register_bool_f() {
@@ -646,6 +644,7 @@ fn register_bool_f() {
     }
 }
 
+#[allow(clippy::match_same_arms)]
 fn register_int_f() {
     let argc = cmd::argc();
     if argc != 5 {
@@ -783,6 +782,7 @@ fn register_float_f() {
     }
 }
 
+#[allow(clippy::many_single_char_names)]
 fn register_color_f() {
     let argc = cmd::argc();
     // The command will be argv[0]. The name of the Dvar will be argv[1].
@@ -857,6 +857,7 @@ fn setu_f() {
     add_flags(&name, DvarFlags::USER_INFO).unwrap();
 }
 
+#[allow(clippy::todo)]
 fn set_all_client_dvars_f() {
     todo!()
 }
@@ -884,6 +885,7 @@ fn display_dvar(dvar: &Dvar, i: &mut i32) {
     }
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn list_saved_dvars() {
     let lock = DVARS.clone();
     let reader = lock.write().unwrap();

@@ -25,13 +25,14 @@ pub struct Config {
 
 lazy_static! {
     pub static ref CONFIG: Arc<RwLock<Config>> =
-        Arc::new(RwLock::new(Default::default()));
+        Arc::new(RwLock::new(Config::default()));
 }
 
 pub fn config() -> Config {
-    *CONFIG.clone().try_read().expect("")
+    *CONFIG.clone().read().unwrap()
 }
 
+#[allow(clippy::print_stdout)]
 pub fn app_activate(active_app: bool, is_minimized: bool) {
     key::clear_states(0);
     if is_minimized {

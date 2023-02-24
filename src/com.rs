@@ -6,12 +6,15 @@ use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
-use std::sync::{Arc, RwLock};
+use std::sync::{RwLock};
+extern crate alloc;
+use alloc::sync::Arc;
+use cfg_if::cfg_if;
 
 pub static ERROR_ENTERED: AtomicBool = AtomicBool::new(false);
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ErrorParm {
     FATAL,
     DROP,
@@ -23,7 +26,7 @@ pub enum ErrorParm {
 }
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum ParseTokenType {
     UNKNOWN,
     NUMBER,
@@ -33,6 +36,7 @@ pub enum ParseTokenType {
     PUNCTUATION,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 struct ParseInfo {
     token: String,
     token_type: ParseTokenType,
@@ -50,9 +54,9 @@ struct ParseInfo {
 }
 
 impl ParseInfo {
-    fn new() -> Self {
-        ParseInfo {
-            token: "".to_string(),
+    const fn new() -> Self {
+        Self {
+            token: String::new(),
             token_type: ParseTokenType::UNKNOWN,
             lines: 1,
             unget_token: false,
@@ -60,8 +64,8 @@ impl ParseInfo {
             keep_string_quotes: false,
             csv: false,
             negative_numbers: false,
-            error_prefix: "".to_string(),
-            warning_prefix: "".to_string(),
+            error_prefix: String::new(),
+            warning_prefix: String::new(),
             backup_lines: 0,
             backup_text: String::new(),
             parse_file: String::new(),
@@ -79,7 +83,7 @@ struct ParseThreadInfo {
 
 impl ParseThreadInfo {
     fn new() -> Self {
-        ParseThreadInfo {
+        Self {
             parse_info: ArrayVec::new(),
             parse_info_num: 0,
             token_pos: 0,
@@ -93,7 +97,8 @@ lazy_static! {
     static ref PRINT_LOCK: Arc<Mutex<()>> = Arc::new(Mutex::new(()));
 }
 
-fn print_internal(channel: Channel, _param_2: i32, message: String) {
+#[allow(clippy::print_stdout)]
+fn print_internal(channel: Channel, _param_2: i32, message: &str) {
     if channel.get() > 32 {
         return;
     }
@@ -103,19 +108,44 @@ fn print_internal(channel: Channel, _param_2: i32, message: String) {
 
 // Needs to be actually implemented
 // Just a wrapper around print! currently
-pub fn print(channel: Channel, message: String) {
+pub fn print(channel: Channel, message: &str) {
     let lock = PRINT_LOCK.clone();
     let _lock = lock.lock().unwrap();
 
-    print_internal(channel, 0, message)
+    print_internal(channel, 0, message);
 }
 
 pub fn println(channel: Channel, message: &str) {
-    print(channel, format!("{}\n", message));
+    print(channel, &format!("{}\n", message));
+}
+
+cfg_if! {
+    if #[cfg(debug_assertions)] {
+        pub fn dprint(channel: Channel, message: &str) {
+            let lock = PRINT_LOCK.clone();
+            let _lock = lock.lock().unwrap();
+        
+            print_internal(channel, 0, message);
+        }
+        
+        pub fn dprintln(channel: Channel, message: &str) {
+            print(channel, &format!("{}\n", message));
+        }
+    } else {
+        #[allow(unused)]
+        pub fn dprint(channel: Channel, message: &str) {
+
+        }
+        
+        #[allow(unused)]
+        pub fn dprintln(channel: Channel, message: &str) {
+
+        }
+    }
 }
 
 pub fn warn(channel: Channel, message: &str) {
-    print(channel, format!("^3{}", message));
+    print(channel, &format!("^3{}", message));
 }
 
 pub fn warnln(channel: Channel, message: &str) {
@@ -134,6 +164,7 @@ pub fn log_file_open() -> bool {
 
 // Also needs to be actually implemented
 // Currently just a wrapper for panic
+#[allow(clippy::panic)]
 pub fn error(err_type: ErrorParm, err: &str) {
     panic!("{} ({:?})", err, err_type);
 }
@@ -144,15 +175,15 @@ pub fn errorln(err_type: ErrorParm, err: &str) {
 
 // Implement these two later
 // (not integral to the program, look annoying to implement)
-#[allow(unused_variables, unreachable_code)]
-pub fn filter(string: &str, name: &str, case_sensitive: bool) -> bool {
+#[allow(unused_variables, unreachable_code, clippy::todo)]
+pub const fn filter(string: &str, name: &str, case_sensitive: bool) -> bool {
     return true;
 
     todo!("com::filter");
 }
 
-#[allow(unused_variables, unreachable_code)]
-pub fn dvar_dump(channel: i32, param_2: String) {
+#[allow(unused_variables, unreachable_code, clippy::todo, clippy::needless_pass_by_value)]
+pub const fn dvar_dump(channel: i32, param_2: &str) {
     return;
 
     todo!("com::dvar_dump");
@@ -163,11 +194,11 @@ lazy_static! {
         Arc::new(RwLock::new(ArrayVec::new()));
 }
 
-pub fn get_official_build_name_r() -> &'static str {
+pub const fn get_official_build_name_r() -> &'static str {
     "Call of Duty: BlackOps"
 }
 
-pub fn get_build_display_name() -> &'static str {
+pub const fn get_build_display_name() -> &'static str {
     "Call of Duty Singleplayer - Ship"
 }
 
@@ -205,12 +236,13 @@ fn init_try_block_function() {
     render::init_threads();
 }
 
+#[allow(clippy::todo)]
 pub fn touch_memory() {
     todo!("com::touch_memory");
 }
 
 // TODO - implement
-pub fn get_icon_rgba() -> Option<winit::window::Icon> {
+pub const fn get_icon_rgba() -> Option<winit::window::Icon> {
     None
 }
 

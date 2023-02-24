@@ -76,6 +76,5 @@ fn WinMain(
 
     unsafe { SetErrorMode(SEM_FAILCRITICALERRORS) };
 
-    println!("Exiting WinMain()!");
     0
 }

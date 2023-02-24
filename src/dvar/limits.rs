@@ -6,18 +6,19 @@
 // bool has no custom-definable domain, it'll always be 0 or 1/true or false
 // DvarLimitsBool still needs to be defined for printing the domain
 
-use std::{collections::HashSet, fmt::Display};
+use std::{collections::HashSet};
+use core::fmt::Display;
 
 /// Domain for [`Dvar`] with value type [`DvarValue::Bool`]
 ///
 /// Since [`bool`]'s domain of [`true`]/[`false`] is enforeced by the compiler,
 /// no custom-defined domain is necessary. However, the struct still needs to
 /// exist to impl Display for the domain.
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct DvarLimitsBool {}
+#[derive(Copy, Clone, Default, PartialEq, Eq, Debug)]
+pub struct DvarLimitsBool;
 
 impl Display for DvarLimitsBool {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "Domain is 0 or 1")
     }
 }
@@ -29,8 +30,9 @@ impl DvarLimitsBool {
     /// ```
     /// let domain = DvarLimitsBool::new();
     /// ```
-    pub fn new() -> Self {
-        DvarLimitsBool {}
+    #[allow(clippy::panic, clippy::manual_assert)]
+    pub const fn new() -> Self {
+        Self {}
     }
 }
 
@@ -39,7 +41,7 @@ impl DvarLimitsBool {
 /// The domain is bounded by a custom-defined `min` and `max`,
 /// which may be any values representable by [`f32`] provided
 /// `min <= max`.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct DvarLimitsFloat {
     pub min: f32,
     pub max: f32,
@@ -49,7 +51,7 @@ impl Default for DvarLimitsFloat {
     /// Returns a [`DvarLimitsFloat`] with `min` field set to [`f32::MIN`]
     /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
-        DvarLimitsFloat {
+        Self {
             min: f32::MIN,
             max: f32::MAX,
         }
@@ -57,14 +59,14 @@ impl Default for DvarLimitsFloat {
 }
 
 impl Display for DvarLimitsFloat {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.min == f32::MIN {
-            if self.max == f32::MAX {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if (self.min - f32::MIN).abs() < f32::EPSILON {
+            if (self.max - f32::MAX).abs() < f32::EPSILON {
                 write!(f, "Domain is any number")
             } else {
                 write!(f, "Domain is any number {} or smaller", self.max)
             }
-        } else if self.max == f32::MAX {
+        } else if (self.max - f32::MAX).abs() < f32::EPSILON {
             write!(f, "Domain is any number {} or bigger", self.min)
         } else {
             write!(f, "Domain is any number from {} to {}", self.min, self.max)
@@ -88,6 +90,7 @@ impl DvarLimitsFloat {
     /// ```
     /// let domain = DvarLimitsFloat::new(0.0, 10.0);
     /// ```
+    #[allow(clippy::panic, clippy::manual_assert)]
     pub fn new(min: f32, max: f32) -> Self {
         // Panic if max is greater than min
         // (possibly implement better error handling in the future)
@@ -95,7 +98,7 @@ impl DvarLimitsFloat {
             panic!("DvarLimitsFloat::new(): supplied min is greater than max");
         }
 
-        DvarLimitsFloat { min, max }
+        Self { min, max }
     }
 }
 
@@ -105,7 +108,7 @@ impl DvarLimitsFloat {
 /// which may be any values representable by [`f32`] provided
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct DvarLimitsVector2 {
     pub min: f32,
     pub max: f32,
@@ -115,7 +118,7 @@ impl Default for DvarLimitsVector2 {
     /// Returns a [`DvarLimitsVector2`] with `min` field set to [`f32::MIN`]
     /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
-        DvarLimitsVector2 {
+        Self {
             min: f32::MIN,
             max: f32::MAX,
         }
@@ -123,9 +126,9 @@ impl Default for DvarLimitsVector2 {
 }
 
 impl Display for DvarLimitsVector2 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.min == f32::MIN {
-            if self.max == f32::MAX {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if (self.min - f32::MIN).abs() < f32::EPSILON {
+            if (self.max - f32::MAX).abs() < f32::EPSILON {
                 write!(f, "Domain is any 2D vector")
             } else {
                 write!(
@@ -134,7 +137,7 @@ impl Display for DvarLimitsVector2 {
                     self.max
                 )
             }
-        } else if self.max == f32::MAX {
+        } else if (self.max - f32::MAX).abs() < f32::EPSILON {
             write!(
                 f,
                 "Domain is any 2D vector with components {} or bigger",
@@ -166,6 +169,7 @@ impl DvarLimitsVector2 {
     /// ```
     /// let domain = DvarLimitsVector2::new(0.0, 10.0);
     /// ```
+    #[allow(clippy::panic, clippy::manual_assert)]
     pub fn new(min: f32, max: f32) -> Self {
         if min > max {
             panic!(
@@ -173,7 +177,7 @@ impl DvarLimitsVector2 {
             );
         }
 
-        DvarLimitsVector2 { min, max }
+        Self { min, max }
     }
 }
 
@@ -183,7 +187,7 @@ impl DvarLimitsVector2 {
 /// which may be any values representable by [`f32`] provided
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct DvarLimitsVector3 {
     pub min: f32,
     pub max: f32,
@@ -193,7 +197,7 @@ impl Default for DvarLimitsVector3 {
     /// Returns a [`DvarLimitsVector3`] with `min` field set to [`f32::MIN`]
     /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
-        DvarLimitsVector3 {
+        Self {
             min: f32::MIN,
             max: f32::MAX,
         }
@@ -201,9 +205,9 @@ impl Default for DvarLimitsVector3 {
 }
 
 impl Display for DvarLimitsVector3 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.min == f32::MIN {
-            if self.max == f32::MAX {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if (self.min - f32::MIN).abs() < f32::EPSILON {
+            if (self.max - f32::MAX).abs() < f32::EPSILON {
                 write!(f, "Domain is any 3D vector")
             } else {
                 write!(
@@ -212,7 +216,7 @@ impl Display for DvarLimitsVector3 {
                     self.max
                 )
             }
-        } else if self.max == f32::MAX {
+        } else if (self.max - f32::MAX).abs() < f32::EPSILON {
             write!(
                 f,
                 "Domain is any 3D vector with components {} or bigger",
@@ -244,6 +248,7 @@ impl DvarLimitsVector3 {
     /// ```
     /// let domain = DvarLimitsVector3::new(0.0, 10.0);
     /// ```
+    #[allow(clippy::panic, clippy::manual_assert)]
     pub fn new(min: f32, max: f32) -> Self {
         if min > max {
             panic!(
@@ -251,7 +256,7 @@ impl DvarLimitsVector3 {
             );
         }
 
-        DvarLimitsVector3 { min, max }
+        Self { min, max }
     }
 }
 
@@ -261,7 +266,7 @@ impl DvarLimitsVector3 {
 /// which may be any values representable by [`f32`] provided
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct DvarLimitsVector4 {
     pub min: f32,
     pub max: f32,
@@ -271,7 +276,7 @@ impl Default for DvarLimitsVector4 {
     /// Returns a [`DvarLimitsVector4`] with `min` field set to [`f32::MIN`]
     /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
-        DvarLimitsVector4 {
+        Self {
             min: f32::MIN,
             max: f32::MAX,
         }
@@ -279,9 +284,9 @@ impl Default for DvarLimitsVector4 {
 }
 
 impl Display for DvarLimitsVector4 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.min == f32::MIN {
-            if self.max == f32::MAX {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if (self.min - f32::MIN).abs() < f32::EPSILON {
+            if (self.max - f32::MAX).abs() < f32::EPSILON {
                 write!(f, "Domain is any 4D vector")
             } else {
                 write!(
@@ -290,7 +295,7 @@ impl Display for DvarLimitsVector4 {
                     self.max
                 )
             }
-        } else if self.max == f32::MAX {
+        } else if (self.max - f32::MAX).abs() < f32::EPSILON {
             write!(
                 f,
                 "Domain is any 4D vector with components {} or bigger",
@@ -322,6 +327,7 @@ impl DvarLimitsVector4 {
     /// ```
     /// let domain = DvarLimitsVector4::new(0.0, 10.0);
     /// ```
+    #[allow(clippy::panic, clippy::manual_assert)]
     pub fn new(min: f32, max: f32) -> Self {
         if min > max {
             panic!(
@@ -329,7 +335,7 @@ impl DvarLimitsVector4 {
             );
         }
 
-        DvarLimitsVector4 { min, max }
+        Self { min, max }
     }
 }
 
@@ -338,7 +344,7 @@ impl DvarLimitsVector4 {
 /// The domain is bounded by a custom-defined `min` and `max`,
 /// which may be any values representable by [`i32`] provided
 /// `min <= max`.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct DvarLimitsInt {
     pub min: i32,
     pub max: i32,
@@ -348,7 +354,7 @@ impl Default for DvarLimitsInt {
     /// Returns a [`DvarLimitsInt`] with `min` field set to [`i32::MIN`]
     /// and `max` field set to [`i32::MAX`].
     fn default() -> Self {
-        DvarLimitsInt {
+        Self {
             min: i32::MIN,
             max: i32::MAX,
         }
@@ -356,7 +362,7 @@ impl Default for DvarLimitsInt {
 }
 
 impl Display for DvarLimitsInt {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         if self.min == i32::MIN {
             if self.max == i32::MAX {
                 write!(f, "Domain is any integer")
@@ -387,12 +393,13 @@ impl DvarLimitsInt {
     /// ```
     /// let domain = DvarLimitsInt::new(0, 10);
     /// ```
+    #[allow(clippy::panic, clippy::manual_assert)]
     pub fn new(min: i32, max: i32) -> Self {
         if min > max {
             panic!("DvarLimitsInt::new(): supplied min is greater than max");
         }
 
-        DvarLimitsInt { min, max }
+        Self { min, max }
     }
 }
 
@@ -406,11 +413,11 @@ impl DvarLimitsInt {
 /// For a [`String`] "bounded" in the sense of "being able to hold
 /// one of one or more pre-defined values", use [`DvarValue::Enumeration`]
 /// instead.
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct DvarLimitsString {}
+#[derive(Copy, Clone, Default, PartialEq, Eq, Debug)]
+pub struct DvarLimitsString;
 
 impl Display for DvarLimitsString {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "Domain is any text")
     }
 }
@@ -422,8 +429,8 @@ impl DvarLimitsString {
     /// ```
     /// let domain = DvarLimitsString::new(0, 10);
     /// ```
-    pub fn new() -> Self {
-        DvarLimitsString {}
+    pub const fn new() -> Self {
+        Self {}
     }
 }
 
@@ -432,20 +439,19 @@ impl DvarLimitsString {
 /// The domain may consist of one or more different [`String`]s of
 /// any value, but it *must* at least contain at least the current
 /// value of the [`Dvar`].
-#[derive(Clone, Default, PartialEq, Eq)]
+#[derive(Clone, Default, PartialEq, Eq, Debug)]
 pub struct DvarLimitsEnumeration {
     pub strings: HashSet<String>,
 }
 
 impl Display for DvarLimitsEnumeration {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Domain is any one of the following:")
-            .unwrap_or_else(|e| panic!("{}", e));
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(f, "Domain is any one of the following:")?;
         for (i, s) in self.strings.iter().enumerate() {
-            write!(f, "\n  {:2}: {}", i, s).unwrap_or_else(|e| panic!("{}", e));
+            write!(f, "\n  {:2}: {}", i, s)?;
         }
 
-        std::fmt::Result::Ok(())
+        core::fmt::Result::Ok(())
     }
 }
 
@@ -462,17 +468,18 @@ impl DvarLimitsEnumeration {
     /// # Example
     /// ```
     /// let domain = DvarLimitsEnumeration::new(&vec![
-    ///     "test".to_string(),
-    ///     "test2".to_string(),
+    ///     "test".to_owned(),
+    ///     "test2".to_owned(),
     /// ]);
     /// ```
+    #[allow(clippy::panic, clippy::manual_assert)]
     pub fn new(domain: &[String]) -> Self {
         if domain.is_empty() {
             panic!("DvarLimitsEnumeration::new(): domain is empty.");
         }
 
-        DvarLimitsEnumeration {
-            strings: HashSet::from_iter(domain.iter().cloned()),
+        Self {
+            strings: domain.iter().cloned().collect::<HashSet<_>>(),
         }
     }
 }
@@ -482,11 +489,11 @@ impl DvarLimitsEnumeration {
 /// All RGBA values are valid for [`DvarValue::Color`], so no
 /// custom domain is necessary. As with [`bool`] and [`String`],
 /// the struct still needs to exist to impl [`Display`] for the domain.
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct DvarLimitsColor {}
+#[derive(Copy, Clone, Default, PartialEq, Eq, Debug)]
+pub struct DvarLimitsColor;
 
 impl Display for DvarLimitsColor {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "Domain is any 4-component color, in RGBA format")
     }
 }
@@ -498,8 +505,8 @@ impl DvarLimitsColor {
     /// ```
     /// let domain = DvarLimitsColor::new();
     /// ```
-    pub fn new() -> Self {
-        DvarLimitsColor {}
+    pub const fn new() -> Self {
+        Self {}
     }
 }
 
@@ -508,7 +515,7 @@ impl DvarLimitsColor {
 /// The domain is bounded by a custom-defined `min` and `max`,
 /// which may be any values representable by [`i64`] provided
 /// `min <= max`.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct DvarLimitsInt64 {
     pub min: i64,
     pub max: i64,
@@ -518,7 +525,7 @@ impl Default for DvarLimitsInt64 {
     /// Returns a [`DvarLimitsInt64`] with `min` field set to [`i64::MIN`]
     /// and `max` field set to [`i64::MAX`].
     fn default() -> Self {
-        DvarLimitsInt64 {
+        Self {
             min: i64::MIN,
             max: i64::MAX,
         }
@@ -526,7 +533,7 @@ impl Default for DvarLimitsInt64 {
 }
 
 impl Display for DvarLimitsInt64 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         if self.min == i64::MIN {
             if self.max == i64::MAX {
                 write!(f, "Domain is any integer")
@@ -557,12 +564,13 @@ impl DvarLimitsInt64 {
     /// ```
     /// let domain = DvarLimitsInt64::new(0i64, 10i64);
     /// ```
+    #[allow(clippy::panic, clippy::manual_assert)]
     pub fn new(min: i64, max: i64) -> Self {
         if min > max {
             panic!("DvarLimitsInt64::new(): supplied min is greater than max");
         }
 
-        DvarLimitsInt64 { min, max }
+        Self { min, max }
     }
 }
 
@@ -572,7 +580,7 @@ impl DvarLimitsInt64 {
 /// which may be any values representable by [`f32`] provided
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct DvarLimitsLinearColorRGB {
     pub min: f32,
     pub max: f32,
@@ -582,7 +590,7 @@ impl Default for DvarLimitsLinearColorRGB {
     /// Returns a [`DvarLimitsLinearColorRGB`] with `min` field set to [`f32::MIN`]
     /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
-        DvarLimitsLinearColorRGB {
+        Self {
             min: f32::MIN,
             max: f32::MAX,
         }
@@ -590,9 +598,9 @@ impl Default for DvarLimitsLinearColorRGB {
 }
 
 impl Display for DvarLimitsLinearColorRGB {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.min == f32::MIN {
-            if self.max == f32::MAX {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if (self.min - f32::MIN).abs() < f32::EPSILON {
+            if (self.max - f32::MAX).abs() < f32::EPSILON {
                 write!(f, "Domain is any 3D vector")
             } else {
                 write!(
@@ -601,7 +609,7 @@ impl Display for DvarLimitsLinearColorRGB {
                     self.max
                 )
             }
-        } else if self.max == f32::MAX {
+        } else if (self.max - f32::MAX).abs() < f32::EPSILON {
             write!(
                 f,
                 "Domain is any 3D vector with components {} or bigger",
@@ -637,6 +645,7 @@ impl DvarLimitsLinearColorRGB {
     /// ```
     /// let domain = DvarLimitsLinearColorRGB::new(0.3, 0.7);
     /// ```
+    #[allow(clippy::panic, clippy::manual_assert)]
     pub fn new(min: f32, max: f32) -> Self {
         if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
             panic!(
@@ -646,7 +655,7 @@ impl DvarLimitsLinearColorRGB {
             );
         }
 
-        DvarLimitsLinearColorRGB { min, max }
+        Self { min, max }
     }
 }
 
@@ -656,7 +665,7 @@ impl DvarLimitsLinearColorRGB {
 /// which may be any values representable by [`f32`] provided
 /// `min <= max`. All elements of the vector share the domain
 /// (i.e., the domain cannot be defined on a per-element basis).
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct DvarLimitsColorXYZ {
     pub min: f32,
     pub max: f32,
@@ -666,7 +675,7 @@ impl Default for DvarLimitsColorXYZ {
     /// Returns a [`DvarLimitsColorXYZ`] with `min` field set to [`f32::MIN`]
     /// and `max` field set to [`f32::MAX`].
     fn default() -> Self {
-        DvarLimitsColorXYZ {
+        Self {
             min: f32::MIN,
             max: f32::MAX,
         }
@@ -674,9 +683,9 @@ impl Default for DvarLimitsColorXYZ {
 }
 
 impl Display for DvarLimitsColorXYZ {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.min == f32::MIN {
-            if self.max == f32::MAX {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if (self.min - f32::MIN).abs() < f32::EPSILON {
+            if (self.max - f32::MAX).abs() < f32::EPSILON {
                 write!(f, "Domain is any 3D vector")
             } else {
                 write!(
@@ -685,7 +694,7 @@ impl Display for DvarLimitsColorXYZ {
                     self.max
                 )
             }
-        } else if self.max == f32::MAX {
+        } else if (self.max - f32::MAX).abs() < f32::EPSILON {
             write!(
                 f,
                 "Domain is any 3D vector with components {} or bigger",
@@ -721,6 +730,7 @@ impl DvarLimitsColorXYZ {
     /// ```
     /// let domain = DvarLimitsColorXYZ::new(0.3, 0.7);
     /// ```
+    #[allow(clippy::panic, clippy::manual_assert)]
     pub fn new(min: f32, max: f32) -> Self {
         if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
             panic!(
@@ -730,12 +740,12 @@ impl DvarLimitsColorXYZ {
             );
         }
 
-        DvarLimitsColorXYZ { min, max }
+        Self { min, max }
     }
 }
 
 // Enum to tie all the DvarLimitsXXXX's together
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DvarLimits {
     Bool(DvarLimitsBool),
     Float(DvarLimitsFloat),
@@ -753,7 +763,7 @@ pub enum DvarLimits {
 
 // Display should display the domain of the current value
 impl Display for DvarLimits {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
             Self::Bool(b) => write!(f, "{}", b),
             Self::Float(n) => write!(f, "{}", n),
@@ -775,49 +785,49 @@ impl DvarLimits {
     // A bunch of helper functions to extract the domain
     // Useful if a given Dvar is known to be a specific type
     // Otherwise long match expressions would be required
-    pub fn as_bool_limits(&self) -> Option<DvarLimitsBool> {
+    pub const fn as_bool_limits(&self) -> Option<DvarLimitsBool> {
         match self {
             Self::Bool(b) => Some(*b),
             _ => None,
         }
     }
 
-    pub fn as_float_limits(&self) -> Option<DvarLimitsFloat> {
+    pub const fn as_float_limits(&self) -> Option<DvarLimitsFloat> {
         match self {
             Self::Float(f) => Some(*f),
             _ => None,
         }
     }
 
-    pub fn as_vector2_limits(&self) -> Option<DvarLimitsVector2> {
+    pub const fn as_vector2_limits(&self) -> Option<DvarLimitsVector2> {
         match self {
             Self::Vector2(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_vector3_limits(&self) -> Option<DvarLimitsVector3> {
+    pub const fn as_vector3_limits(&self) -> Option<DvarLimitsVector3> {
         match self {
             Self::Vector3(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_vector4_limits(&self) -> Option<DvarLimitsVector4> {
+    pub const fn as_vector4_limits(&self) -> Option<DvarLimitsVector4> {
         match self {
             Self::Vector4(v) => Some(*v),
             _ => None,
         }
     }
 
-    pub fn as_int_limits(&self) -> Option<DvarLimitsInt> {
+    pub const fn as_int_limits(&self) -> Option<DvarLimitsInt> {
         match self {
             Self::Int(i) => Some(*i),
             _ => None,
         }
     }
 
-    pub fn as_string_limits(&self) -> Option<DvarLimitsString> {
+    pub const fn as_string_limits(&self) -> Option<DvarLimitsString> {
         match self {
             Self::String(s) => Some(*s),
             _ => None,
@@ -831,21 +841,21 @@ impl DvarLimits {
         }
     }
 
-    pub fn as_color_limits(&self) -> Option<DvarLimitsColor> {
+    pub const fn as_color_limits(&self) -> Option<DvarLimitsColor> {
         match self {
             Self::Color(c) => Some(*c),
             _ => None,
         }
     }
 
-    pub fn as_int64_limits(&self) -> Option<DvarLimitsInt64> {
+    pub const fn as_int64_limits(&self) -> Option<DvarLimitsInt64> {
         match self {
             Self::Int64(i) => Some(*i),
             _ => None,
         }
     }
 
-    pub fn as_linear_color_rgb_limits(
+    pub const fn as_linear_color_rgb_limits(
         &self,
     ) -> Option<DvarLimitsLinearColorRGB> {
         match self {
@@ -854,7 +864,7 @@ impl DvarLimits {
         }
     }
 
-    pub fn as_color_xyz_limits(&self) -> Option<DvarLimitsColorXYZ> {
+    pub const fn as_color_xyz_limits(&self) -> Option<DvarLimitsColorXYZ> {
         match self {
             Self::ColorXYZ(v) => Some(*v),
             _ => None,

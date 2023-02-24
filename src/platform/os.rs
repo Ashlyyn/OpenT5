@@ -1,6 +1,8 @@
 // This file exports the platform-specific modules as module "target"
 // to allow for easy execution in main()
 
+#![allow(clippy::pub_use)]
+
 use cfg_if::cfg_if;
 
 cfg_if! {

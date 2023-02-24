@@ -5,8 +5,8 @@
 use crate::*;
 use std::{
     path::{Path, PathBuf},
-    str::FromStr,
 };
+use core::str::FromStr;
 
 cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
@@ -57,12 +57,13 @@ cfg_if::cfg_if! {
                         Ok(c) => c,
                         Err(_) => return None,
                     };
-                    Some(c.to_str().unwrap().to_string())
+                    Some(c.to_str().unwrap().to_owned())
                 },
                 Err(_) => None,
             }
         }
     } else if #[cfg(target_family = "unix")] {
+        #[allow(clippy::needless_pass_by_value)]
         pub fn get_os_folder_path(os_folder: OsFolder) -> Option<String> {
             let envar = match os_folder {
                 OsFolder::UserData => "XDG_DATA_HOME",
@@ -71,10 +72,7 @@ cfg_if::cfg_if! {
                 OsFolder::Home => "HOME",
             };
 
-            let home = match std::env::var("HOME") {
-                Ok(s) => s,
-                Err(_) => return None,
-            };
+            let Ok(home) = std::env::var("HOME") else { return None };
 
             let envar_default = match os_folder {
                 OsFolder::UserData => format!("{}/.local/share", home),
@@ -83,10 +81,7 @@ cfg_if::cfg_if! {
                 OsFolder::Home => home,
             };
 
-            Some(match std::env::var(envar) {
-                Ok(s) => s,
-                Err(_) => envar_default,
-            })
+            Some(std::env::var(envar).map_or(envar_default, |s| s))
         }
     } else {
         pub fn get_os_folder_path(os_folder: OsFolder) -> Option<String> {
@@ -119,13 +114,10 @@ pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
         return Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap());
     }
 
-    match std::fs::File::create(path) {
-        Ok(_) => return Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap()),
-        Err(_) => {
-            let dir_path = match path.parent() {
-                Some(d) => d,
-                None => return Err(std::io::ErrorKind::InvalidFilename.into()),
-            };
+    if std::fs::File::create(path).is_ok() { 
+        Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap()) 
+    } else {
+        let Some(dir_path) = path.parent() else { return Err(std::io::ErrorKind::InvalidFilename.into()) };
 
             std::fs::create_dir_all(dir_path)?;
 
@@ -133,7 +125,6 @@ pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
                 Ok(_) => Ok(path.to_path_buf()),
                 Err(e) => Err(e),
             }
-        }
     }
 }
 

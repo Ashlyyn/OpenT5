@@ -20,8 +20,8 @@ pub struct RectDef {
 }
 
 impl RectDef {
-    pub fn new() -> Self {
-        RectDef {
+    pub const fn new() -> Self {
+        Self {
             x: 0.0,
             y: 0.0,
             w: 0.0,
@@ -65,9 +65,9 @@ struct ExpressionStatement {
 }
 
 impl ExpressionStatement {
-    fn new() -> Self {
-        ExpressionStatement {
-            file_name: "".to_string(),
+    const fn new() -> Self {
+        Self {
+            file_name: String::new(),
             line: 0,
             num_rpn: 0,
             rpn: Vec::new(),
@@ -81,8 +81,8 @@ struct TextExp {
 }
 
 impl TextExp {
-    fn new() -> Self {
-        TextExp {
+    const fn new() -> Self {
+        Self {
             text_exp: ExpressionStatement::new(),
         }
     }
@@ -106,12 +106,12 @@ struct GenericEventScript {
 }
 
 impl GenericEventScript {
-    fn new() -> Self {
-        GenericEventScript {
+    const fn new() -> Self {
+        Self {
             prerequisites: Vec::new(),
             condition: ExpressionStatement::new(),
             fire_on_true: false,
-            action: "".to_string(),
+            action: String::new(),
             block_id: 0,
             construct_id: 0,
         }
@@ -250,9 +250,9 @@ pub struct GenericEventHandler {
 }
 
 impl GenericEventHandler {
-    pub fn new() -> Self {
-        GenericEventHandler {
-            name: "".to_string(),
+    pub const fn new() -> Self {
+        Self {
+            name: String::new(),
             event_script: GenericEventScript::new(),
         }
     }
@@ -306,8 +306,8 @@ struct RectData {
 }
 
 impl RectData {
-    fn new() -> Self {
-        RectData {
+    const fn new() -> Self {
+        Self {
             rect_x_exp: ExpressionStatement::new(),
             rect_y_exp: ExpressionStatement::new(),
             rect_w_exp: ExpressionStatement::new(),
@@ -337,14 +337,14 @@ pub struct ItemDef {
 }
 
 impl ItemDef {
-    pub fn new() -> Self {
-        ItemDef {
+    pub const fn new() -> Self {
+        Self {
             def_type: 0,
             data_type: 0,
             image_track: 0,
-            dvar: "".to_string(),
-            dvar_test: "".to_string(),
-            enable_dvar: "".to_string(),
+            dvar: String::new(),
+            dvar_test: String::new(),
+            enable_dvar: String::new(),
             dvar_flags: 0,
             type_data: None,
             rect_exp_data: RectData::new(),
