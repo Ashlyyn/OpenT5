@@ -1,6 +1,10 @@
-use crate::{dvar::{DvarFlags, builder::DvarBuilder}, com, common::{Vec2f32, Vec3f32, Vec4f32}};
+use crate::{
+    com,
+    common::{Vec2f32, Vec3f32, Vec4f32},
+    dvar::{builder::DvarBuilder, DvarFlags},
+};
 
-use super::{DVARS, DVAR_COUNT_MAX, exists};
+use super::{exists, DVARS, DVAR_COUNT_MAX};
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Bool`],
 /// using the provided name, value, flags, and description,

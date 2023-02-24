@@ -78,29 +78,49 @@ pub fn init() {
     cmd::add_internal("movie_stop", movie_stop_f).unwrap();
     cmd::add_internal("net_listen", listen_f).unwrap();
     cmd::add_internal("net_connect", connect_f).unwrap();
-    
-    com::println(16.into(), &format!("CPU vendor is \"{}\"", get_cpu_vendor()));
+
+    com::println(
+        16.into(),
+        &format!("CPU vendor is \"{}\"", get_cpu_vendor()),
+    );
     com::println(16.into(), &format!("CPU name is \"{}\"", get_cpu_name()));
 
     let info = find_info();
 
-    let c = if info.logical_cpu_count == 1 {
-        ""
-    } else {
-        "s"
-    };
-    com::println(16.into(), &format!("{} logical CPU{} reported", info.logical_cpu_count, c));
+    let c = if info.logical_cpu_count == 1 { "" } else { "s" };
+    com::println(
+        16.into(),
+        &format!("{} logical CPU{} reported", info.logical_cpu_count, c),
+    );
 
     let c = if info.physical_cpu_count == 1 {
         ""
     } else {
         "s"
     };
-    com::println(16.into(), &format!("{} physical CPU{} detected", info.physical_cpu_count, c));
-    com::println(16.into(), &format!("Measured CPU speed is {:.2} GHz", info.cpu_ghz));
-    com::println(16.into(), &format!("Total CPU performance is estimated as {:.2} GHz", info.configure_ghz));
-    com::println(16.into(), &format!("System memory is {} MB (capped at 1 GB)", info.sys_mb));
-    com::println(16.into(), &format!("Video card is \"{}\"", info.gpu_description));
+    com::println(
+        16.into(),
+        &format!("{} physical CPU{} detected", info.physical_cpu_count, c),
+    );
+    com::println(
+        16.into(),
+        &format!("Measured CPU speed is {:.2} GHz", info.cpu_ghz),
+    );
+    com::println(
+        16.into(),
+        &format!(
+            "Total CPU performance is estimated as {:.2} GHz",
+            info.configure_ghz
+        ),
+    );
+    com::println(
+        16.into(),
+        &format!("System memory is {} MB (capped at 1 GB)", info.sys_mb),
+    );
+    com::println(
+        16.into(),
+        &format!("Video card is \"{}\"", info.gpu_description),
+    );
     // TODO - vector support
     com::println(16.into(), "");
     input::init();

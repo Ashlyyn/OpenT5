@@ -365,9 +365,9 @@ impl<T: Sized + Clone> SmpEvent<T> {
 pub struct Module {
     // In the future, I woud like to make the inner member a &[u8] rather than
     // a thin pointer, but Windows doesn't make getting the size of a loaded
-    // library easier, so we're just going to use a pointer (which will work 
+    // library easier, so we're just going to use a pointer (which will work
     // on both Windows and Unix platforms)
-    ptr: *mut ()
+    ptr: *mut (),
 }
 
 impl Module {
@@ -376,20 +376,20 @@ impl Module {
             /// Loads a library from the supplied path using [`LoadLibraryW`].
             /// Refer to [`LoadLibraryW`]'s documentation for what paths are
             /// valid.
-            /// 
+            ///
             /// # Arguments
-            /// 
+            ///
             /// * `name` - the name or or path of the library to be loaded.
-            /// 
+            ///
             /// # Return Value
-            /// 
-            /// Returns [`Some`] if the library was successfully loaded, 
+            ///
+            /// Returns [`Some`] if the library was successfully loaded,
             /// [`None`] if not.
             pub fn load(name: &Path) -> Option<Self> {
                 // [`OsStrExt::encode_wide`] doesn't add the null-terminator that
-                // LoadLibraryW is going to expect, so we have to add it 
+                // LoadLibraryW is going to expect, so we have to add it
                 // manually
-                let mut name = 
+                let mut name =
                     name.as_os_str().encode_wide().collect::<Vec<_>>();
                 name.push(0x0000);
                 let name = name.as_ptr();
@@ -397,7 +397,7 @@ impl Module {
                 unsafe { LoadLibraryW(PCWSTR(name)) }.ok().map(|h| Module { ptr: h.0 as *mut () })
             }
 
-            /// Unloads the library loaded by [`Module::load`]. Should only be 
+            /// Unloads the library loaded by [`Module::load`]. Should only be
             /// used when dropped.
             fn unload(&mut self) {
                 unsafe { FreeLibrary(HINSTANCE(self.ptr as _)) };
@@ -406,18 +406,18 @@ impl Module {
             /// Loads a library from the supplied path using [`dlopen`].
             /// Refer to [`dlopen`]'s documentation for what paths are
             /// valid.
-            /// 
+            ///
             /// # Arguments
-            /// 
+            ///
             /// * `name` - the name or or path of the library to be loaded.
-            /// 
+            ///
             /// # Return Value
-            /// 
-            /// Returns [`Some`] if the library was successfully loaded, 
+            ///
+            /// Returns [`Some`] if the library was successfully loaded,
             /// [`None`] if not.
             pub fn load(name: &Path) -> Option<Self> {
                 // [`OsStrExt::as_bytes`] doesn't yield a null-terminated string
-                // like dlopen is going to expect, so we have to add it 
+                // like dlopen is going to expect, so we have to add it
                 // manually
                 let mut name = name.as_os_str().as_bytes().to_vec();
                 name.push(b'\0');
@@ -431,7 +431,7 @@ impl Module {
                 }
             }
 
-            /// Unloads the library loaded by [`Module::load`]. Should only be 
+            /// Unloads the library loaded by [`Module::load`]. Should only be
             /// used when dropped.
             fn unload(&mut self) {
                 unsafe { dlclose(self.ptr as *mut _) };
@@ -467,7 +467,7 @@ impl<T: HasRawWindowHandle> EasierWindowHandle for T {
 
 // Made this because I got tired of importing std::sync::atomic::Ordering
 // and passing the exact same Ordering (Ordering::Relaxed) 99% of the time.
-// Purely a convenience thing, absolutely meaningless in terms of 
+// Purely a convenience thing, absolutely meaningless in terms of
 // functionality
 pub trait EasierAtomic {
     type ValueType;

@@ -2,9 +2,9 @@
 #![allow(private_in_public)]
 #![deny(missing_docs)]
 
+mod builder;
 mod limits;
 mod value;
-mod builder;
 
 pub mod global_fns;
 pub use global_fns::*;
@@ -22,7 +22,7 @@ use std::fmt::Display;
 use std::hash::Hash;
 use std::sync::{Arc, RwLock};
 
-use self::limits::{DvarLimits};
+use self::limits::DvarLimits;
 use self::value::DvarValue;
 
 // Enum for the possible sources a Dvar may be set from

@@ -12,3 +12,14 @@ If you're wondering what the ultimate goals of this project are (beyond just "a 
 (More might be added later.)
 
 If, after reading all of the above, you're actually interested in contributing, please don't hesitate. Any help would be *very* appreciated!
+
+## Building
+Right now, building is as simple as:
+```bash
+    $ git clone https://github.com/Fingerlingus/OpenT5.git
+    $ cd OpenT5
+    $ cargo build
+```
+None of the game files are required yet (you will get some weird-looking localization references if `localization.txt` isn't present though).
+
+Linux builds currently require libgtk4, so you'll want to grab that from your package manager if you don't have it installed (might swap it out for egui or something else later). Windows doesn't require anything special. macOS won't build at all (no gtk support, some macOS-specific funtions aren't implemented). I don't own a single Apple device, so I can't test macOS builds anyways. As stated above though, macOS support *is* a goal, so if you want to be the one to add that support, you're more than welcome to do so.

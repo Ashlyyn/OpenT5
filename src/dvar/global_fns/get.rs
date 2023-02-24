@@ -1,6 +1,14 @@
-use crate::{dvar::DvarFlags, common::{Vec3f32, Vec2f32, Vec4f32}};
+use crate::{
+    common::{Vec2f32, Vec3f32, Vec4f32},
+    dvar::DvarFlags,
+};
 
-use super::{register_color_xyz, find, register_bool, register_float, register_vector2, register_vector3, register_vector4, register_int, register_string, register_enumeration, register_color, register_int64, register_linear_color_rgb};
+use super::{
+    find, register_bool, register_color, register_color_xyz,
+    register_enumeration, register_float, register_int, register_int64,
+    register_linear_color_rgb, register_string, register_vector2,
+    register_vector3, register_vector4,
+};
 
 /// Retrieves a [`bool`] value from a [`Dvar`].
 ///

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-pub mod os;
 pub mod arch;
+pub mod os;
 
 use std::sync::{Arc, RwLock};
 

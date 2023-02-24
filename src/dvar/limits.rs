@@ -6,7 +6,7 @@
 // bool has no custom-definable domain, it'll always be 0 or 1/true or false
 // DvarLimitsBool still needs to be defined for printing the domain
 
-use std::{fmt::Display, collections::HashSet};
+use std::{collections::HashSet, fmt::Display};
 
 /// Domain for [`Dvar`] with value type [`DvarValue::Bool`]
 ///
@@ -845,7 +845,9 @@ impl DvarLimits {
         }
     }
 
-    pub fn as_linear_color_rgb_limits(&self) -> Option<DvarLimitsLinearColorRGB> {
+    pub fn as_linear_color_rgb_limits(
+        &self,
+    ) -> Option<DvarLimitsLinearColorRGB> {
         match self {
             Self::LinearColorRGB(v) => Some(*v),
             _ => None,

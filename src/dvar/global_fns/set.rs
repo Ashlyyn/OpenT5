@@ -1,6 +1,14 @@
-use crate::{dvar::{DvarFlags, value::DvarValue, SetSource, limits::DvarLimits}, common::{Vec2f32, Vec3f32, Vec4f32}};
+use crate::{
+    common::{Vec2f32, Vec3f32, Vec4f32},
+    dvar::{limits::DvarLimits, value::DvarValue, DvarFlags, SetSource},
+};
 
-use super::{register_color_xyz, DVARS, find, exists, register_bool, register_float, register_vector2, register_vector3, register_vector4, register_int, register_string, get_enumeration, register_enumeration, register_color, register_int64, register_linear_color_rgb};
+use super::{
+    exists, find, get_enumeration, register_bool, register_color,
+    register_color_xyz, register_enumeration, register_float, register_int,
+    register_int64, register_linear_color_rgb, register_string,
+    register_vector2, register_vector3, register_vector4, DVARS,
+};
 
 /// Sets the value of an existing [`Dvar`] from the supplied [`SetSource`]
 ///
