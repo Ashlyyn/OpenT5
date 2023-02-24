@@ -28,6 +28,7 @@ mod gfx;
 mod input;
 mod key;
 mod locale;
+mod net;
 mod pb;
 mod platform;
 mod pmem;
@@ -37,7 +38,6 @@ mod seh;
 mod sys;
 mod util;
 mod vid;
-mod net;
 
 lazy_static! {
     #[allow(dead_code)]

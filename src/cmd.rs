@@ -103,7 +103,7 @@ pub fn find(name: &str) -> Option<CmdFunction> {
 pub fn exists(name: &str) -> bool {
     let lock = CMD_FUNCTIONS.clone();
     let cmd_functions = lock.read().unwrap();
-    cmd_functions.contains_key(name) 
+    cmd_functions.contains_key(name)
 }
 
 pub fn add_internal(name: &str, function: fn()) -> Option<CmdFunction> {
@@ -117,10 +117,8 @@ pub fn add_internal(name: &str, function: fn()) -> Option<CmdFunction> {
 
     let lock = CMD_FUNCTIONS.clone();
     let mut cmd_functions = lock.write().unwrap();
-    cmd_functions.insert(
-        name.to_string(),
-        CmdFunction::new(name, "", "", function),
-    );
+    cmd_functions
+        .insert(name.to_string(), CmdFunction::new(name, "", "", function));
     Some(cmd_functions.get(name).unwrap().clone())
 }
 

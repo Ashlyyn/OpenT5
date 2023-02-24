@@ -6,10 +6,6 @@ use crate::cmd;
 use crate::com;
 use crate::sys;
 
-use super::DVARS;
-use super::Dvar;
-use super::DvarFlags;
-use super::SetSource;
 use super::add_flags;
 use super::get_bool;
 use super::get_enumeration;
@@ -26,6 +22,10 @@ use super::set_int64_from_source;
 use super::set_int_from_source;
 use super::set_string_from_source;
 use super::value::DvarValue;
+use super::Dvar;
+use super::DvarFlags;
+use super::SetSource;
+use super::DVARS;
 
 use lazy_static::lazy_static;
 

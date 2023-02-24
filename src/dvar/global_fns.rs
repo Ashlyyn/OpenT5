@@ -1,10 +1,13 @@
-use std::{sync::{Arc, RwLock}, collections::HashMap};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 use lazy_static::lazy_static;
 
-use crate::{dvar::Dvar};
+use crate::dvar::Dvar;
 
-use super::{DvarFlags};
+use super::DvarFlags;
 
 pub mod register;
 pub use register::*;

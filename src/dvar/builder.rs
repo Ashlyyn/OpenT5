@@ -1,8 +1,17 @@
 use std::marker::PhantomData;
 
-use crate::common::{Vec3f32, Vec2f32, Vec4f32};
+use crate::common::{Vec2f32, Vec3f32, Vec4f32};
 
-use super::{value::DvarValue, Dvar, limits::{DvarLimits, DvarLimitsFloat, DvarLimitsVector2, DvarLimitsVector3, DvarLimitsVector4, DvarLimitsInt, DvarLimitsEnumeration, DvarLimitsInt64, DvarLimitsLinearColorRGB, DvarLimitsColorXYZ, DvarLimitsBool, DvarLimitsString, DvarLimitsColor}, DvarFlags};
+use super::{
+    limits::{
+        DvarLimits, DvarLimitsBool, DvarLimitsColor, DvarLimitsColorXYZ,
+        DvarLimitsEnumeration, DvarLimitsFloat, DvarLimitsInt, DvarLimitsInt64,
+        DvarLimitsLinearColorRGB, DvarLimitsString, DvarLimitsVector2,
+        DvarLimitsVector3, DvarLimitsVector4,
+    },
+    value::DvarValue,
+    Dvar, DvarFlags,
+};
 
 macro_rules! zero_variant_enum {
     ($e:ident) => {
@@ -132,7 +141,10 @@ impl DvarBuilder<DvarBuilderStartState> {
 }
 
 impl DvarBuilder<DvarBuilderDataState> {
-    pub(super) fn name(mut self, name: &str) -> DvarBuilder<DvarBuilderDataState> {
+    pub(super) fn name(
+        mut self,
+        name: &str,
+    ) -> DvarBuilder<DvarBuilderDataState> {
         self.dvar.name = name.to_string().into();
         self
     }
@@ -145,7 +157,10 @@ impl DvarBuilder<DvarBuilderDataState> {
         self
     }
 
-    pub(super) fn flags(mut self, flags: DvarFlags) -> DvarBuilder<DvarBuilderDataState> {
+    pub(super) fn flags(
+        mut self,
+        flags: DvarFlags,
+    ) -> DvarBuilder<DvarBuilderDataState> {
         self.dvar.flags = flags.into();
         self
     }
@@ -158,35 +173,45 @@ impl DvarBuilder<DvarBuilderDataState> {
         self
     }
 
-    pub(super) fn type_bool(self) -> DvarBuilder<DvarBuilderTypeBoolCurrentValueState> {
+    pub(super) fn type_bool(
+        self,
+    ) -> DvarBuilder<DvarBuilderTypeBoolCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeBoolCurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    pub(super) fn type_float(self) -> DvarBuilder<DvarBuilderTypeFloatDomainState> {
+    pub(super) fn type_float(
+        self,
+    ) -> DvarBuilder<DvarBuilderTypeFloatDomainState> {
         DvarBuilder::<DvarBuilderTypeFloatDomainState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    pub(super) fn type_vector2(self) -> DvarBuilder<DvarBuilderTypeVector2DomainState> {
+    pub(super) fn type_vector2(
+        self,
+    ) -> DvarBuilder<DvarBuilderTypeVector2DomainState> {
         DvarBuilder::<DvarBuilderTypeVector2DomainState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    pub(super) fn type_vector3(self) -> DvarBuilder<DvarBuilderTypeVector3DomainState> {
+    pub(super) fn type_vector3(
+        self,
+    ) -> DvarBuilder<DvarBuilderTypeVector3DomainState> {
         DvarBuilder::<DvarBuilderTypeVector3DomainState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    pub(super) fn type_vector4(self) -> DvarBuilder<DvarBuilderTypeVector4DomainState> {
+    pub(super) fn type_vector4(
+        self,
+    ) -> DvarBuilder<DvarBuilderTypeVector4DomainState> {
         DvarBuilder::<DvarBuilderTypeVector4DomainState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -218,14 +243,18 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub(super) fn type_color(self) -> DvarBuilder<DvarBuilderTypeColorCurrentValueState> {
+    pub(super) fn type_color(
+        self,
+    ) -> DvarBuilder<DvarBuilderTypeColorCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeColorCurrentValueState> {
             dvar: self.dvar,
             extra: Default::default(),
         }
     }
 
-    pub(super) fn type_int64(self) -> DvarBuilder<DvarBuilderTypeInt64DomainState> {
+    pub(super) fn type_int64(
+        self,
+    ) -> DvarBuilder<DvarBuilderTypeInt64DomainState> {
         DvarBuilder::<DvarBuilderTypeInt64DomainState> {
             dvar: self.dvar,
             extra: Default::default(),
@@ -241,7 +270,9 @@ impl DvarBuilder<DvarBuilderDataState> {
         }
     }
 
-    pub(super) fn type_color_xyz(self) -> DvarBuilder<DvarBuilderTypeColorXYZDomainState> {
+    pub(super) fn type_color_xyz(
+        self,
+    ) -> DvarBuilder<DvarBuilderTypeColorXYZDomainState> {
         DvarBuilder::<DvarBuilderTypeColorXYZDomainState> {
             dvar: self.dvar,
             extra: Default::default(),
