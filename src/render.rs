@@ -851,7 +851,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 {
                     let lock = WINIT_GLOBALS.clone();
                     let mut winit_globals = lock.write().unwrap();
-                    winit_globals.video_modes = modes.map(|v| VideoMode(v)).collect();
+                    winit_globals.video_modes = modes.map(VideoMode).collect();
                 }
                 let modes = main_window.current_monitor().unwrap().video_modes();
                 modes.for_each(|v| println!("{}", v));
