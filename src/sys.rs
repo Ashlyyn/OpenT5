@@ -43,6 +43,9 @@ cfg_if! {
         use gtk4::builders::MessageDialogBuilder;
         use std::cell::RefCell;
         use std::ffi::OsStr;
+    } else if #[cfg(target_os = "macos")] {
+        use core::ptr::addr_of_mut;
+        use std::ffi::CString;
     }
 }
 
@@ -236,7 +239,7 @@ cfg_if! {
         pub fn get_executable_name() -> String {
             let buf: [u8; libc::PROC_PIDPATHINFO_MAXSIZE as _] =
                 [0; libc::PROC_PIDPATHINFO_MAXSIZE as _];
-            let pid = std::process::pid();
+            let pid = std::process::id();
             unsafe {
                 libc::proc_pidpath(
                     pid,
