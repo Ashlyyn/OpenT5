@@ -141,13 +141,23 @@ impl<'a> PhysicalMemory<'a> {
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
+            // SAFETY:
+            // VirtualAlloc is an FFI function, requiring use of unsafe.
+            // Depending on the parameters passed, it may create memory
+            // unsafety, but in our case, we pass None (NULL), so it should
+            // never corrupt our program.
             let p = unsafe {
-                VirtualAlloc(None, size.get(), MEM_COMMIT, PAGE_READWRITE)
-                    as *mut u8
+                VirtualAlloc(None, size.get(), MEM_COMMIT, PAGE_READWRITE).cast::<u8>()
             };
-            match p.is_null() {
-                true => None,
-                false => unsafe { Some(core::slice::from_raw_parts_mut(p, size.get())) },
+            
+            if p.is_null() { 
+                None 
+            } else { 
+                // SAFETY:
+                // We've already verified p isn't null, and if mmap returns a
+                // non-null pointer, an allocation with at least the size
+                // supplied should've been alloced.
+                Some( unsafe { core::slice::from_raw_parts_mut(p, size.get() ) }) 
             }
         }
     } else if #[cfg(target_family = "unix")] {

@@ -4,7 +4,7 @@
 
 use crate::*;
 use std::{
-    path::{Path, PathBuf},
+    path::{Path, PathBuf}, mem::transmute,
 };
 use core::str::FromStr;
 
@@ -16,10 +16,11 @@ cfg_if::cfg_if! {
                 CSIDL_MYDOCUMENTS, CSIDL_PROFILE, SHGFP_TYPE_CURRENT,
             },
             Foundation::MAX_PATH};
-            use std::ffi::CStr;
+            use core::ffi::CStr;
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum OsFolder {
     UserConfig,
     UserData,
@@ -31,21 +32,26 @@ cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
         // TODO - will panic if folder path contains invalid UTF-8 characters.
         // Fix later.
+        #[allow(clippy::indexing_slicing, clippy::multiple_unsafe_ops_per_block)]
         pub fn get_os_folder_path(os_folder: OsFolder) -> Option<String> {
             let csidl: u32 = match os_folder {
-                OsFolder::UserData => CSIDL_LOCAL_APPDATA,
-                OsFolder::UserConfig => CSIDL_LOCAL_APPDATA,
+                OsFolder::UserData | OsFolder::UserConfig=> CSIDL_LOCAL_APPDATA,
                 OsFolder::Documents => CSIDL_MYDOCUMENTS,
                 OsFolder::Home => CSIDL_PROFILE,
             };
 
             let mut buf: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
+            // SAFETY:
+            // SHGetFolderPathA is an FFI function, requiring use of unsafe.
+            // SHGetFolderPathA itself should never create UB, violate memory
+            // safety, etc., provided the supplied buffer is MAX_PATH bytes
+            // or more, which we've ensure it is.
             match unsafe {
                 SHGetFolderPathA(
                     None,
-                    (csidl | CSIDL_FLAG_CREATE) as _,
+                    transmute(csidl | CSIDL_FLAG_CREATE),
                     None,
-                    SHGFP_TYPE_CURRENT.0 as _,
+                    transmute(SHGFP_TYPE_CURRENT.0),
                     &mut buf,
                 )
             } {
@@ -53,10 +59,7 @@ cfg_if::cfg_if! {
                     // Null-terminate the string, in case the folder path
                     // was exactly MAX_PATH characters.
                     buf[buf.len() - 1] = 0x00;
-                    let c = match CStr::from_bytes_until_nul(&buf) {
-                        Ok(c) => c,
-                        Err(_) => return None,
-                    };
+                    let Ok(c) = CStr::from_bytes_until_nul(&buf) else { return None };
                     Some(c.to_str().unwrap().to_owned())
                 },
                 Err(_) => None,

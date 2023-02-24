@@ -344,13 +344,24 @@ impl Module {
                 name.push(0x0000);
                 let name = name.as_ptr();
 
+                // SAFETY:
+                // LoadLibraryW is an FFI function, requiring use of unsafe. 
+                // LoadLibraryW itself should never create UB, violate memory
+                // safety, etc., regardless of the name or path passed to it 
+                // in any scenario.
                 unsafe { LoadLibraryW(PCWSTR(name)) }.ok().map(|h| Self { ptr: h.0 as *mut () })
             }
 
             /// Unloads the library loaded by [`Module::load`]. Should only be
             /// used when dropped.
             fn unload(&mut self) {
-                unsafe { FreeLibrary(HINSTANCE(self.ptr as _)) };
+                // SAFETY:
+                // FreeLibrary is an FFI function, requiring use of unsafe. 
+                // FreeLibrary itself should never create UB, violate memory
+                // safety, etc., regardless of the pointer passed to it,
+                // but in any event, the pointer we pass is guaranteed to
+                // be valid since it was retrieved via LoadLibraryW.
+                unsafe { FreeLibrary(HINSTANCE(self.ptr as _)); }
             }
         } else if #[cfg(target_family = "unix")] {
             /// Loads a library from the supplied path using [`dlopen`].
@@ -376,7 +387,7 @@ impl Module {
                 // SAFETY:
                 // dlopen is an FFI function, requiring use of unsafe. 
                 // dlopen itself should never create UB, violate memory
-                // safety, etc., regardless of the pointer passed to it 
+                // safety, etc., regardless of the name or path passed to it 
                 // in any scenario.
                 let ptr = unsafe { dlopen(name, RTLD_NOW) }.cast::<()>();
                 if ptr.is_null() {

@@ -29,7 +29,8 @@ use std::{
 };
 cfg_if! {
     if #[cfg(target_os = "windows")] {
-        use std::ffi::{CStr, CString};
+        use core::ffi::{CStr};
+        use alloc::ffi::CString;
         use std::fs::OpenOptions;
         use std::os::windows::prelude::*;
         use windows::Win32::Foundation::MAX_PATH;
@@ -164,9 +165,15 @@ pub fn milliseconds() -> isize {
 
 cfg_if! {
     if #[cfg(target_os = "windows")] {
+        #[allow(clippy::semicolon_outside_block)]
         pub fn get_executable_name() -> String {
             let mut buf = [0u8; MAX_PATH as usize];
-            unsafe { GetModuleFileNameA(None, &mut buf) };
+            // SAFETY:
+            // GetModuleFileNameA is an FFI function, requiring use of unsafe.
+            // GetModuleFileNameA itself should never create UB, violate memory
+            // safety, etc., provided the buffer passed is long enough,
+            // which we've guaranteed is true.
+            unsafe { GetModuleFileNameA(None, &mut buf); }
             let c_string = CStr::from_bytes_until_nul(&buf).unwrap();
             let s = c_string.to_str()
                 .unwrap()
@@ -177,10 +184,7 @@ cfg_if! {
                 .to_str()
                 .unwrap()
                 .to_owned();
-            match s.strip_suffix(".exe") {
-                Some(s) => s.to_owned(),
-                None => s
-            }
+            s.strip_suffix(".exe").map_or(s.clone(), alloc::borrow::ToOwned::to_owned)
         }
     } else if #[cfg(target_os = "linux")] {
         pub fn get_executable_name() -> String {
@@ -917,7 +921,7 @@ cfg_if! {
         #[repr(u32)]
         pub enum MessageBoxIcon {
             #[default]
-            None = 0x00000000,
+            None = 0x0000_0000,
             Stop = MB_ICONSTOP.0,
             Information = MB_ICONINFORMATION.0,
         }
@@ -1008,31 +1012,26 @@ cfg_if! {
             msg_box_type: MessageBoxType,
             msg_box_icon: Option<MessageBoxIcon>
         ) -> Option<MessageBoxResult> {
-            let hwnd = match handle {
-                Some(h) => h.get_win32().unwrap().hwnd,
-                None => 0 as _,
-            };
+            let hwnd = handle.map_or(0 as _, |h| h.get_win32().unwrap().hwnd);
 
-            let ctext = match CString::new(text) {
-                Ok(s) => s,
-                Err(_) => return None,
-            };
+            let Ok(ctext) = CString::new(text) else { return None };
 
-            let ctitle = match CString::new(title) {
-                Ok(s) => s,
-                Err(_) => return None,
-            };
+            let Ok(ctitle) = CString::new(title) else { return None };
 
             let ctype = MESSAGEBOX_STYLE(
                 msg_box_type as u32
                 | msg_box_icon.unwrap_or(MessageBoxIcon::None) as u32
             );
 
+            // SAFETY:
+            // MessageBoxA is an FFI function, requiring use of unsafe. 
+            // MessageBoxA itself should never create UB, violate memory
+            // safety, etc., regardless of the parameters passed to it.
             let res: MessageBoxResult = num::FromPrimitive::from_i32(unsafe {
                 MessageBoxA(
                     HWND(hwnd as _),
-                    PCSTR(ctext.as_ptr() as *const _),
-                    PCSTR(ctitle.as_ptr() as *const _),
+                    PCSTR(ctext.as_ptr().cast()),
+                    PCSTR(ctitle.as_ptr().cast()),
                     ctype
                 ) }.0).unwrap_or(MessageBoxResult::Unknown);
             Some(res)
@@ -1141,7 +1140,11 @@ cfg_if! {
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         fn output_debug_string(string: &str) {
-            unsafe { OutputDebugStringA(PCSTR(string.as_ptr())) };
+            // SAFETY:
+            // OutputDebugStringA is an FFI function, requiring use of unsafe.
+            // OutputDebugStringA itself should never create UB, violate memory
+            // safety, etc., in any scenario.
+            unsafe { OutputDebugStringA(PCSTR(string.as_ptr())); }
         }
     } else {
         const fn output_debug_string(_string: &str) {

@@ -21,8 +21,18 @@ use windows::{
 use libc::c_int;
 
 // Get info for WinMain (Rust doesn't do this automatically), then call it
+#[allow(
+    clippy::panic, 
+    clippy::semicolon_outside_block, 
+    clippy::cast_precision_loss, 
+    clippy::cast_possible_truncation,
+)]
 pub fn main() {
     // Get hInstance
+    // SAFETY:
+    // GetModuleHandleA is an FFI function, requiring use of unsafe.
+    // GetModuleHandleA itself should never create UB, violate memory
+    // safety, etc.
     let hInstance: Option<HINSTANCE> = unsafe {
         match GetModuleHandleA(None) {
             Ok(h) => Some(h),
@@ -31,42 +41,55 @@ pub fn main() {
     };
 
     let mut info = STARTUPINFOW {
-        cb: std::mem::size_of::<STARTUPINFOW>() as u32,
+        cb: core::mem::size_of::<STARTUPINFOW>() as u32,
         ..Default::default()
     };
 
     // Get command line
+    // SAFETY:
+    // GetCommandLineA is an FFI function, requiring use of unsafe.
+    // GetCommandLineA itself should never create UB, violate memory
+    // safety, etc.
     let p = unsafe { GetCommandLineA() };
-    let pCmdLine = match p.is_null() {
-        true => panic!("failed to get command line, exiting!"),
-        false => Some(p),
-    };
+    let pCmdLine = if p.is_null() { panic!("failed to get command line, exiting!") } else { Some(p) };
 
     // Get nCmdShow
-    unsafe { GetStartupInfoW(&mut info) };
-    let nCmdShow = info.wShowWindow as c_int as u32;
+    // SAFETY:
+    // GetStartupInfoW is an FFI function, requiring use of unsafe.
+    // GetStartupInfoW itself should never create UB, violate memory
+    // safety, etc., provided a valid &STARUPINFOW is passed.
+    unsafe { GetStartupInfoW(&mut info); }
+    let nCmdShow = u32::from(info.wShowWindow);
 
     // Call actual WinMain
     // hPrevInstance always NULL for Win32 platforms
     WinMain(hInstance, None, pCmdLine, nCmdShow);
 }
 
-#[allow(unused_variables)]
+#[allow(unused_variables, clippy::semicolon_outside_block)]
 fn WinMain(
     hInstance: Option<HINSTANCE>,
     hPrevInstance: Option<HINSTANCE>,
     pCmdLine: Option<PSTR>,
     nCmdShow: u32,
 ) -> c_int {
+    // SAFETY:
+    // GetSystemMetrics is an FFI function, requiring use of unsafe.
+    // GetSystemMetrics itself should never create UB, violate memory
+    // safety, etc.
     if unsafe { GetSystemMetrics(SM_REMOTESESSION) != 0 } {
+        // SAFETY:
+        // MessageBoxA is an FFI function, requiring use of unsafe. 
+        // MessageBoxA itself should never create UB, violate memory
+        // safety, etc., regardless of the parameters passed to it.
         unsafe {
             MessageBoxA(
                 None,
                 s!("The game can not be run over a remote desktop connection."),
                 None,
                 MB_OK,
-            )
-        };
+            );
+        }
         return 0;
     }
 
@@ -74,7 +97,11 @@ fn WinMain(
         return 0;
     }
 
-    unsafe { SetErrorMode(SEM_FAILCRITICALERRORS) };
+    // SAFETY:
+    // SetErrorMode is an FFI function, requiring use of unsafe.
+    // SetErrorMode itself should never create UB, violate memory
+    // safety, etc.
+    unsafe { SetErrorMode(SEM_FAILCRITICALERRORS); }
 
     0
 }

@@ -44,7 +44,7 @@
     clippy::self_named_module_files,
     clippy::equatable_if_let,
     clippy::pattern_type_mismatch,
-
+    clippy::semicolon_outside_block,
 )]
 #![allow(clippy::iter_nth_zero)]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
