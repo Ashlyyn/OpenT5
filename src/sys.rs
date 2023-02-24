@@ -38,7 +38,7 @@ cfg_if! {
             MESSAGEBOX_STYLE,
         };
         use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
-    } else {
+    } else if #[cfg(target_os = "linux")] {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
         use std::cell::RefCell;
@@ -875,7 +875,7 @@ fn should_update_for_info_change() -> bool {
 
 cfg_if! {
     if #[cfg(windows)] {
-        #[derive(Copy, Clone, Default)]
+        #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxType {
             #[default]
@@ -884,8 +884,8 @@ cfg_if! {
             YesNo = MB_YESNO.0,
             // TODO - maybe implement Help?
         }
-    } else {
-        #[derive(Copy, Clone, Default)]
+    } else if #[cfg(target_os = "linux")] {
+        #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxType {
             #[default]
@@ -905,12 +905,21 @@ cfg_if! {
                 }
             }
         }
+    } else {
+        #[derive(Copy, Clone, Default, Debug)]
+        #[repr(u32)]
+        pub enum MessageBoxType {
+            #[default]
+            Ok,
+            YesNoCanel,
+            YesNo,
+        }
     }
 }
 
 cfg_if! {
     if #[cfg(windows)] {
-        #[derive(Copy, Clone, Default)]
+        #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxIcon {
             #[default]
@@ -918,8 +927,8 @@ cfg_if! {
             Stop = MB_ICONSTOP.0,
             Information = MB_ICONINFORMATION.0,
         }
-    } else {
-        #[derive(Copy, Clone, Default)]
+    } else if #[cfg(target_os = "linux")]  {
+        #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxIcon {
             #[default]
@@ -939,6 +948,15 @@ cfg_if! {
                 }
             }
         }
+    } else {
+        #[derive(Copy, Clone, Default, Debug)]
+        #[repr(u32)]
+        pub enum MessageBoxIcon {
+            #[default]
+            None,
+            Stop,
+            Information,
+        }
     }
 }
 
@@ -953,8 +971,8 @@ cfg_if! {
             No = IDNO.0,
             Unknown,
         }
-    } else {
-        #[derive(Copy, Clone, FromPrimitive)]
+    } else if #[cfg(target_os = "linux")] {
+        #[derive(Copy, Clone, FromPrimitive, Debug)]
         #[repr(i32)]
         pub enum MessageBoxResult {
             Ok,
@@ -974,6 +992,16 @@ cfg_if! {
                     _ => MessageBoxResult::Unknown
                 }
             }
+        }
+    } else {
+        #[derive(Copy, Clone, FromPrimitive, Debug)]
+        #[repr(i32)]
+        pub enum MessageBoxResult {
+            Ok,
+            Cancel,
+            Yes,
+            No,
+            Unknown,
         }
     }
 }
@@ -1015,7 +1043,7 @@ cfg_if! {
                 ) }.0).unwrap_or(MessageBoxResult::Unknown);
             Some(res)
         }
-    } else {
+    } else if #[cfg(target_os = "linux")] {
         // The non-Windows implementations of message_box() will use GTK
         // by default, instead of targeting each, e.g. Wayland, X, Cocoa, etc.
         // For platforms that don't support GTK for some reason,
@@ -1042,7 +1070,6 @@ cfg_if! {
             msg_box_type: MessageBoxType,
             msg_icon_type: Option<MessageBoxIcon>
         ) -> Option<MessageBoxResult> {
-            println!("aaaaa");
             let dialog = MessageDialogBuilder::new()
                 .buttons(gtk4::ButtonsType::None)
                 .destroy_with_parent(true)
@@ -1087,6 +1114,24 @@ cfg_if! {
             });
 
             Some(response.into())
+        }
+    } else {
+        pub fn message_box(
+            _handle: Option<WindowHandle>,
+            text: &str,
+            title: &str,
+            msg_box_type: MessageBoxType,
+            msg_icon_type: Option<MessageBoxIcon>
+        ) -> Option<MessageBoxResult> {
+            println!(
+                "message_box: handle={:?}, text={}, title={}, type={:?}, icon={:?}",
+                _handle,
+                text,
+                title,
+                msg_box_type,
+                msg_icon_type,
+            );
+            None
         }
     }
 }
