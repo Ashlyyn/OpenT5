@@ -164,11 +164,22 @@ pub enum WinitCustomEvent {
     DestroyConsole,
 }
 
+#[derive(Clone, Debug)]
+pub struct VideoMode(winit::monitor::VideoMode);
+
+impl VideoMode {
+    pub fn get(&self) -> winit::monitor::VideoMode {
+        self.0.clone()
+    }
+}
+
+unsafe impl Sync for VideoMode {}
+
 #[derive(Default)]
 struct WinitGlobals {
     current_monitor_handle: Option<winit::monitor::MonitorHandle>,
     best_monitor_handle: Option<winit::monitor::MonitorHandle>,
-    video_modes: Vec<winit::monitor::VideoMode>,
+    video_modes: Vec<VideoMode>,
     window_handle: Option<WindowHandle>,
     proxy_events: VecDeque<WinitCustomEvent>,
 }
@@ -291,7 +302,7 @@ fn closest_refresh_rate_for_mode(
     height: u16,
     hz: u16,
 ) -> Option<u16> {
-    let video_modes = WINIT_GLOBALS.clone().read().unwrap().video_modes.clone();
+    let video_modes = WINIT_GLOBALS.clone().read().unwrap().video_modes.iter().map(|v| v.get()).collect::<Vec<_>>();
     if video_modes.is_empty() {
         return Some(60);
     }
@@ -736,7 +747,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 }
             );
 
-            WINIT_GLOBALS.clone().write().unwrap().video_modes = valid_modes.iter().cloned().cloned().collect();
+            WINIT_GLOBALS.clone().write().unwrap().video_modes = valid_modes.iter().map(|v| VideoMode((*v).clone())).collect::<Vec<_>>();
             let width = monitor.size().width;
             let height = monitor.size().height;
             {
@@ -840,7 +851,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 {
                     let lock = WINIT_GLOBALS.clone();
                     let mut winit_globals = lock.write().unwrap();
-                    winit_globals.video_modes = modes.collect();
+                    winit_globals.video_modes = modes.map(|v| VideoMode(v)).collect();
                 }
                 let modes = main_window.current_monitor().unwrap().video_modes();
                 modes.for_each(|v| println!("{}", v));
