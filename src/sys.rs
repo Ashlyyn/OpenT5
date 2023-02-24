@@ -237,8 +237,7 @@ cfg_if! {
     }
     else if #[cfg(target_os = "macos")] {
         pub fn get_executable_name() -> String {
-            let buf: [u8; libc::PROC_PIDPATHINFO_MAXSIZE as _] =
-                [0; libc::PROC_PIDPATHINFO_MAXSIZE as _];
+            let mut buf = [0u8; libc::PROC_PIDPATHINFO_MAXSIZE as usize];
             let pid = std::process::id();
             unsafe {
                 libc::proc_pidpath(
