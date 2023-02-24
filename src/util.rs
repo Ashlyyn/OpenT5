@@ -419,7 +419,7 @@ impl Module {
                 // [`OsStrExt::as_bytes`] doesn't yield a null-terminated string
                 // like dlopen is going to expect, so we have to add it 
                 // manually
-                let mut name = name.as_os_str().as_bytes().collect::<Vec<_>>();
+                let mut name = name.as_os_str().as_bytes().to_vec();
                 name.push(b'\0');
                 let name = name.as_ptr() as *const c_char;
 
