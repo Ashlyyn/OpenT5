@@ -242,9 +242,9 @@ cfg_if! {
             let pid = std::process::id();
             unsafe {
                 libc::proc_pidpath(
-                    pid,
+                    pid as libc::c_int,
                     addr_of_mut!(buf) as *mut _,
-                    buf.len()
+                    buf.len() as u32
                 )
             };
             CString::from_vec_with_nul(buf.to_vec())
@@ -254,7 +254,7 @@ cfg_if! {
                 )
                 .to_str()
                 .unwrap_or("")
-                .to_string();
+                .to_string()
         }
     }
     // Fallback method - if no platform-specific method is used, try to get the executable name from argv[0]
