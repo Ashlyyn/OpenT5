@@ -156,7 +156,7 @@ pub fn milliseconds() -> isize {
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         pub fn get_executable_name() -> String {
-            let mut buf: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
+            let mut buf = [0u8; MAX_PATH as usize];
             unsafe { GetModuleFileNameA(None, &mut buf) };
             let c_string = CStr::from_bytes_until_nul(&buf).unwrap();
             let s = c_string.to_str()
