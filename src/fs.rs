@@ -4,7 +4,7 @@
 
 use crate::*;
 use std::{
-    path::{Path, PathBuf}, mem::transmute,
+    path::{Path, PathBuf},
 };
 use core::str::FromStr;
 
@@ -17,6 +17,7 @@ cfg_if::cfg_if! {
             },
             Foundation::MAX_PATH};
             use core::ffi::CStr;
+            use core::mem::transmute;
     }
 }
 
