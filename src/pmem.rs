@@ -17,7 +17,7 @@ cfg_if! {
         use windows::Win32::System::Memory::{
             VirtualAlloc, MEM_COMMIT, PAGE_READWRITE,
         };
-    } else if #[cfg(any(target_os = "unix", target_os = "linux"))] {
+    } else if #[cfg(target_family = "unix")] {
         use nix::sys::mman::{mmap, MapFlags, ProtFlags};
     } else {
         use libc::malloc;
@@ -150,16 +150,16 @@ cfg_if! {
                 false => unsafe { Some(core::slice::from_raw_parts_mut(p, size.get())) },
             }
         }
-    } else if #[cfg(any(target_os = "unix", target_os = "linux"))] {
+    } else if #[cfg(target_family = "unix")] {
         fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
             let p = unsafe {
                 mmap(
-                None,
-                size,
-                ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
-                MapFlags::MAP_PRIVATE | MapFlags::MAP_ANON,
-                0,
-                0,
+                    None,
+                    size,
+                    ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
+                    MapFlags::MAP_PRIVATE | MapFlags::MAP_ANON,
+                    0,
+                    0,
                 ).unwrap() as *mut u8
             };
             match p.is_null() {
@@ -169,16 +169,15 @@ cfg_if! {
         }
     } else {
         fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
-            let p = malloc(size.get());
+            let p = malloc(size.get()) as *mut u8;
             match p.is_null() {
                 true => None,
-                false => Some(p),
+                false => Some( unsafe { core::slice::from_raw_parts_mut(p, size.get()) }),
             }
         }
     }
 }
 
-extern crate core;
 lazy_static! {
     static ref G_PHYSICAL_MEMORY_INIT: AtomicBool = AtomicBool::new(false);
     static ref G_MEM: RwLock<PhysicalMemory<'static>> =
