@@ -1,12 +1,8 @@
 #![allow(dead_code)]
 
-use std::{
-    sync::{
-        RwLock,
-    },
-};
 use core::num::NonZeroUsize;
 use core::sync::atomic::{AtomicBool, Ordering};
+use std::sync::RwLock;
 
 use arrayvec::ArrayVec;
 use cfg_if::cfg_if;
@@ -149,15 +145,15 @@ cfg_if! {
             let p = unsafe {
                 VirtualAlloc(None, size.get(), MEM_COMMIT, PAGE_READWRITE).cast::<u8>()
             };
-            
-            if p.is_null() { 
-                None 
-            } else { 
+
+            if p.is_null() {
+                None
+            } else {
                 // SAFETY:
                 // We've already verified p isn't null, and if mmap returns a
                 // non-null pointer, an allocation with at least the size
                 // supplied should've been alloced.
-                Some( unsafe { core::slice::from_raw_parts_mut(p, size.get() ) }) 
+                Some( unsafe { core::slice::from_raw_parts_mut(p, size.get() ) })
             }
         }
     } else if #[cfg(target_family = "unix")] {
@@ -174,14 +170,14 @@ cfg_if! {
                     0,
                 ).unwrap().cast::<u8>()
             };
-            if p.is_null() { 
-                None 
-            } else { 
+            if p.is_null() {
+                None
+            } else {
                 // SAFETY:
                 // We've already verified p isn't null, and if mmap returns a
                 // non-null pointer, an allocation with at least the size
                 // supplied should've been mapped.
-                Some(unsafe { core::slice::from_raw_parts_mut(p, size.get()) }) 
+                Some(unsafe { core::slice::from_raw_parts_mut(p, size.get()) })
             }
         }
     } else {

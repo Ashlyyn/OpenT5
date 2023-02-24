@@ -1,9 +1,6 @@
 #![allow(dead_code)]
 
-use std::{
-    collections::HashMap,
-    sync::{RwLock},
-};
+use std::{collections::HashMap, sync::RwLock};
 
 use core::fmt::Write;
 extern crate alloc;
@@ -96,33 +93,36 @@ pub const fn get_str_from_lang(lang: Language) -> &'static str {
 pub fn init() -> Language {
     // try to read localization.txt
     // if read fails, default to English
-        // if it succeeds, try to copy it into a String
-    let (lang, strings) = std::fs::read("localization.txt").map_or_else(|_| (Language::ENGLISH, Vec::<String>::new()), |v| {
-        let s = String::from_utf8_lossy(&v);
-        // the language string should be at the beginning
-        // of the file, a single word followed by a newline
-        let strings = s.trim().split('\n').collect::<Vec<&str>>();
-        let lang = get_lang_from_str(strings.first().unwrap());
-        // collect the rest of the strings for LOCALIZATION.strings
-        // trim the whitespace from the file,
-        // then split it by quotation marks
-        // and collect the strings
-        let mut t = String::new();
-        let file_strings: Vec<&str> = strings.get(1..).unwrap().to_vec();
-        file_strings
-            .iter()
-            .for_each(|&s| writeln!(t, "{}", s).unwrap());
+    // if it succeeds, try to copy it into a String
+    let (lang, strings) = std::fs::read("localization.txt").map_or_else(
+        |_| (Language::ENGLISH, Vec::<String>::new()),
+        |v| {
+            let s = String::from_utf8_lossy(&v);
+            // the language string should be at the beginning
+            // of the file, a single word followed by a newline
+            let strings = s.trim().split('\n').collect::<Vec<&str>>();
+            let lang = get_lang_from_str(strings.first().unwrap());
+            // collect the rest of the strings for LOCALIZATION.strings
+            // trim the whitespace from the file,
+            // then split it by quotation marks
+            // and collect the strings
+            let mut t = String::new();
+            let file_strings: Vec<&str> = strings.get(1..).unwrap().to_vec();
+            file_strings
+                .iter()
+                .for_each(|&s| writeln!(t, "{}", s).unwrap());
 
-        let strings = t
-            .split('"')
-            .collect::<Vec<&str>>()
-            .iter()
-            .map(|&s| s.to_owned().trim().to_owned())
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<String>>();
-        (lang, strings)
-    });
-        
+            let strings = t
+                .split('"')
+                .collect::<Vec<&str>>()
+                .iter()
+                .map(|&s| s.to_owned().trim().to_owned())
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<String>>();
+            (lang, strings)
+        },
+    );
+
     let keys: Vec<String> = strings
         .iter()
         .enumerate()
@@ -138,7 +138,10 @@ pub fn init() -> Language {
 
     let mut map: HashMap<String, String> = HashMap::new();
     for i in 0..keys.len() {
-        map.insert(keys.get(i).unwrap().clone(), values.get(i).unwrap().clone());
+        map.insert(
+            keys.get(i).unwrap().clone(),
+            values.get(i).unwrap().clone(),
+        );
     }
 
     *LOCALIZATION.clone().write().unwrap() = Localization {
@@ -154,5 +157,7 @@ pub fn localize_ref(s: &str) -> String {
     let Ok(localization) = lock.read() else { return s.to_owned() };
 
     let strings = localization.strings.clone();
-    strings.get(&s.to_owned()).map_or_else(|| s.to_owned(), |s| s.clone())
+    strings
+        .get(&s.to_owned())
+        .map_or_else(|| s.to_owned(), |s| s.clone())
 }

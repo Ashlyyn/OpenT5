@@ -1,7 +1,11 @@
 #![allow(dead_code)]
 #![allow(private_in_public)]
 #![deny(missing_docs)]
-#![allow(clippy::missing_trait_methods, clippy::unreadable_literal, clippy::pub_use)]
+#![allow(
+    clippy::missing_trait_methods,
+    clippy::unreadable_literal,
+    clippy::pub_use
+)]
 
 mod builder;
 mod limits;
@@ -18,9 +22,9 @@ mod cmds;
 /// due to the different types of value a [`Dvar`] can hold
 use crate::*;
 use bitflags::bitflags;
-use lazy_static::lazy_static;
 use core::fmt::Display;
 use core::hash::Hash;
+use lazy_static::lazy_static;
 use std::sync::RwLock;
 extern crate alloc;
 use alloc::sync::Arc;

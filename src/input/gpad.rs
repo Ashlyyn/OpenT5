@@ -172,11 +172,21 @@ fn init_dvars() {
 
 fn init_all() {
     init_dvars();
-    S_GAMEPADS.clone().write().unwrap().get_mut(0).unwrap()
+    S_GAMEPADS
+        .clone()
+        .write()
+        .unwrap()
+        .get_mut(0)
+        .unwrap()
         .feedback
         .rumble
         .left_motor_speed = 0;
-    S_GAMEPADS.clone().write().unwrap().get_mut(0).unwrap()
+    S_GAMEPADS
+        .clone()
+        .write()
+        .unwrap()
+        .get_mut(0)
+        .unwrap()
         .feedback
         .rumble
         .right_motor_speed = 0;
@@ -206,7 +216,8 @@ fn port_index_to_id(port_index: GPadIdx) -> Option<gilrs::GamepadId> {
 fn id_to_port_index(id: gilrs::GamepadId) -> Option<GPadIdx> {
     let lock = S_GAMEPADS.clone();
     let gamepads = lock.read().unwrap();
-    gamepads.iter()
+    gamepads
+        .iter()
         .enumerate()
         .find(|(_, &g)| g.id == id)
         .map(|(i, _)| i as GPadIdx)
@@ -227,7 +238,11 @@ pub enum ButtonState {
 
 impl From<bool> for ButtonState {
     fn from(b: bool) -> Self {
-        if b { Self::Pressed } else { Self::Released }
+        if b {
+            Self::Pressed
+        } else {
+            Self::Released
+        }
     }
 }
 
@@ -341,9 +356,13 @@ pub fn get_stick(port_index: GPadIdx, stick: Stick) -> Option<StickState> {
             Stick::RStick => gilrs::Axis::RightStickY,
         };
 
-        let x = g.axis_data(x_axis).map_or(0.0, gilrs::ev::state::AxisData::value);
+        let x = g
+            .axis_data(x_axis)
+            .map_or(0.0, gilrs::ev::state::AxisData::value);
 
-        let y = g.axis_data(y_axis).map_or(0.0, gilrs::ev::state::AxisData::value);
+        let y = g
+            .axis_data(y_axis)
+            .map_or(0.0, gilrs::ev::state::AxisData::value);
 
         let pressed = g.is_pressed(stick.into());
 

@@ -7,12 +7,12 @@
     clippy::restriction,
     clippy::pedantic,
     clippy::nursery,
-    clippy::cargo,
+    clippy::cargo
 )]
 #![allow(
-    missing_docs, 
-    clippy::uninlined_format_args, 
-    clippy::bool_comparison, 
+    missing_docs,
+    clippy::uninlined_format_args,
+    clippy::bool_comparison,
     clippy::missing_docs_in_private_items,
     clippy::unwrap_used,
     clippy::default_numeric_fallback,
@@ -44,17 +44,15 @@
     clippy::self_named_module_files,
     clippy::equatable_if_let,
     clippy::pattern_type_mismatch,
-    clippy::semicolon_outside_block,
+    clippy::semicolon_outside_block
 )]
 #![allow(clippy::iter_nth_zero)]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 #![cfg_attr(not(target_os = "windows"), feature(local_key_cell_methods))]
 
+use core::sync::atomic::{AtomicBool, Ordering};
 use discord_rich_presence::activity::Activity;
 use lazy_static::lazy_static;
-use core::sync::{
-    atomic::{AtomicBool, Ordering},
-};
 extern crate alloc;
 use alloc::sync::Arc;
 

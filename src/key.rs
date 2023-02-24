@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::sync::{RwLock};
+use std::sync::RwLock;
 extern crate alloc;
 use alloc::sync::Arc;
 

@@ -5,7 +5,7 @@ use pollster::block_on;
 use sscanf::scanf;
 extern crate alloc;
 use alloc::collections::VecDeque;
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use std::sync::RwLock;
 use winit::dpi::Position;
 
@@ -178,7 +178,7 @@ impl VideoMode {
 
 // SAFETY:
 // Perfectly safe on Windows and Linux. Had to create this wrapper since
-// the macOS implementation of winit::monitor::VideoMode contains a 
+// the macOS implementation of winit::monitor::VideoMode contains a
 // *mut c_void, which isn't Sync. Unknown for other platforms.
 unsafe impl Sync for VideoMode {}
 
@@ -310,7 +310,14 @@ fn closest_refresh_rate_for_mode(
     height: u16,
     hz: u16,
 ) -> Option<u16> {
-    let video_modes = WINIT_GLOBALS.clone().read().unwrap().video_modes.iter().map(render::VideoMode::get).collect::<Vec<_>>();
+    let video_modes = WINIT_GLOBALS
+        .clone()
+        .read()
+        .unwrap()
+        .video_modes
+        .iter()
+        .map(render::VideoMode::get)
+        .collect::<Vec<_>>();
     if video_modes.is_empty() {
         return Some(60);
     }
@@ -334,7 +341,8 @@ fn closest_refresh_rate_for_mode(
     }
 
     let mode = video_modes.iter().find(|&m| {
-        m.size().width == u32::from(width) && m.size().height == u32::from(height)
+        m.size().width == u32::from(width)
+            && m.size().height == u32::from(height)
     });
 
     if let Some(..) = mode {
@@ -344,7 +352,13 @@ fn closest_refresh_rate_for_mode(
     None
 }
 
-#[allow(clippy::cast_sign_loss, clippy::std_instead_of_core, clippy::indexing_slicing, clippy::cast_precision_loss, clippy::cast_possible_truncation)]
+#[allow(
+    clippy::cast_sign_loss,
+    clippy::std_instead_of_core,
+    clippy::indexing_slicing,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation
+)]
 fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
     let r_fullscreen = dvar::get_bool("r_fullscreen").unwrap();
     wnd_parms.fullscreen = r_fullscreen;
@@ -396,7 +410,8 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
 
     wnd_parms.x = dvar::get_int("vid_xpos").unwrap().clamp(0, i32::MAX) as _;
     wnd_parms.y = dvar::get_int("vid_ypos").unwrap().clamp(0, i32::MAX) as _;
-    wnd_parms.aa_samples = dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
+    wnd_parms.aa_samples =
+        dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
 }
 
 #[allow(clippy::panic, clippy::panic_in_result_fn, clippy::unnecessary_wraps)]
@@ -430,7 +445,9 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                         )
                     };
 
-                if (display_width / display_height - 16.0 / 10.0).abs() < f32::EPSILON {
+                if (display_width / display_height - 16.0 / 10.0).abs()
+                    < f32::EPSILON
+                {
                     16.0 / 10.0
                 } else if display_width / display_height > 16.0 / 10.0 {
                     16.0 / 9.0
@@ -449,7 +466,7 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
     dvar::set_bool_internal(
         "wideScreen",
-        (vid_config.aspect_ratio_window - 4.0 / 3.0).abs() > f32::EPSILON
+        (vid_config.aspect_ratio_window - 4.0 / 3.0).abs() > f32::EPSILON,
     )
     .unwrap();
     vid_config.aspect_ratio_scene_pixel = (f32::from(vid_config.scene_height)
@@ -507,13 +524,13 @@ fn pre_create_window() -> Result<(), ()> {
     com::println(8.into(), "Getting Device interface...");
     let instance = sys::gpu::Instance::new();
     let adapter = block_on(sys::gpu::Adapter::new(&instance, None));
-    RENDER_GLOBALS.clone().write().unwrap().device = 
-        if let Some(d) = block_on(sys::gpu::Device::new(&adapter)) { 
-            Some(d) 
+    RENDER_GLOBALS.clone().write().unwrap().device =
+        if let Some(d) = block_on(sys::gpu::Device::new(&adapter)) {
+            Some(d)
         } else {
             com::println(8.into(), "Device failed to initialize.");
             return Err(());
-    };
+        };
 
     RENDER_GLOBALS.clone().write().unwrap().adapter = choose_adapter();
     dvar::register_enumeration(
@@ -549,9 +566,9 @@ lazy_static! {
 }
 
 #[allow(
-    clippy::as_conversions, 
-    clippy::items_after_statements, 
-    clippy::pattern_type_mismatch, 
+    clippy::as_conversions,
+    clippy::items_after_statements,
+    clippy::pattern_type_mismatch,
     clippy::if_then_some_else_none,
     clippy::semicolon_outside_block,
     clippy::indexing_slicing,
@@ -560,7 +577,7 @@ lazy_static! {
     clippy::cast_precision_loss,
     clippy::cast_possible_wrap,
     clippy::integer_division,
-    clippy::too_many_lines,
+    clippy::too_many_lines
 )]
 pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     {
@@ -1023,7 +1040,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                             cbuf::add_textln(0, "vid_restart");
                     }
                         // FUN_0053f880()
-                } else { 
+                } else {
 
                 }
             },

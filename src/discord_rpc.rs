@@ -1,12 +1,6 @@
-use std::{
-    error::Error,
-    sync::RwLock,
-    time::UNIX_EPOCH,
-};
+use std::{error::Error, sync::RwLock, time::UNIX_EPOCH};
 
-use core::sync::{
-    atomic::{AtomicBool, AtomicI64, Ordering},
-};
+use core::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 
 extern crate alloc;
 use alloc::sync::Arc;

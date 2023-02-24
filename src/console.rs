@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::sync::{RwLock};
+use std::sync::RwLock;
 extern crate alloc;
 use alloc::sync::Arc;
 
@@ -110,7 +110,10 @@ pub fn is_channel_visible(
         return true;
     }
 
-    if (pcglob.filters[msg_dest as usize][channel.get() as usize >> 5] & 1 << channel.get()).trailing_zeros() >= 5
+    if (pcglob.filters[msg_dest as usize][channel.get() as usize >> 5]
+        & 1 << channel.get())
+    .trailing_zeros()
+        >= 5
         && ((param_3 >> 5 & 0x1F != 3 && param_3 >> 5 & 0x1F != 2)
             || pcglob.filters[msg_dest as usize][0] & 2 != 0)
     {

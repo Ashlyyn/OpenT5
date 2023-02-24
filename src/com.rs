@@ -6,7 +6,7 @@ use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
-use std::sync::{RwLock};
+use std::sync::RwLock;
 extern crate alloc;
 use alloc::sync::Arc;
 use cfg_if::cfg_if;
@@ -124,10 +124,10 @@ cfg_if! {
         pub fn dprint(channel: Channel, message: &str) {
             let lock = PRINT_LOCK.clone();
             let _lock = lock.lock().unwrap();
-        
+
             print_internal(channel, 0, message);
         }
-        
+
         pub fn dprintln(channel: Channel, message: &str) {
             print(channel, &format!("{}\n", message));
         }
@@ -136,7 +136,7 @@ cfg_if! {
         pub fn dprint(channel: Channel, message: &str) {
 
         }
-        
+
         #[allow(unused)]
         pub fn dprintln(channel: Channel, message: &str) {
 
@@ -182,7 +182,12 @@ pub const fn filter(string: &str, name: &str, case_sensitive: bool) -> bool {
     todo!("com::filter");
 }
 
-#[allow(unused_variables, unreachable_code, clippy::todo, clippy::needless_pass_by_value)]
+#[allow(
+    unused_variables,
+    unreachable_code,
+    clippy::todo,
+    clippy::needless_pass_by_value
+)]
 pub const fn dvar_dump(channel: i32, param_2: &str) {
     return;
 

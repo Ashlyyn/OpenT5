@@ -3,7 +3,7 @@
 pub mod arch;
 pub mod os;
 
-use std::sync::{RwLock};
+use std::sync::RwLock;
 extern crate alloc;
 use alloc::sync::Arc;
 

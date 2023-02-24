@@ -22,8 +22,9 @@ pub fn detect_cpu_vendor_and_name() -> (Option<String>, Option<String>) {
         unsafe { transmute::<_, [u8; 12]>([res.ebx, res.ecx, res.edx]) }
             .to_vec();
     vendor_buf.push(b'\0');
-    let vendor = CStr::from_bytes_until_nul(&vendor_buf).map_or(
-        None, |s| Some(s.to_str().unwrap_or(&s.to_string_lossy()).to_owned()));
+    let vendor = CStr::from_bytes_until_nul(&vendor_buf).map_or(None, |s| {
+        Some(s.to_str().unwrap_or(&s.to_string_lossy()).to_owned())
+    });
 
     let res_1 = target::cpuid(0x8000_0002);
     let res_2 = target::cpuid(0x8000_0003);
@@ -39,8 +40,9 @@ pub fn detect_cpu_vendor_and_name() -> (Option<String>, Option<String>) {
     }
     .to_vec();
     name_buf.push(b'\0');
-    let name = CStr::from_bytes_until_nul(&name_buf).map_or(
-        None, |s| Some(s.to_str().unwrap_or(&s.to_string_lossy()).to_owned()));
+    let name = CStr::from_bytes_until_nul(&name_buf).map_or(None, |s| {
+        Some(s.to_str().unwrap_or(&s.to_string_lossy()).to_owned())
+    });
 
     (vendor, name)
 }

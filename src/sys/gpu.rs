@@ -1,7 +1,7 @@
 #![allow(dead_code, clippy::todo)]
 
-use num_derive::FromPrimitive;
 use core::sync::atomic::{AtomicIsize, Ordering};
+use num_derive::FromPrimitive;
 
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
@@ -272,7 +272,9 @@ impl Config {
                     .unwrap()
                     .get_supported_formats(
                         adapter.wgpu_adapter.as_ref().unwrap(),
-                    ).get(0).unwrap(),
+                    )
+                    .get(0)
+                    .unwrap(),
                 width,
                 height,
                 present_mode: wgpu::PresentMode::AutoNoVsync,

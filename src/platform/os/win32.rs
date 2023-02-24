@@ -22,10 +22,10 @@ use libc::c_int;
 
 // Get info for WinMain (Rust doesn't do this automatically), then call it
 #[allow(
-    clippy::panic, 
-    clippy::semicolon_outside_block, 
-    clippy::cast_precision_loss, 
-    clippy::cast_possible_truncation,
+    clippy::panic,
+    clippy::semicolon_outside_block,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation
 )]
 pub fn main() {
     // Get hInstance
@@ -51,14 +51,20 @@ pub fn main() {
     // GetCommandLineA itself should never create UB, violate memory
     // safety, etc.
     let p = unsafe { GetCommandLineA() };
-    let pCmdLine = if p.is_null() { panic!("failed to get command line, exiting!") } else { Some(p) };
+    let pCmdLine = if p.is_null() {
+        panic!("failed to get command line, exiting!")
+    } else {
+        Some(p)
+    };
 
     // Get nCmdShow
     // SAFETY:
     // GetStartupInfoW is an FFI function, requiring use of unsafe.
     // GetStartupInfoW itself should never create UB, violate memory
     // safety, etc., provided a valid &STARUPINFOW is passed.
-    unsafe { GetStartupInfoW(&mut info); }
+    unsafe {
+        GetStartupInfoW(&mut info);
+    }
     let nCmdShow = u32::from(info.wShowWindow);
 
     // Call actual WinMain
@@ -79,7 +85,7 @@ fn WinMain(
     // safety, etc.
     if unsafe { GetSystemMetrics(SM_REMOTESESSION) != 0 } {
         // SAFETY:
-        // MessageBoxA is an FFI function, requiring use of unsafe. 
+        // MessageBoxA is an FFI function, requiring use of unsafe.
         // MessageBoxA itself should never create UB, violate memory
         // safety, etc., regardless of the parameters passed to it.
         unsafe {
@@ -101,7 +107,9 @@ fn WinMain(
     // SetErrorMode is an FFI function, requiring use of unsafe.
     // SetErrorMode itself should never create UB, violate memory
     // safety, etc.
-    unsafe { SetErrorMode(SEM_FAILCRITICALERRORS); }
+    unsafe {
+        SetErrorMode(SEM_FAILCRITICALERRORS);
+    }
 
     0
 }

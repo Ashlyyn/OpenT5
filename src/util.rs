@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use std::path::Path;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::time::Duration;
+use std::path::Path;
 
 use std::sync::{Condvar, Mutex};
 
@@ -67,7 +67,9 @@ impl<T: Sized + Clone> SmpEvent<T> {
     }
 
     pub fn try_get_state(&self) -> Result<T, ()> {
-        self.mutex.try_lock().map_or_else(|_| Err(()), |g| Ok(g.1.clone()))
+        self.mutex
+            .try_lock()
+            .map_or_else(|_| Err(()), |g| Ok(g.1.clone()))
     }
 
     fn set_state(&mut self, state: T) {
@@ -345,9 +347,9 @@ impl Module {
                 let name = name.as_ptr();
 
                 // SAFETY:
-                // LoadLibraryW is an FFI function, requiring use of unsafe. 
+                // LoadLibraryW is an FFI function, requiring use of unsafe.
                 // LoadLibraryW itself should never create UB, violate memory
-                // safety, etc., regardless of the name or path passed to it 
+                // safety, etc., regardless of the name or path passed to it
                 // in any scenario.
                 unsafe { LoadLibraryW(PCWSTR(name)) }.ok().map(|h| Self { ptr: h.0 as *mut () })
             }
@@ -356,7 +358,7 @@ impl Module {
             /// used when dropped.
             fn unload(&mut self) {
                 // SAFETY:
-                // FreeLibrary is an FFI function, requiring use of unsafe. 
+                // FreeLibrary is an FFI function, requiring use of unsafe.
                 // FreeLibrary itself should never create UB, violate memory
                 // safety, etc., regardless of the pointer passed to it,
                 // but in any event, the pointer we pass is guaranteed to
@@ -385,9 +387,9 @@ impl Module {
                 let name = name.as_ptr().cast::<c_char>();
 
                 // SAFETY:
-                // dlopen is an FFI function, requiring use of unsafe. 
+                // dlopen is an FFI function, requiring use of unsafe.
                 // dlopen itself should never create UB, violate memory
-                // safety, etc., regardless of the name or path passed to it 
+                // safety, etc., regardless of the name or path passed to it
                 // in any scenario.
                 let ptr = unsafe { dlopen(name, RTLD_NOW) }.cast::<()>();
                 if ptr.is_null() {
@@ -401,7 +403,7 @@ impl Module {
             /// used when dropped.
             fn unload(&mut self) {
                 // SAFETY:
-                // dlclose is an FFI function, requiring use of unsafe. 
+                // dlclose is an FFI function, requiring use of unsafe.
                 // dlclose itself should never create UB, violate memory
                 // safety, etc., regardless of the pointer passed to it,
                 // but in any event, the pointer we pass is guaranteed to

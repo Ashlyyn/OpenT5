@@ -30,7 +30,12 @@ use super::DVARS;
 use lazy_static::lazy_static;
 
 // Toggle current value of Dvar if possible
-#[allow(clippy::todo, clippy::match_same_arms, clippy::panic_in_result_fn, clippy::too_many_lines)]
+#[allow(
+    clippy::todo,
+    clippy::match_same_arms,
+    clippy::panic_in_result_fn,
+    clippy::too_many_lines
+)]
 fn toggle_simple(name: &str) -> Result<(), ()> {
     if !exists(name) {
         return Err(());
@@ -46,7 +51,11 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
             if domain.as_float_limits().unwrap().min > 0.0
                 || domain.as_float_limits().unwrap().max < 1.0
             {
-                if (value.as_float().unwrap() - domain.as_float_limits().unwrap().min).abs() < f32::EPSILON {
+                if (value.as_float().unwrap()
+                    - domain.as_float_limits().unwrap().min)
+                    .abs()
+                    < f32::EPSILON
+                {
                     set_float_from_source(
                         name,
                         domain.as_float_limits().unwrap().max,
@@ -401,8 +410,7 @@ fn toggle_internal() -> Result<(), ()> {
         if let DvarValue::Enumeration(_) =
             DvarValue::Enumeration(get_enumeration(&name).unwrap())
         {
-            if let Some(s) = index_string_to_enum_string(&name, &argv_i)
-            {
+            if let Some(s) = index_string_to_enum_string(&name, &argv_i) {
                 if s.len() != 1 {
                     argv_i = s;
                 }

@@ -1,14 +1,11 @@
 #![allow(dead_code, clippy::missing_trait_methods)]
 
 use arrayvec::ArrayVec;
-use std::{
-    collections::HashMap,
-    sync::RwLock,
-};
+use std::{collections::HashMap, sync::RwLock};
 extern crate alloc;
 use alloc::rc::Rc;
-use core::hash::{Hash, Hasher};
 use core::cell::RefCell;
+use core::hash::{Hash, Hasher};
 
 use lazy_static::lazy_static;
 
@@ -163,7 +160,13 @@ pub fn argv(idx: usize) -> String {
     });
 
     // Get actual arg
-    let argv = args.argv.get(args.nesting).unwrap().get(idx).unwrap().clone();
+    let argv = args
+        .argv
+        .get(args.nesting)
+        .unwrap()
+        .get(idx)
+        .unwrap()
+        .clone();
 
     // Replace ARGS
     ARGS.with(|arg| {

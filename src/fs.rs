@@ -3,10 +3,8 @@
 // This file exists to abstract filesystem-related functionalities
 
 use crate::*;
-use std::{
-    path::{Path, PathBuf},
-};
 use core::str::FromStr;
+use std::path::{Path, PathBuf};
 
 cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
@@ -118,17 +116,17 @@ pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
         return Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap());
     }
 
-    if std::fs::File::create(path).is_ok() { 
-        Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap()) 
+    if std::fs::File::create(path).is_ok() {
+        Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap())
     } else {
         let Some(dir_path) = path.parent() else { return Err(std::io::ErrorKind::InvalidFilename.into()) };
 
-            std::fs::create_dir_all(dir_path)?;
+        std::fs::create_dir_all(dir_path)?;
 
-            match std::fs::File::create(path) {
-                Ok(_) => Ok(path.to_path_buf()),
-                Err(e) => Err(e),
-            }
+        match std::fs::File::create(path) {
+            Ok(_) => Ok(path.to_path_buf()),
+            Err(e) => Err(e),
+        }
     }
 }
 

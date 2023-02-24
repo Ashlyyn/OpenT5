@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use core::sync::{atomic::AtomicUsize};
-use std::sync::{RwLock};
+use core::sync::atomic::AtomicUsize;
+use std::sync::RwLock;
 extern crate alloc;
 use alloc::sync::Arc;
 
@@ -179,11 +179,11 @@ cfg_if! {
 
             let buffer_window_handle = s_wcd_buffer_window_handle();
             let hwnd = buffer_window_handle.get_win32().unwrap().hwnd;
-            
+
             // SAFETY:
             // SendMessageA is an FFI function, requiring use of unsafe.
             // SendMessageA itself might be able to create unsafe behavior
-            // with certain messages, but the ones we're passing here 
+            // with certain messages, but the ones we're passing here
             // are safe.
             if TEXT_APPENDED.load(Ordering::Relaxed) > 0x4000 {
                 unsafe { SendMessageA(HWND(hwnd as _), EM_SETSEL, WPARAM(0), LPARAM(-1)); }

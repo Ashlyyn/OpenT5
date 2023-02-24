@@ -1,9 +1,6 @@
 #![allow(dead_code)]
 
-use std::{
-    collections::HashMap,
-    sync::{RwLock},
-};
+use std::{collections::HashMap, sync::RwLock};
 
 extern crate alloc;
 use alloc::sync::Arc;

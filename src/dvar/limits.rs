@@ -6,8 +6,8 @@
 // bool has no custom-definable domain, it'll always be 0 or 1/true or false
 // DvarLimitsBool still needs to be defined for printing the domain
 
-use std::{collections::HashSet};
 use core::fmt::Display;
+use std::collections::HashSet;
 
 /// Domain for [`Dvar`] with value type [`DvarValue::Bool`]
 ///

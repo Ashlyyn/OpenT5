@@ -10,23 +10,20 @@ use sysinfo::{CpuExt, SystemExt};
 
 pub mod gpu;
 
+use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
-use lazy_static::lazy_static;
-use alloc::collections::{VecDeque};
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::{Read, Write};
-use std::sync::RwLock;
-use std::thread::JoinHandle;
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
     time::Duration,
 };
-use std::{
-    time::SystemTime,
-    path::PathBuf,
-};
+use lazy_static::lazy_static;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::sync::RwLock;
+use std::thread::JoinHandle;
+use std::{path::PathBuf, time::SystemTime};
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         use core::ffi::{CStr};
@@ -391,16 +388,17 @@ pub fn check_crash_or_rerun() -> bool {
         }
     }
 
-    file.map_or_else(|_| {
-        no_free_files_error()
-    }, |mut f| {
-        let pid = std::process::id();
-        if f.write_all(&pid.to_ne_bytes()).is_err() {
-            no_free_files_error();
-        } else {
-            true
-        }
-    })
+    file.map_or_else(
+        |_| no_free_files_error(),
+        |mut f| {
+            let pid = std::process::id();
+            if f.write_all(&pid.to_ne_bytes()).is_err() {
+                no_free_files_error();
+            } else {
+                true
+            }
+        },
+    )
 }
 
 pub fn get_cmdline() -> String {
@@ -427,7 +425,9 @@ pub fn get_logical_cpu_count() -> usize {
 pub fn get_physical_cpu_count() -> usize {
     let mut system = sysinfo::System::new_all();
     system.refresh_all();
-    system.physical_core_count().map_or_else(get_logical_cpu_count, |u| u)
+    system
+        .physical_core_count()
+        .map_or_else(get_logical_cpu_count, |u| u)
 }
 
 pub fn get_system_ram_in_bytes() -> u64 {
@@ -487,12 +487,18 @@ impl SysInfo {
         }
     }
 
-    #[allow(clippy::cast_precision_loss, clippy::as_conversions, clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::as_conversions,
+        clippy::cast_sign_loss,
+        clippy::cast_possible_truncation
+    )]
     fn find(&mut self) -> &mut Self {
         self.gpu_description = detect_video_card();
         self.logical_cpu_count = get_logical_cpu_count();
         self.physical_cpu_count = get_physical_cpu_count();
-        self.sys_mb = (get_system_ram_in_bytes() as f64 / (1024f64 * 1024f64)).clamp(0f64, f64::MAX) as u64;
+        self.sys_mb = (get_system_ram_in_bytes() as f64 / (1024f64 * 1024f64))
+            .clamp(0f64, f64::MAX) as u64;
         self.cpu_vendor = get_cpu_vendor();
         self.cpu_name = get_cpu_name();
         self
@@ -579,10 +585,7 @@ pub fn create_event(manual_reset: bool, initial_state: bool, name: &str) {
         SmpEvent::new((), initial_state, manual_reset),
     );
     if initial_state {
-        events
-            .get_mut(&name.to_owned())
-            .unwrap()
-            .send(());
+        events.get_mut(&name.to_owned()).unwrap().send(());
     }
 }
 
@@ -590,10 +593,13 @@ pub fn create_event(manual_reset: bool, initial_state: bool, name: &str) {
 fn wait_for_event_timeout(name: &str, timeout: usize) -> bool {
     let lock = EVENTS.clone();
     let mut events = lock.write().unwrap();
-    events.get_mut(&name.to_owned()).map_or_else(|| panic!("sys::wait_for_event_timeout: event not found."), |e| {
-        e.acknowledge_timeout(Duration::from_millis(timeout as _));
-        e.signaled()
-    })
+    events.get_mut(&name.to_owned()).map_or_else(
+        || panic!("sys::wait_for_event_timeout: event not found."),
+        |e| {
+            e.acknowledge_timeout(Duration::from_millis(timeout as _));
+            e.signaled()
+        },
+    )
 }
 
 pub fn query_event(name: &str) -> bool {
@@ -1024,7 +1030,7 @@ cfg_if! {
             );
 
             // SAFETY:
-            // MessageBoxA is an FFI function, requiring use of unsafe. 
+            // MessageBoxA is an FFI function, requiring use of unsafe.
             // MessageBoxA itself should never create UB, violate memory
             // safety, etc., regardless of the parameters passed to it.
             let res: MessageBoxResult = num::FromPrimitive::from_i32(unsafe {

@@ -142,34 +142,22 @@ impl DvarBuilder<DvarBuilderStartState> {
 }
 
 impl DvarBuilder<DvarBuilderDataState> {
-    pub(super) fn name(
-        mut self,
-        name: &str,
-    ) -> Self {
+    pub(super) fn name(mut self, name: &str) -> Self {
         self.dvar.name = name.to_owned().into();
         self
     }
 
-    pub(super) fn description(
-        mut self,
-        description: String,
-    ) -> Self {
+    pub(super) fn description(mut self, description: String) -> Self {
         self.dvar.description = description.into();
         self
     }
 
-    pub(super) fn flags(
-        mut self,
-        flags: DvarFlags,
-    ) -> Self {
+    pub(super) fn flags(mut self, flags: DvarFlags) -> Self {
         self.dvar.flags = flags.into();
         self
     }
 
-    pub(super) fn loaded_from_save_game(
-        mut self,
-        b: bool,
-    ) -> Self {
+    pub(super) fn loaded_from_save_game(mut self, b: bool) -> Self {
         self.dvar.loaded_from_save_game = b.into();
         self
     }
