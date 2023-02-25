@@ -27,20 +27,27 @@ use std::{path::PathBuf, time::SystemTime};
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         use core::ffi::{CStr};
-        use alloc::ffi::CString;
         use std::fs::OpenOptions;
         use std::os::windows::prelude::*;
         use windows::Win32::Foundation::MAX_PATH;
         use windows::Win32::System::LibraryLoader::GetModuleFileNameA;
         use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_HIDDEN;
         use windows::core::PCSTR;
+        use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
+    }
+}
+
+cfg_if! {
+    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
         use windows::Win32::Foundation::HWND;
         use windows::Win32::UI::WindowsAndMessaging::{
             MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
             MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
             MESSAGEBOX_STYLE,
         };
-        use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
+        use alloc::ffi::CString;
+    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
+        use core::cell::RefCell;
     } else if #[cfg(target_os = "linux")] {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
@@ -345,14 +352,16 @@ pub fn check_crash_or_rerun() -> bool {
         if let Ok(mut f) = File::open(semaphore_file_path.clone()) {
             let mut buf = [0u8; 4];
             if let Ok(4) = f.read(&mut buf) {
+                /*
                 let pid_read = u32::from_ne_bytes(buf);
                 if pid_read != std::process::id()
                     || is_game_process(pid_read) == false
                 {
                     return true;
                 }
+                */
 
-                let msg_box_type = MessageBoxType::YesNoCanel;
+                let msg_box_type = MessageBoxType::YesNoCancel;
                 let msg_box_icon = MessageBoxIcon::Stop;
                 let title = locale::localize_ref("WIN_IMPROPER_QUIT_TITLE");
                 let text = locale::localize_ref("WIN_IMPROPER_QUIT_BODY");
@@ -878,15 +887,24 @@ fn should_update_for_info_change() -> bool {
 }
 
 cfg_if! {
-    if #[cfg(windows)] {
+    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxType {
             #[default]
             Ok = MB_OK.0,
-            YesNoCanel = MB_YESNOCANCEL.0,
+            YesNoCancel = MB_YESNOCANCEL.0,
             YesNo = MB_YESNO.0,
             // TODO - maybe implement Help?
+        }
+    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
+        #[derive(Copy, Clone, Default, Debug)]
+        #[repr(u32)]
+        pub enum MessageBoxType {
+            #[default]
+            Ok,
+            YesNoCancel,
+            YesNo,
         }
     } else if #[cfg(target_os = "linux")] {
         #[derive(Copy, Clone, Default, Debug)]
@@ -894,7 +912,7 @@ cfg_if! {
         pub enum MessageBoxType {
             #[default]
             Ok,
-            YesNoCanel,
+            YesNoCancel,
             YesNo,
             // TODO - maybe implement Help?
         }
@@ -915,14 +933,14 @@ cfg_if! {
         pub enum MessageBoxType {
             #[default]
             Ok,
-            YesNoCanel,
+            YesNoCancel,
             YesNo,
         }
     }
 }
 
 cfg_if! {
-    if #[cfg(windows)] {
+    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxIcon {
@@ -930,6 +948,15 @@ cfg_if! {
             None = 0x0000_0000,
             Stop = MB_ICONSTOP.0,
             Information = MB_ICONINFORMATION.0,
+        }
+    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
+        #[derive(Copy, Clone, Default, Debug)]
+        #[repr(u32)]
+        pub enum MessageBoxIcon {
+            #[default]
+            None,
+            Stop,
+            Information,
         }
     } else if #[cfg(target_os = "linux")]  {
         #[derive(Copy, Clone, Default, Debug)]
@@ -965,7 +992,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(windows)] {
+    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
         #[derive(Copy, Clone, FromPrimitive)]
         #[repr(i32)]
         pub enum MessageBoxResult {
@@ -973,6 +1000,16 @@ cfg_if! {
             Cancel = IDCANCEL.0,
             Yes = IDYES.0,
             No = IDNO.0,
+            Unknown,
+        }
+    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
+        #[derive(Copy, Clone, FromPrimitive, Debug)]
+        #[repr(i32)]
+        pub enum MessageBoxResult {
+            Ok,
+            Cancel,
+            Yes,
+            No,
             Unknown,
         }
     } else if #[cfg(target_os = "linux")] {
@@ -1011,7 +1048,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(target_os = "windows")] {
+    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
         pub fn message_box(
             handle: Option<WindowHandle>,
             title: &str, text: &str,
@@ -1041,6 +1078,90 @@ cfg_if! {
                     ctype
                 ) }.0).unwrap_or(MessageBoxResult::Unknown);
             Some(res)
+        }
+    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
+        use eframe::egui;
+
+        struct MessageBoxApp {
+            text: String,
+            buttons: Vec<&'static str>,
+            result: Arc<RefCell<Option<MessageBoxResult>>>,
+        }
+
+        impl eframe::App for MessageBoxApp {
+            fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+                let longest = self.text.lines().max_by_key(|l| l.len()).unwrap_or_default();
+                frame.set_window_size(egui::Vec2 { x: 200.0 + longest.len() as f32 * 2.5, y: 150.0 + 6.0 * self.text.lines().count() as f32 });
+        
+                egui::TopBottomPanel::new(egui::panel::TopBottomSide::Bottom, egui::Id::new("test")).default_height(39.0).show(ctx, |ui| {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        for button in self.buttons.clone() {
+                            let result = match button {
+                                "Yes" => MessageBoxResult::Yes,
+                                "No" => MessageBoxResult::No,
+                                "Cancel" => MessageBoxResult::Cancel,
+                                "Ok" => MessageBoxResult::Ok,
+                                _ => MessageBoxResult::Unknown,
+                            };
+        
+                            if ui.add(egui::Button::new(button).min_size(egui::vec2(80.0, 22.0))).clicked() {
+                                *self.result.clone().borrow_mut() = Some(result);
+                                frame.close();
+                            }
+                        }
+                    })
+                });
+        
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.with_layout(egui::Layout::centered_and_justified(egui::Direction::LeftToRight), |ui| {
+                        ui.add(egui::Label::new(egui::RichText::new(self.text.clone()).size(12.0)).wrap(true));
+                    })
+                });
+            }
+        }
+
+        #[allow(unused)]
+        pub fn message_box(
+            handle: Option<WindowHandle>,
+            title: &str, text: &str,
+            msg_box_type: MessageBoxType,
+            msg_box_icon: Option<MessageBoxIcon>
+        ) -> Option<MessageBoxResult> {
+            let options = eframe::NativeOptions {
+                initial_window_size: Some(egui::vec2(200.0, 150.0)),
+                resizable: true,
+                follow_system_theme: false,
+                default_theme: eframe::Theme::Light,
+                always_on_top: false,
+                decorated: true,
+                drag_and_drop_support: false,
+                run_and_return: true,
+                ..Default::default()
+            };
+        
+            let buttons = match msg_box_type {
+                MessageBoxType::Ok => vec!["Ok"],
+                MessageBoxType::YesNo => vec!["No", "Yes"],
+                MessageBoxType::YesNoCancel => vec!["Cancel", "No", "Yes"],
+            };
+        
+            let result = Arc::new(RefCell::new(None));
+        
+            let app = MessageBoxApp { text: text.to_owned(), buttons, result: result.clone() };
+        
+            eframe::run_native(
+                title,
+                options,
+                Box::new(|_cc| Box::new(app)),
+            ).unwrap();
+            
+            match *result.clone().borrow_mut() {
+                None => None,
+                Some(r) => match r {
+                    MessageBoxResult::Unknown => None,
+                    _ => Some(r)
+                }
+            }
         }
     } else if #[cfg(target_os = "linux")] {
         // The non-Windows implementations of message_box() will use GTK
@@ -1090,7 +1211,7 @@ cfg_if! {
                     ("Yes", gtk4::ResponseType::Yes),
                     ("No", gtk4::ResponseType::No)
                 ],
-                MessageBoxType::YesNoCanel => vec![
+                MessageBoxType::YesNoCancel => vec![
                     ("Yes", gtk4::ResponseType::Yes),
                     ("No", gtk4::ResponseType::No),
                     ("Cancel", gtk4::ResponseType::Cancel)
