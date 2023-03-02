@@ -217,7 +217,7 @@ fn main() {
 
     com::println(
         0.into(),
-        &format!(
+        format!(
             "{}: ready for window init, creating window...",
             std::thread::current().name().unwrap_or("main")
         ),

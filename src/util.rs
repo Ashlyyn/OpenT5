@@ -4,7 +4,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use core::time::Duration;
 use std::path::Path;
 
-use std::sync::atomic::AtomicUsize;
+use core::sync::atomic::AtomicUsize;
 use std::sync::{Condvar, Mutex};
 
 use raw_window_handle::HasRawWindowHandle;

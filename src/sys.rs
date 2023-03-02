@@ -98,16 +98,16 @@ pub fn init() {
 
     com::println(
         16.into(),
-        &format!("CPU vendor is \"{}\"", get_cpu_vendor()),
+        format!("CPU vendor is \"{}\"", get_cpu_vendor()),
     );
-    com::println(16.into(), &format!("CPU name is \"{}\"", get_cpu_name()));
+    com::println(16.into(), format!("CPU name is \"{}\"", get_cpu_name()));
 
     let info = find_info();
 
     let c = if info.logical_cpu_count == 1 { "" } else { "s" };
     com::println(
         16.into(),
-        &format!("{} logical CPU{} reported", info.logical_cpu_count, c),
+        format!("{} logical CPU{} reported", info.logical_cpu_count, c),
     );
 
     let c = if info.physical_cpu_count == 1 {
@@ -117,26 +117,26 @@ pub fn init() {
     };
     com::println(
         16.into(),
-        &format!("{} physical CPU{} detected", info.physical_cpu_count, c),
+        format!("{} physical CPU{} detected", info.physical_cpu_count, c),
     );
     com::println(
         16.into(),
-        &format!("Measured CPU speed is {:.2} GHz", info.cpu_ghz),
+        format!("Measured CPU speed is {:.2} GHz", info.cpu_ghz),
     );
     com::println(
         16.into(),
-        &format!(
+        format!(
             "Total CPU performance is estimated as {:.2} GHz",
             info.configure_ghz
         ),
     );
     com::println(
         16.into(),
-        &format!("System memory is {} MB (capped at 1 GB)", info.sys_mb),
+        format!("System memory is {} MB (capped at 1 GB)", info.sys_mb),
     );
     com::println(
         16.into(),
-        &format!("Video card is \"{}\"", info.gpu_description),
+        format!("Video card is \"{}\"", info.gpu_description),
     );
     // TODO - vector support
     com::println(16.into(), "");
@@ -419,7 +419,7 @@ pub fn get_cmdline() -> String {
 }
 
 pub fn start_minidump(b: bool) {
-    com::println(0.into(), &format!("Starting minidump with b = {}...", b));
+    com::println(0.into(), format!("Starting minidump with b = {}...", b));
     com::println(0.into(), "TODO: implement.");
 }
 
@@ -633,7 +633,7 @@ pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
         Err(e) => {
             com::println(
                 1.into(),
-                &format!("error {} while creating thread {}", e, name),
+                format!("error {} while creating thread {}", e, name),
             );
             None
         }
@@ -1331,7 +1331,7 @@ pub fn error(error: &str) -> ! {
     std::process::exit(0);
 }
 
-pub fn default_cd_path() -> &'static str {
+pub const fn default_cd_path() -> &'static str {
     ""
 }
 

@@ -33,22 +33,22 @@ pub enum Language {
 }
 
 impl Display for Language {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let s = match *self {
             // try to match the language
-            Language::ENGLISH => "english",
-            Language::FRENCH => "french",
-            Language::FRENCHCANADIAN => "frenchcanadian",
-            Language::GERMAN => "german",
-            Language::AUSTRIAN => "austrian",
-            Language::ITALIAN => "italian",
-            Language::SPANISH => "spanish",
-            Language::BRITISH => "british",
-            Language::RUSSIAN => "russian",
-            Language::POLISH => "polish",
-            Language::KOREAN => "korean",
-            Language::JAPANESE => "japanese",
-            Language::CZECH => "czech",
+            Self::ENGLISH => "english",
+            Self::FRENCH => "french",
+            Self::FRENCHCANADIAN => "frenchcanadian",
+            Self::GERMAN => "german",
+            Self::AUSTRIAN => "austrian",
+            Self::ITALIAN => "italian",
+            Self::SPANISH => "spanish",
+            Self::BRITISH => "british",
+            Self::RUSSIAN => "russian",
+            Self::POLISH => "polish",
+            Self::KOREAN => "korean",
+            Self::JAPANESE => "japanese",
+            Self::CZECH => "czech",
             // if it can't be matched, default to ""
             _ => "",
         };

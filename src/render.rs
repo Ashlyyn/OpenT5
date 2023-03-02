@@ -28,7 +28,7 @@ fn init_render_thread() {
 pub fn init_threads() {
     com::println(
         8.into(),
-        &format!(
+        format!(
             "{}: Trying SMP acceleration...",
             std::thread::current().name().unwrap_or("main")
         ),
@@ -37,7 +37,7 @@ pub fn init_threads() {
     //init_worker_threads();
     com::println(
         8.into(),
-        &format!(
+        format!(
             "{}: ...succeeded",
             std::thread::current().name().unwrap_or("main")
         ),
@@ -47,7 +47,7 @@ pub fn init_threads() {
 pub fn begin_registration_internal() -> Result<(), ()> {
     com::println(
         8.into(),
-        &format!(
+        format!(
             "{}: render::begin_registration_internal()...",
             std::thread::current().name().unwrap_or("main")
         ),
@@ -147,7 +147,7 @@ fn register_dvars() {
 fn init() -> Result<(), ()> {
     com::println(
         8.into(),
-        &format!(
+        format!(
             "{}: render::init()...",
             std::thread::current().name().unwrap_or("main")
         ),
@@ -594,7 +594,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     if wnd_parms.fullscreen {
         com::println(
             8.into(),
-            &format!(
+            format!(
                 "Attempting {} x {} fullscreen with 32 bpp at {} hz",
                 wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz
             ),
@@ -602,7 +602,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     } else {
         com::println(
             8.into(),
-            &format!(
+            format!(
                 "Attempting {} x {} window at ({}, {})",
                 wnd_parms.display_width,
                 wnd_parms.display_height,
@@ -645,7 +645,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         Ok(w) => w,
         Err(e) => {
             com::println(8.into(), "Couldn't create a window.");
-            com::dprintln(8.into(), &format!("{}", e));
+            com::dprintln(8.into(), format!("{}", e));
             {
                 let lock = WINDOW_INITIALIZING.clone();
                 let mut window_initializing = lock.write().unwrap();
@@ -1066,9 +1066,9 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 render_globals.window.width = wnd_parms.display_width;
                 render_globals.window.height = wnd_parms.display_height;
                 if !wnd_parms.fullscreen {
-                    com::println(8.into(), &format!("Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y));
+                    com::println(8.into(), format!("Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y));
                 } else {
-                    com::println(8.into(), &format!("Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y));
+                    com::println(8.into(), format!("Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y));
                 }
             },
             _ => {}
@@ -1134,7 +1134,7 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     };
     com::println(
         8.into(),
-        &format!(
+        format!(
             "{}: init complete, res={:?}...",
             std::thread::current().name().unwrap_or("main"),
             res

@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
 use std::sync::RwLock;
-use std::sync::atomic::AtomicUsize;
+use core::sync::atomic::AtomicUsize;
 extern crate alloc;
 use alloc::sync::Arc;
 use cfg_if::cfg_if;
@@ -99,7 +99,7 @@ lazy_static! {
     static ref PRINT_LOCK: Arc<Mutex<()>> = Arc::new(Mutex::new(()));
 }
 
-#[allow(clippy::print_stdout)]
+#[allow(clippy::print_stdout, clippy::needless_pass_by_value)]
 fn print_internal(channel: Channel, _param_2: i32, message: impl ToString) {
     if channel.get() > 32 {
         return;
@@ -117,8 +117,9 @@ pub fn print(channel: Channel, message: impl ToString) {
     print_internal(channel, 0, message);
 }
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn println(channel: Channel, message: impl ToString) {
-    print(channel, &format!("{}\n", message.to_string()));
+    print(channel, format!("{}\n", message.to_string()));
 }
 
 cfg_if! {
@@ -130,8 +131,9 @@ cfg_if! {
             print_internal(channel, 0, message);
         }
 
+        #[allow(clippy::needless_pass_by_value)]
         pub fn dprintln(channel: Channel, message: impl ToString) {
-            print(channel, &format!("{}\n", message.to_string()));
+            print(channel, format!("{}\n", message.to_string()));
         }
     } else {
         #[allow(unused)]
@@ -139,23 +141,26 @@ cfg_if! {
 
         }
 
-        #[allow(unused)]
+        #[allow(unused, clippy::needless_pass_by_value)]
         pub fn dprintln(channel: Channel, message: impl ToString) {
 
         }
     }
 }
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn warn(channel: Channel, message: impl ToString) {
-    print(channel, &format!("^3{}", message.to_string()));
+    print(channel, format!("^3{}", message.to_string()));
 }
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn warnln(channel: Channel, message: impl ToString) {
-    warn(channel, &format!("{}\n", message.to_string()));
+    warn(channel, format!("{}\n", message.to_string()));
 }
 
 static COM_ERROR_PRINTS_COUNT: AtomicUsize = AtomicUsize::new(0);
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn print_error(channel: Channel, message: impl ToString) {
     let prefix = if message.to_string().contains("error") {
         "^1Error: "
@@ -165,11 +170,12 @@ pub fn print_error(channel: Channel, message: impl ToString) {
 
     let message = format!("{}{}", prefix, message.to_string());
     COM_ERROR_PRINTS_COUNT.increment().unwrap_or_else(|| COM_ERROR_PRINTS_COUNT.store_relaxed(0));
-    print_internal(channel, 3, &message);
+    print_internal(channel, 3, message);
 }
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn print_errorln(channel: Channel, message: impl ToString) {
-    print_error(channel, &format!("{}\n", message.to_string()));
+    print_error(channel, format!("{}\n", message.to_string()));
 }
 
 lazy_static! {
@@ -184,13 +190,14 @@ pub fn log_file_open() -> bool {
 
 // Also needs to be actually implemented
 // Currently just a wrapper for panic
-#[allow(clippy::panic)]
+#[allow(clippy::panic, clippy::needless_pass_by_value)]
 pub fn error(err_type: ErrorParm, err: impl ToString) {
     panic!("{} ({:?})", err.to_string(), err_type);
 }
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn errorln(err_type: ErrorParm, err: impl ToString) {
-    error(err_type, &format!("{}\n", err.to_string()));
+    error(err_type, format!("{}\n", err.to_string()));
 }
 
 // Implement these two later
@@ -273,7 +280,7 @@ pub const fn get_icon_rgba() -> Option<winit::window::Icon> {
 
 // TODO - implement
 pub fn startup_variable(name: &str) {
-    println(16.into(), &format!("com::startup_variable: {}", name));
+    println(16.into(), format!("com::startup_variable: {}", name));
 }
 
 lazy_static! {
