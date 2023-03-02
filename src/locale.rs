@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::{collections::HashMap, sync::RwLock};
+use core::fmt::Display;
 
 use core::fmt::Write;
 extern crate alloc;
@@ -11,7 +12,7 @@ use num::Integer;
 use num_derive::FromPrimitive;
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Copy, Clone, Default, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, FromPrimitive)]
 #[repr(u8)]
 pub enum Language {
     #[default]
@@ -31,6 +32,36 @@ pub enum Language {
     MAX = 13,
 }
 
+impl Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match *self {
+            // try to match the language
+            Language::ENGLISH => "english",
+            Language::FRENCH => "french",
+            Language::FRENCHCANADIAN => "frenchcanadian",
+            Language::GERMAN => "german",
+            Language::AUSTRIAN => "austrian",
+            Language::ITALIAN => "italian",
+            Language::SPANISH => "spanish",
+            Language::BRITISH => "british",
+            Language::RUSSIAN => "russian",
+            Language::POLISH => "polish",
+            Language::KOREAN => "korean",
+            Language::JAPANESE => "japanese",
+            Language::CZECH => "czech",
+            // if it can't be matched, default to ""
+            _ => "",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+impl Language {
+    pub fn try_from_u8(value: u8) -> Option<Self> {
+        num::FromPrimitive::from_u8(value)
+    }
+}
+
 #[derive(Clone, Default)]
 struct Localization {
     language: Language,
@@ -48,7 +79,7 @@ pub fn get_lang() -> Language {
 }
 
 #[allow(clippy::match_same_arms)]
-pub fn get_lang_from_str(lang: &str) -> Language {
+pub fn lang_from_str(lang: &str) -> Language {
     match lang {
         // try to match the language string
         "english" => Language::ENGLISH,
@@ -69,27 +100,6 @@ pub fn get_lang_from_str(lang: &str) -> Language {
     }
 }
 
-pub const fn get_str_from_lang(lang: Language) -> &'static str {
-    match lang {
-        // try to match the language
-        Language::ENGLISH => "english",
-        Language::FRENCH => "french",
-        Language::FRENCHCANADIAN => "frenchcanadian",
-        Language::GERMAN => "german",
-        Language::AUSTRIAN => "austrian",
-        Language::ITALIAN => "italian",
-        Language::SPANISH => "spanish",
-        Language::BRITISH => "british",
-        Language::RUSSIAN => "russian",
-        Language::POLISH => "polish",
-        Language::KOREAN => "korean",
-        Language::JAPANESE => "japanese",
-        Language::CZECH => "czech",
-        // if it can't be matched, default to ""
-        _ => "",
-    }
-}
-
 pub fn init() -> Language {
     // try to read localization.txt
     // if read fails, default to English
@@ -101,7 +111,7 @@ pub fn init() -> Language {
             // the language string should be at the beginning
             // of the file, a single word followed by a newline
             let strings = s.trim().split('\n').collect::<Vec<&str>>();
-            let lang = get_lang_from_str(strings.first().unwrap());
+            let lang = lang_from_str(strings.first().unwrap());
             // collect the rest of the strings for LOCALIZATION.strings
             // trim the whitespace from the file,
             // then split it by quotation marks
