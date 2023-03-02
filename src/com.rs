@@ -2,11 +2,13 @@
 
 use crate::console::Channel;
 use crate::*;
+use crate::util::EasierAtomic;
 use arrayvec::ArrayVec;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
 use std::sync::RwLock;
+use std::sync::atomic::AtomicUsize;
 extern crate alloc;
 use alloc::sync::Arc;
 use cfg_if::cfg_if;
@@ -150,6 +152,20 @@ pub fn warn(channel: Channel, message: &str) {
 
 pub fn warnln(channel: Channel, message: &str) {
     warn(channel, &format!("{}\n", message));
+}
+
+static COM_ERROR_PRINTS_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+pub fn print_error(channel: Channel, message: &str) {
+    let prefix = if message.contains("error") {
+        "^1Error: "
+    } else {
+        "^1"
+    };
+
+    let message = format!("{}{}", prefix, message);
+    COM_ERROR_PRINTS_COUNT.increment().unwrap_or_else(|| COM_ERROR_PRINTS_COUNT.store_relaxed(0));
+    print_internal(channel, 3, &message);
 }
 
 lazy_static! {
