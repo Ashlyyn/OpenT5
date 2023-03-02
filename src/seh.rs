@@ -21,7 +21,7 @@ pub fn update_current_language() {
         }
         _ => {}
     };
-    dvar::set_string("language", locale::get_str_from_lang(lang)).unwrap();
+    dvar::set_string("language", &lang.to_string()).unwrap();
 }
 
 #[allow(clippy::as_conversions)]
