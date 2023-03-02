@@ -100,76 +100,76 @@ lazy_static! {
 }
 
 #[allow(clippy::print_stdout)]
-fn print_internal(channel: Channel, _param_2: i32, message: &str) {
+fn print_internal(channel: Channel, _param_2: i32, message: impl ToString) {
     if channel.get() > 32 {
         return;
     }
 
-    print!("({}) - {}", channel.get(), message);
+    print!("({}) - {}", channel.get(), message.to_string());
 }
 
 // Needs to be actually implemented
 // Just a wrapper around print! currently
-pub fn print(channel: Channel, message: &str) {
+pub fn print(channel: Channel, message: impl ToString) {
     let lock = PRINT_LOCK.clone();
     let _lock = lock.lock().unwrap();
 
     print_internal(channel, 0, message);
 }
 
-pub fn println(channel: Channel, message: &str) {
-    print(channel, &format!("{}\n", message));
+pub fn println(channel: Channel, message: impl ToString) {
+    print(channel, &format!("{}\n", message.to_string()));
 }
 
 cfg_if! {
     if #[cfg(debug_assertions)] {
-        pub fn dprint(channel: Channel, message: &str) {
+        pub fn dprint(channel: Channel, message: impl ToString) {
             let lock = PRINT_LOCK.clone();
             let _lock = lock.lock().unwrap();
 
             print_internal(channel, 0, message);
         }
 
-        pub fn dprintln(channel: Channel, message: &str) {
-            print(channel, &format!("{}\n", message));
+        pub fn dprintln(channel: Channel, message: impl ToString) {
+            print(channel, &format!("{}\n", message.to_string()));
         }
     } else {
         #[allow(unused)]
-        pub fn dprint(channel: Channel, message: &str) {
+        pub fn dprint(channel: Channel, message: impl ToString) {
 
         }
 
         #[allow(unused)]
-        pub fn dprintln(channel: Channel, message: &str) {
+        pub fn dprintln(channel: Channel, message: impl ToString) {
 
         }
     }
 }
 
-pub fn warn(channel: Channel, message: &str) {
-    print(channel, &format!("^3{}", message));
+pub fn warn(channel: Channel, message: impl ToString) {
+    print(channel, &format!("^3{}", message.to_string()));
 }
 
-pub fn warnln(channel: Channel, message: &str) {
-    warn(channel, &format!("{}\n", message));
+pub fn warnln(channel: Channel, message: impl ToString) {
+    warn(channel, &format!("{}\n", message.to_string()));
 }
 
 static COM_ERROR_PRINTS_COUNT: AtomicUsize = AtomicUsize::new(0);
 
-pub fn print_error(channel: Channel, message: &str) {
-    let prefix = if message.contains("error") {
+pub fn print_error(channel: Channel, message: impl ToString) {
+    let prefix = if message.to_string().contains("error") {
         "^1Error: "
     } else {
         "^1"
     };
 
-    let message = format!("{}{}", prefix, message);
+    let message = format!("{}{}", prefix, message.to_string());
     COM_ERROR_PRINTS_COUNT.increment().unwrap_or_else(|| COM_ERROR_PRINTS_COUNT.store_relaxed(0));
     print_internal(channel, 3, &message);
 }
 
-pub fn print_errorln(channel: Channel, message: &str) {
-    print_error(channel, &format!("{}\n", message));
+pub fn print_errorln(channel: Channel, message: impl ToString) {
+    print_error(channel, &format!("{}\n", message.to_string()));
 }
 
 lazy_static! {
@@ -185,12 +185,12 @@ pub fn log_file_open() -> bool {
 // Also needs to be actually implemented
 // Currently just a wrapper for panic
 #[allow(clippy::panic)]
-pub fn error(err_type: ErrorParm, err: &str) {
-    panic!("{} ({:?})", err, err_type);
+pub fn error(err_type: ErrorParm, err: impl ToString) {
+    panic!("{} ({:?})", err.to_string(), err_type);
 }
 
-pub fn errorln(err_type: ErrorParm, err: &str) {
-    error(err_type, &format!("{}\n", err));
+pub fn errorln(err_type: ErrorParm, err: impl ToString) {
+    error(err_type, &format!("{}\n", err.to_string()));
 }
 
 // Implement these two later
