@@ -22,4 +22,4 @@ Right now, building is as simple as:
 ```
 None of the game files are required yet (you will get some weird-looking localization references if `localization.txt` isn't present though).
 
-Linux builds currently require libgtk4, so you'll want to grab that from your package manager if you don't have it installed (might swap it out for egui or something else later). Windows doesn't require anything special. macOS won't build at all (no gtk support, some macOS-specific funtions aren't implemented). I don't own a single Apple device, so I can't test macOS builds anyways. As stated above though, macOS support *is* a goal, so if you want to be the one to add that support, you're more than welcome to do so.
+Linux and macOS builds currently require libgtk4, so you'll want to grab that from your package manager if you don't have it installed (might swap it out for egui or something else later). Windows doesn't require anything special.
