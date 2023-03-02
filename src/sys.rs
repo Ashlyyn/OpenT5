@@ -1330,3 +1330,11 @@ pub fn error(error: &str) -> ! {
     // DoSetEvent_UNK();
     std::process::exit(0);
 }
+
+pub fn default_cd_path() -> &'static str {
+    ""
+}
+
+pub fn cwd() -> PathBuf {
+    std::env::current_dir().unwrap()
+}
