@@ -2,9 +2,10 @@
 
 // This file exists to abstract filesystem-related functionalities
 
-use crate::*;
+use crate::{*, util::EasierAtomic};
 use core::str::FromStr;
-use std::path::{Path, PathBuf};
+use std::{path::{Path, PathBuf}, io::{Write, Read}};
+use core::sync::atomic::AtomicUsize;
 
 cfg_if::cfg_if! {
     if #[cfg(target_os = "windows")] {
@@ -130,14 +131,78 @@ pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
     }
 }
 
-struct Iwd {
-    filename: String,
-    basename: String,
-    gamename: String,
-    handle: Vec<u8>,
-    checksum: usize,
-    pure_checksum: usize,
-    has_open_file: bool,
-    num_files: usize,
-    referenced: bool,
+// TODO - fully implement
+pub fn init_filesystem(dev: bool) {
+    startup("main", dev);
+}
+
+fn startup(_param_1: &str, _dev: bool) {
+    com::println(16.into(), "----- FS_Startup -----");
+    register_dvars();
+    com::println(16.into(), "----------------------");
+}
+
+fn register_dvars() {
+    dvar::register_bool("fs_ignoreLocalized", false, dvar::DvarFlags::LATCHED | dvar::DvarFlags::CHEAT_PROTECTED, "Ignore localized files".into()).unwrap();
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Thread {
+    Main,
+    Stream,
+    Database,
+    Backend,
+    Server,
+    Invalid,
+}
+
+// TODO - implement
+pub const fn get_current_thread() -> Thread {
+    Thread::Main
+}
+
+// TODO - implement
+pub fn open_file_read_current_thread(path: &Path) -> Result<std::fs::File, std::io::Error> {
+    let current_thread = get_current_thread();
+    if current_thread == Thread::Invalid {
+        com::print_errorln(1.into(), "fs::open_file_read_current_thread for an unknown thread");
+        Err(std::io::ErrorKind::Other.into())
+    } else {
+        std::fs::File::open(path)
+    }
+}
+
+static FS_LOADSTACK: AtomicUsize = AtomicUsize::new(0);
+
+pub fn read_file(path: &Path) -> Result<Vec<u8>, std::io::Error> {
+    let mut f = open_file_read_current_thread(path)?;
+    let mut buf = Vec::new();
+    f.read_to_end(&mut buf)?;
+    FS_LOADSTACK.increment().unwrap_or_else(|| FS_LOADSTACK.store_relaxed(0));
+    Ok(buf)
+}
+
+
+
+// TODO - implement
+pub fn delete(path: &Path) -> Result<(), std::io::Error> {
+    std::fs::remove_file(path)
+}
+
+// TODO - correctly implement
+pub fn write_file(path: &Path, data: &[u8]) -> Result<usize, std::io::Error> {
+    let Ok(mut file) = std::fs::File::create(path) else {
+        com::println(10.into(), "Failed to open {path}");
+        return Err(std::io::ErrorKind::NotFound.into());
+    };
+
+    let count = file.write(data)?;
+    if count != data.len() {
+        Err(match delete(path) {
+            Ok(_) => std::io::ErrorKind::Other.into(),
+            Err(e) => e
+        })
+    } else {
+        Ok(count)
+    }
 }
