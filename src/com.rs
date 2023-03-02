@@ -168,6 +168,10 @@ pub fn print_error(channel: Channel, message: &str) {
     print_internal(channel, 3, &message);
 }
 
+pub fn print_errorln(channel: Channel, message: &str) {
+    print_error(channel, &format!("{}\n", message));
+}
+
 lazy_static! {
     static ref LOG_FILE: Arc<RwLock<Option<File>>> =
         Arc::new(RwLock::new(None));
