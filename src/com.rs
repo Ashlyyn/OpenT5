@@ -265,6 +265,7 @@ fn init_dvars() {
 
 fn init_try_block_function() {
     init_dvars();
+    fs::init_filesystem(true);
     render::init_threads();
 }
 
