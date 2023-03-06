@@ -100,7 +100,7 @@ lazy_static! {
 }
 
 #[allow(clippy::print_stdout, clippy::needless_pass_by_value)]
-fn print_internal(
+pub fn _print_internal(
     channel: Channel,
     _param_2: i32,
     arguments: core::fmt::Arguments,
@@ -112,41 +112,81 @@ fn print_internal(
     std::print!("({}) - {}", channel.get(), arguments);
 }
 
-// Needs to be actually implemented
-// Just a wrapper around print! currently
-pub fn _print(channel: Channel, arguments: core::fmt::Arguments) {
-    let lock = PRINT_LOCK.clone();
-    let _lock = lock.lock().unwrap();
-
-    print_internal(channel, 0, arguments);
+macro_rules! __print_internal {
+    ($channel:expr, $p:expr, $($arg:tt)*) => {{
+        $crate::com::_print_internal($channel, $p, core::format_args!($($arg)*));
+    }};
 }
 
+/// Prints text.
+/// 
+/// Currently just a wrapper around [`std::print!`], will get a proper 
+/// implementation in the future.
+/// 
+/// # Panics
+/// 
+/// Currently panics if [`std::print!`] panics.
+/// 
+/// # Example
+/// 
+/// ```
+/// com::print!("Hello to com!");
+/// ```
 macro_rules! __print {
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_print($channel, core::format_args!($($arg)*));
+        $crate::com::_print_internal($channel, 0, core::format_args!($($arg)*));
     }};
 }
 pub(crate) use __print as print;
 
+
+/// Prints text with a newline.
+/// 
+/// Invokes [`com::print`] with the supplied text and a newline appended.
+/// Analogous to [`std::println!`]
+/// 
+/// # Panics
+/// 
+/// Currently panics if [`com::print!`] panics.
+/// 
+/// # Example
+/// 
+/// ```
+/// com::println!("Hello to com!");
+/// ```
 macro_rules! __println {
     ($channel:expr) => {
         $crate::com::__print!(channel, "\n")
     };
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_print($channel, core::format_args_nl!($($arg)*));
+        $crate::com::_print_internal($channel, 0, core::format_args_nl!($($arg)*));
     }};
 }
 pub(crate) use __println as println;
 
 cfg_if! {
     if #[cfg(debug_assertions)] {
+        #[doc(hidden)]
         pub fn _dprint(channel: Channel, arguments: core::fmt::Arguments) {
-            let lock = PRINT_LOCK.clone();
-            let _lock = lock.lock().unwrap();
-
-            print_internal(channel, 0, arguments);
+            __print_internal!(channel, 0, "{}", arguments);
         }
 
+        /// Prints text if the executable is compiled in debug mode.
+        /// 
+        /// Does nothing in release mode.
+        /// 
+        /// Currently just a wrapper around [`std::print!`], will get a proper 
+        /// implementation in the future.
+        /// 
+        /// # Panics
+        /// 
+        /// Currently panics if [`std::print!`] panics.
+        /// 
+        /// # Example
+        /// 
+        /// ```
+        /// com::dprint!("Hello to com from debug mode!");
+        /// ```
         macro_rules! __dprint {
             ($channel:expr, $($arg:tt)*) => {{
                 $crate::com::_dprint($channel, core::format_args!($($arg)*));
@@ -155,6 +195,23 @@ cfg_if! {
         #[allow(unused_imports)]
         pub(crate) use __dprint as dprint;
 
+        /// Prints text with a newline appended if the executable is compiled 
+        /// in debug mode.
+        /// 
+        /// Does nothing in release mode.
+        /// 
+        /// Currently just a wrapper around [`com::print!`], will get a proper 
+        /// implementation in the future.
+        /// 
+        /// # Panics
+        /// 
+        /// Currently panics if [`com::print!`] panics.
+        /// 
+        /// # Example
+        /// 
+        /// ```
+        /// com::dprintln!("Hello to com from debug mode!");
+        /// ```
         macro_rules! __dprintln {
             ($channel:expr) => {
                 $crate::com::__dprint!(channel, "\n")
@@ -166,10 +223,27 @@ cfg_if! {
         pub(crate) use __dprintln as dprintln;
     } else {
         #[allow(unused)]
+        #[doc(hidden)]
         pub fn _dprint(channel: Channel, arguments: core::fmt::Arguments) {
 
         }
 
+        /// Prints text if the executable is compiled in debug mode.
+        /// 
+        /// Does nothing in release mode.
+        /// 
+        /// Currently just a wrapper around [`std::print!`], will get a proper 
+        /// implementation in the future.
+        /// 
+        /// # Panics
+        /// 
+        /// Currently panics if [`std::print!`] panics.
+        /// 
+        /// # Example
+        /// 
+        /// ```
+        /// com::dprint!("Hello to com from debug mode!");
+        /// ```
         macro_rules! __dprint {
             ($channel:expr, $($arg:tt)*) => {{
 
@@ -177,6 +251,23 @@ cfg_if! {
         }
         pub(crate) use __dprint as dprint;
 
+        /// Prints text with a newline appended if the executable is compiled 
+        /// in debug mode.
+        /// 
+        /// Does nothing in release mode.
+        /// 
+        /// Currently just a wrapper around [`com::print!`], will get a proper 
+        /// implementation in the future.
+        /// 
+        /// # Panics
+        /// 
+        /// Currently panics if [`com::print!`] panics.
+        /// 
+        /// # Example
+        /// 
+        /// ```
+        /// com::dprintln!("Hello to com from debug mode!");
+        /// ```
         macro_rules! __dprintln {
             ($channel:expr) => {
 
@@ -189,11 +280,25 @@ cfg_if! {
     }
 }
 
+#[doc(hidden)]
 #[allow(clippy::needless_pass_by_value)]
 pub fn _warn(channel: Channel, arguments: core::fmt::Arguments) {
-    print!(channel, "^3{}", arguments);
+    __print_internal!(channel, 2, "^3{}", arguments);
 }
 
+/// Prints a warning.
+/// 
+/// Implemented simply as a wrapper around [`com::print!`].
+/// 
+/// # Panics
+/// 
+/// Currently panics if [`com::print!`] panics.
+/// 
+/// # Example
+/// 
+/// ```
+/// com::warn!("Warning to com!");
+/// ```
 macro_rules! __warn {
     ($channel:expr, $($arg:tt)*) => {{
         $crate::com::_warn($channel, core::format_args!($($arg)*));
@@ -202,6 +307,19 @@ macro_rules! __warn {
 #[allow(unused_imports)]
 pub(crate) use __warn as warn;
 
+/// Prints a warning with a newline appended.
+/// 
+/// Implemented simply as a wrapper around [`com::warn!`].
+/// 
+/// # Panics
+/// 
+/// Currently panics if [`com::warn!`] panics.
+/// 
+/// # Example
+/// 
+/// ```
+/// com::warnln!("Warning to com!");
+/// ```
 macro_rules! __warnln {
     ($channel:expr) => {
         $crate::com::__warn!(channel, "\n")
@@ -214,6 +332,7 @@ pub(crate) use __warnln as warnln;
 
 static COM_ERROR_PRINTS_COUNT: AtomicUsize = AtomicUsize::new(0);
 
+#[doc(hidden)]
 #[allow(clippy::needless_pass_by_value)]
 pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
     let prefix = if arguments.to_string().contains("error") {
@@ -225,9 +344,22 @@ pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
     COM_ERROR_PRINTS_COUNT
         .increment()
         .unwrap_or_else(|| COM_ERROR_PRINTS_COUNT.store_relaxed(0));
-    print_internal(channel, 3, format_args!("{}{}", prefix, arguments));
+    __print_internal!(channel, 3, "{}{}", prefix, arguments);
 }
 
+/// Prints an error.
+/// 
+/// Implemented simply as a wrapper around [`com::print!`].
+/// 
+/// # Panics
+/// 
+/// Currently panics if [`com::print!`] panics.
+/// 
+/// # Example
+/// 
+/// ```
+/// com::warn!("Warning to com!");
+/// ```
 macro_rules! __print_error {
     ($channel:expr, $($arg:tt)*) => {{
         $crate::com::_print_error($channel, core::format_args!($($arg)*));
@@ -236,6 +368,19 @@ macro_rules! __print_error {
 #[allow(unused_imports)]
 pub(crate) use __print_error as print_error;
 
+/// Prints an error with a newline appended.
+/// 
+/// Implemented simply as a wrapper around [`com::print_error!`].
+/// 
+/// # Panics
+/// 
+/// Currently panics if [`com::print_error!`] panics.
+/// 
+/// # Example
+/// 
+/// ```
+/// com::warnln!("Warning to com!");
+/// ```
 macro_rules! __print_errorln {
     ($channel:expr) => {
         $crate::com::__print_error!(channel, "\n")
