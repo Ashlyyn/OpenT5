@@ -122,8 +122,9 @@ fn main() {
 
     dvar::init();
 
+    // Set Discord activity on a different thread so that it doesn't block main
     std::thread::spawn(|| {
-        discord_rpc::set_activity(Activity::new().state("Testing...")).unwrap()
+        discord_rpc::set_activity(Activity::new().state("Testing...")).unwrap();
     });
 
     // ========================================================================
