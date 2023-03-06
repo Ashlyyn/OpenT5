@@ -353,7 +353,20 @@ fn list_single(dvar: &Dvar, name: &str) {
     com::println!(
         0.into(),
         "{}{}{}{}{}{}{}{}{}{}{}{} {} \"{}\"",
-        s, u, r, i, a, l, c, y, d, x, e, v, dvar.name, dvar.current,
+        s,
+        u,
+        r,
+        i,
+        a,
+        l,
+        c,
+        y,
+        d,
+        x,
+        e,
+        v,
+        dvar.name,
+        dvar.current,
     );
     DVAR_COUNT_LOCAL.fetch_add(1, Ordering::SeqCst);
 }
@@ -370,7 +383,8 @@ fn toggle_internal() -> Result<(), ()> {
     if cmd::argc() < 2 {
         com::println!(
             0.into(),
-            "USAGE: {} <variable> <optional value sequence>", name,
+            "USAGE: {} <variable> <optional value sequence>",
+            name,
         );
         return Err(());
     }
@@ -378,10 +392,7 @@ fn toggle_internal() -> Result<(), ()> {
     let argv_1 = cmd::argv(1);
 
     if !exists(&name) {
-        com::println!(
-            0.into(),
-            "toggle failed: dvar \'{}\' not found.", name,
-        );
+        com::println!(0.into(), "toggle failed: dvar \'{}\' not found.", name,);
         return Err(());
     }
 
@@ -433,7 +444,9 @@ fn toggle_print_f() {
     let name = cmd::argv(1);
     com::println!(
         0.into(),
-        "{} toggled to {}", name, find(&name).unwrap().current,
+        "{} toggled to {}",
+        name,
+        find(&name).unwrap().current,
     );
 }
 
@@ -508,7 +521,8 @@ fn set_admin_f() {
         let name = cmd::argv(1);
         com::println!(
             0.into(),
-            "setadmindvar failed: dvar \'{}\' not found.", name,
+            "setadmindvar failed: dvar \'{}\' not found.",
+            name,
         );
     }
 }
@@ -535,7 +549,8 @@ fn set_from_dvar_f() {
     } else {
         com::println!(
             0.into(),
-            "dvar \'{}\' doesn\'t exist\n", source_dvar_name,
+            "dvar \'{}\' doesn\'t exist\n",
+            source_dvar_name,
         );
     }
 }
@@ -593,7 +608,8 @@ fn list_f() {
     }
     com::println!(
         0.into(),
-        "\n{} total dvars", DVAR_COUNT_LOCAL.load(Ordering::SeqCst),
+        "\n{} total dvars",
+        DVAR_COUNT_LOCAL.load(Ordering::SeqCst),
     );
 }
 
@@ -629,7 +645,8 @@ fn register_bool_f() {
             _ => {
                 com::println!(
                     0.into(),
-                    "dvar \'{}\' is not a boolean dvar", name,
+                    "dvar \'{}\' is not a boolean dvar",
+                    name,
                 );
             }
         },
@@ -641,10 +658,7 @@ fn register_int_f() {
     let argc = cmd::argc();
     if argc != 5 {
         let cmd = cmd::argv(0);
-        com::println!(
-            0.into(),
-            "USAGE: {} <name> <default> <min> <max>", cmd,
-        );
+        com::println!(0.into(), "USAGE: {} <name> <default> <min> <max>", cmd,);
         return;
     }
 
@@ -696,7 +710,8 @@ fn register_int_f() {
             _ => {
                 com::println!(
                     0.into(),
-                    "dvar \'{}\' is not an integer dvar", d.name,
+                    "dvar \'{}\' is not an integer dvar",
+                    d.name,
                 );
             }
         },
@@ -707,10 +722,7 @@ fn register_float_f() {
     let argc = cmd::argc();
     if argc != 5 {
         let cmd = cmd::argv(0);
-        com::println!(
-            0.into(),
-            "USAGE: {} <name> <default> <min> <max>", cmd,
-        );
+        com::println!(0.into(), "USAGE: {} <name> <default> <min> <max>", cmd,);
         return;
     }
 
@@ -763,7 +775,8 @@ fn register_float_f() {
             _ => {
                 com::println!(
                     0.into(),
-                    "dvar {} is not an integer dvar", d.name,
+                    "dvar {} is not an integer dvar",
+                    d.name,
                 );
             }
         },
@@ -782,10 +795,7 @@ fn register_color_f() {
     // and return
     if argc != 5 && argc != 6 {
         let cmd = cmd::argv(0);
-        com::println!(
-            0.into(),
-            "USAGE: {} <name> <r> <g> <b> [a]", cmd,
-        );
+        com::println!(0.into(), "USAGE: {} <name> <r> <g> <b> [a]", cmd,);
         return;
     }
 

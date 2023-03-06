@@ -122,7 +122,9 @@ fn main() {
 
     dvar::init();
 
-    std::thread::spawn(|| discord_rpc::set_activity(Activity::new().state("Testing...")).unwrap() );
+    std::thread::spawn(|| {
+        discord_rpc::set_activity(Activity::new().state("Testing...")).unwrap()
+    });
 
     // ========================================================================
     // This is probably the most opaque part of the program so far, so some

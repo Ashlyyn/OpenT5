@@ -24,7 +24,11 @@ pub fn update_current_language() {
     dvar::set_string("language", &lang.to_string()).unwrap();
 }
 
-#[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
 pub fn get_current_language() -> Language {
     Language::try_from_u8(dvar::get_int("loc_language").unwrap() as u8).unwrap()
 }

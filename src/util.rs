@@ -481,7 +481,7 @@ impl EasierAtomic for AtomicUsize {
     }
 
     fn increment(&self) -> Option<usize> {
-        self.store_relaxed(self.load_relaxed().checked_add(1)?).into()
+        self.store_relaxed(self.load_relaxed().checked_add(1)?)
+            .into()
     }
 }
-

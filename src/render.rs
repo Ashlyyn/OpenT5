@@ -587,7 +587,9 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         com::println!(
             8.into(),
             "Attempting {} x {} fullscreen with 32 bpp at {} hz",
-            wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz,
+            wnd_parms.display_width,
+            wnd_parms.display_height,
+            wnd_parms.hz,
         );
     } else {
         com::println!(

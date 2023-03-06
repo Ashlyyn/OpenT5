@@ -108,7 +108,7 @@ pub fn add_internal(name: &str, function: fn()) -> Option<CmdFunction> {
     if exists(name) {
         com::println!(
             16.into(),
-            "cmd::add_internal: {} is already defined", 
+            "cmd::add_internal: {} is already defined",
             name,
         );
         return None;

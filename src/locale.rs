@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, sync::RwLock};
 use core::fmt::Display;
+use std::{collections::HashMap, sync::RwLock};
 
 use core::fmt::Write;
 extern crate alloc;

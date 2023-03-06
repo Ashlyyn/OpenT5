@@ -311,7 +311,7 @@ impl Dvar {
         if self.flags.contains(DvarFlags::WRITE_PROTECTED) {
             com::println!(
                 1.into(),
-                "{} is write protected protected.", 
+                "{} is write protected protected.",
                 self.name,
             );
             return false;
@@ -325,11 +325,7 @@ impl Dvar {
             if (set_source == SetSource::External)
                 || (set_source == SetSource::Script)
             {
-                com::println!(
-                    1.into(),
-                    "{} is cheat protected.", 
-                    self.name,
-                );
+                com::println!(1.into(), "{} is cheat protected.", self.name,);
             }
             false
         }
@@ -457,8 +453,8 @@ impl Dvar {
         if com::log_file_open() && self.current != value {
             com::println!(
                 16.into(),
-                "      dvar set {} {}", 
-                self.name, 
+                "      dvar set {} {}",
+                self.name,
                 self.current,
             );
         }
@@ -467,7 +463,7 @@ impl Dvar {
             com::println!(
                 1.into(),
                 "\'{}\' is not a valid value for dvar \'{}\'",
-                value, 
+                value,
                 self.name,
             );
             com::println!(1.into(), "{}", self.domain);

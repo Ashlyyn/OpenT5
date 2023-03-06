@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
 use crate::console::Channel;
-use crate::*;
 use crate::util::EasierAtomic;
+use crate::*;
 use arrayvec::ArrayVec;
+use core::sync::atomic::AtomicUsize;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
 use std::sync::RwLock;
-use core::sync::atomic::AtomicUsize;
 extern crate alloc;
 use alloc::sync::Arc;
 use cfg_if::cfg_if;
@@ -100,7 +100,11 @@ lazy_static! {
 }
 
 #[allow(clippy::print_stdout, clippy::needless_pass_by_value)]
-fn print_internal(channel: Channel, _param_2: i32, arguments: core::fmt::Arguments) {
+fn print_internal(
+    channel: Channel,
+    _param_2: i32,
+    arguments: core::fmt::Arguments,
+) {
     if channel.get() > 32 {
         return;
     }
@@ -150,7 +154,7 @@ cfg_if! {
         }
         #[allow(unused_imports)]
         pub(crate) use __dprint as dprint;
-        
+
         macro_rules! __dprintln {
             ($channel:expr) => {
                 $crate::com::__dprint!(channel, "\n")
@@ -162,23 +166,23 @@ cfg_if! {
         pub(crate) use __dprintln as dprintln;
     } else {
         #[allow(unused)]
-        pub fn _dprint(channel: Channel, core::fmt::Arguments) {
+        pub fn _dprint(channel: Channel, arguments: core::fmt::Arguments) {
 
         }
 
         macro_rules! __dprint {
             ($channel:expr, $($arg:tt)*) => {{
-                
+
             }};
         }
         pub(crate) use __dprint as dprint;
-        
+
         macro_rules! __dprintln {
             ($channel:expr) => {
 
             };
             ($channel:expr, $($arg:tt)*) => {{
-                
+
             }};
         }
         pub(crate) use __dprintln as dprintln;
@@ -218,7 +222,9 @@ pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
         "^1"
     };
 
-    COM_ERROR_PRINTS_COUNT.increment().unwrap_or_else(|| COM_ERROR_PRINTS_COUNT.store_relaxed(0));
+    COM_ERROR_PRINTS_COUNT
+        .increment()
+        .unwrap_or_else(|| COM_ERROR_PRINTS_COUNT.store_relaxed(0));
     print_internal(channel, 3, format_args!("{}{}", prefix, arguments));
 }
 

@@ -96,18 +96,17 @@ pub fn init() {
     cmd::add_internal("net_listen", listen_f).unwrap();
     cmd::add_internal("net_connect", connect_f).unwrap();
 
-    com::println!(
-        16.into(),
-        "CPU vendor is \"{}\"", get_cpu_vendor(),
-    );
-    com::println!(16.into(),"CPU name is \"{}\"", get_cpu_name());
+    com::println!(16.into(), "CPU vendor is \"{}\"", get_cpu_vendor(),);
+    com::println!(16.into(), "CPU name is \"{}\"", get_cpu_name());
 
     let info = find_info();
 
     let c = if info.logical_cpu_count == 1 { "" } else { "s" };
     com::println!(
         16.into(),
-        "{} logical CPU{} reported", info.logical_cpu_count, c,
+        "{} logical CPU{} reported",
+        info.logical_cpu_count,
+        c,
     );
 
     let c = if info.physical_cpu_count == 1 {
@@ -117,25 +116,22 @@ pub fn init() {
     };
     com::println!(
         16.into(),
-        "{} physical CPU{} detected", info.physical_cpu_count, c,
+        "{} physical CPU{} detected",
+        info.physical_cpu_count,
+        c,
+    );
+    com::println!(16.into(), "Measured CPU speed is {:.2} GHz", info.cpu_ghz,);
+    com::println!(
+        16.into(),
+        "Total CPU performance is estimated as {:.2} GHz",
+        info.configure_ghz,
     );
     com::println!(
         16.into(),
-        "Measured CPU speed is {:.2} GHz", info.cpu_ghz,
+        "System memory is {} MB (capped at 1 GB)",
+        info.sys_mb,
     );
-    com::println!(
-        16.into(),
-            "Total CPU performance is estimated as {:.2} GHz",
-            info.configure_ghz,
-    );
-    com::println!(
-        16.into(),
-        "System memory is {} MB (capped at 1 GB)", info.sys_mb,
-    );
-    com::println!(
-        16.into(),
-        "Video card is \"{}\"", info.gpu_description,
-    );
+    com::println!(16.into(), "Video card is \"{}\"", info.gpu_description,);
     // TODO - vector support
     com::println!(16.into(), "");
     input::init();
@@ -631,7 +627,9 @@ pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
         Err(e) => {
             com::println!(
                 1.into(),
-                "error {} while creating thread {}", e, name,
+                "error {} while creating thread {}",
+                e,
+                name,
             );
             None
         }
@@ -1090,7 +1088,7 @@ cfg_if! {
             fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
                 let longest = self.text.lines().max_by_key(|l| l.len()).unwrap_or_default();
                 frame.set_window_size(egui::Vec2 { x: 200.0 + longest.len() as f32 * 2.5, y: 150.0 + 6.0 * self.text.lines().count() as f32 });
-        
+
                 egui::TopBottomPanel::new(egui::panel::TopBottomSide::Bottom, egui::Id::new("test")).default_height(39.0).show(ctx, |ui| {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         for button in self.buttons.clone() {
@@ -1101,7 +1099,7 @@ cfg_if! {
                                 "Ok" => MessageBoxResult::Ok,
                                 _ => MessageBoxResult::Unknown,
                             };
-        
+
                             if ui.add(egui::Button::new(button).min_size(egui::vec2(80.0, 22.0))).clicked() {
                                 *self.result.clone().borrow_mut() = Some(result);
                                 frame.close();
@@ -1109,7 +1107,7 @@ cfg_if! {
                         }
                     })
                 });
-        
+
                 egui::CentralPanel::default().show(ctx, |ui| {
                     ui.with_layout(egui::Layout::centered_and_justified(egui::Direction::LeftToRight), |ui| {
                         ui.add(egui::Label::new(egui::RichText::new(self.text.clone()).size(12.0)).wrap(true));
@@ -1136,23 +1134,23 @@ cfg_if! {
                 run_and_return: true,
                 ..Default::default()
             };
-        
+
             let buttons = match msg_box_type {
                 MessageBoxType::Ok => vec!["Ok"],
                 MessageBoxType::YesNo => vec!["No", "Yes"],
                 MessageBoxType::YesNoCancel => vec!["Cancel", "No", "Yes"],
             };
-        
+
             let result = Arc::new(RefCell::new(None));
-        
+
             let app = MessageBoxApp { text: text.to_owned(), buttons, result: result.clone() };
-        
+
             eframe::run_native(
                 title,
                 options,
                 Box::new(|_cc| Box::new(app)),
             ).unwrap();
-            
+
             match *result.clone().borrow_mut() {
                 None => None,
                 Some(r) => match r {
