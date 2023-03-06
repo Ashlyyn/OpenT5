@@ -1220,7 +1220,7 @@ cfg_if! {
                 GTK_RESPONSE_EVENT.with(|event| {
                     #[allow(unused_must_use)]
                     {
-                        event.borrow_mut().send(answer)
+                        event.borrow_mut().send(answer);
                     }
                 });
             });
