@@ -103,12 +103,10 @@ pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
     let path = path.as_ref();
 
     if path.is_relative() {
-        com::warnln(
+        com::warnln!(
             10.into(),
-            format!(
-                "WARNING: refusing to create relative path \"{}\"",
-                path.display()
-            ),
+            "WARNING: refusing to create relative path \"{}\"",
+            path.display(),
         );
         return Err(std::io::ErrorKind::InvalidFilename.into());
     }
@@ -136,10 +134,11 @@ pub fn init_filesystem(dev: bool) {
     startup("main", dev);
 }
 
+// TODO - fully implement
 fn startup(_param_1: &str, _dev: bool) {
-    com::println(16.into(), "----- FS_Startup -----");
+    com::println!(16.into(), "----- FS_Startup -----");
     register_dvars();
-    com::println(16.into(), "----------------------");
+    com::println!(16.into(), "----------------------");
 }
 
 fn register_dvars() {
@@ -165,7 +164,7 @@ pub const fn get_current_thread() -> Thread {
 pub fn open_file_read_current_thread(path: &Path) -> Result<std::fs::File, std::io::Error> {
     let current_thread = get_current_thread();
     if current_thread == Thread::Invalid {
-        com::print_errorln(1.into(), "fs::open_file_read_current_thread for an unknown thread");
+        com::print_errorln!(1.into(), "fs::open_file_read_current_thread for an unknown thread");
         Err(std::io::ErrorKind::Other.into())
     } else {
         std::fs::File::open(path)
@@ -192,7 +191,7 @@ pub fn delete(path: &Path) -> Result<(), std::io::Error> {
 // TODO - correctly implement
 pub fn write_file(path: &Path, data: &[u8]) -> Result<usize, std::io::Error> {
     let Ok(mut file) = std::fs::File::create(path) else {
-        com::println(10.into(), "Failed to open {path}");
+        com::println!(10.into(), "Failed to open {}", path.display());
         return Err(std::io::ErrorKind::NotFound.into());
     };
 

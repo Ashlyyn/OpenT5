@@ -26,31 +26,25 @@ fn init_render_thread() {
 }
 
 pub fn init_threads() {
-    com::println(
+    com::println!(
         8.into(),
-        format!(
-            "{}: Trying SMP acceleration...",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: Trying SMP acceleration...",
+        std::thread::current().name().unwrap_or("main"),
     );
     init_render_thread();
     //init_worker_threads();
-    com::println(
+    com::println!(
         8.into(),
-        format!(
-            "{}: ...succeeded",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: ...succeeded",
+        std::thread::current().name().unwrap_or("main"),
     );
 }
 
 pub fn begin_registration_internal() -> Result<(), ()> {
-    com::println(
+    com::println!(
         8.into(),
-        format!(
-            "{}: render::begin_registration_internal()...",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: render::begin_registration_internal()...",
+        std::thread::current().name().unwrap_or("main"),
     );
 
     if init().is_err() {
@@ -145,12 +139,10 @@ fn register_dvars() {
 
 #[allow(clippy::unnecessary_wraps)]
 fn init() -> Result<(), ()> {
-    com::println(
+    com::println!(
         8.into(),
-        format!(
-            "{}: render::init()...",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: render::init()...",
+        std::thread::current().name().unwrap_or("main"),
     );
 
     register();
@@ -252,9 +244,9 @@ lazy_static! {
 }
 
 fn fatal_init_error(error: &str) -> ! {
-    com::println(8.into(), "********** Device returned an unrecoverable error code during initialization  **********");
-    com::println(8.into(), "********** Initialization also happens while playing if Renderer loses a device **********");
-    com::println(8.into(), error);
+    com::println!(8.into(), "********** Device returned an unrecoverable error code during initialization  **********");
+    com::println!(8.into(), "********** Initialization also happens while playing if Renderer loses a device **********");
+    com::println!(8.into(), "{}", error);
     sys::render_fatal_error();
 }
 
@@ -521,14 +513,14 @@ fn choose_adapter() -> Option<sys::gpu::Adapter> {
 }
 
 fn pre_create_window() -> Result<(), ()> {
-    com::println(8.into(), "Getting Device interface...");
+    com::println!(8.into(), "Getting Device interface...");
     let instance = sys::gpu::Instance::new();
     let adapter = block_on(sys::gpu::Adapter::new(&instance, None));
     RENDER_GLOBALS.clone().write().unwrap().device =
         if let Some(d) = block_on(sys::gpu::Device::new(&adapter)) {
             Some(d)
         } else {
-            com::println(8.into(), "Device failed to initialize.");
+            com::println!(8.into(), "Device failed to initialize.");
             return Err(());
         };
 
@@ -592,23 +584,19 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     }
 
     if wnd_parms.fullscreen {
-        com::println(
+        com::println!(
             8.into(),
-            format!(
-                "Attempting {} x {} fullscreen with 32 bpp at {} hz",
-                wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz
-            ),
+            "Attempting {} x {} fullscreen with 32 bpp at {} hz",
+            wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz,
         );
     } else {
-        com::println(
+        com::println!(
             8.into(),
-            format!(
-                "Attempting {} x {} window at ({}, {})",
-                wnd_parms.display_width,
-                wnd_parms.display_height,
-                wnd_parms.x,
-                wnd_parms.y
-            ),
+            "Attempting {} x {} window at ({}, {})",
+            wnd_parms.display_width,
+            wnd_parms.display_height,
+            wnd_parms.x,
+            wnd_parms.y,
         );
     }
 
@@ -644,8 +632,8 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     {
         Ok(w) => w,
         Err(e) => {
-            com::println(8.into(), "Couldn't create a window.");
-            com::dprintln(8.into(), format!("{}", e));
+            com::println!(8.into(), "Couldn't create a window.");
+            com::dprintln!(8.into(), "{}", e);
             {
                 let lock = WINDOW_INITIALIZING.clone();
                 let mut window_initializing = lock.write().unwrap();
@@ -672,7 +660,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         wg.window_handle = Some(main_window.window_handle());
     }
 
-    com::println(8.into(), "Game window successfully created.");
+    com::println!(8.into(), "Game window successfully created.");
 
     // ========================================================================
     // This part is supposed to be done in sys::create_console, but you can't
@@ -1066,9 +1054,9 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 render_globals.window.width = wnd_parms.display_width;
                 render_globals.window.height = wnd_parms.display_height;
                 if !wnd_parms.fullscreen {
-                    com::println(8.into(), format!("Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y));
+                    com::println!(8.into(), "Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y);
                 } else {
-                    com::println(8.into(), format!("Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y));
+                    com::println!(8.into(), "Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y);
                 }
             },
             _ => {}
@@ -1080,18 +1068,16 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 #[allow(clippy::unnecessary_wraps)]
 fn init_hardware(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     store_window_settings(wnd_parms).unwrap();
-    com::println(8.into(), "TODO: render::init_hardware");
+    com::println!(8.into(), "TODO: render::init_hardware");
     Ok(())
 }
 
 #[allow(clippy::semicolon_outside_block)]
 pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
-    com::println(
+    com::println!(
         8.into(),
-        &format!(
-            "{}: render::create_window()...",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: render::create_window()...",
+        std::thread::current().name().unwrap_or("main"),
     );
 
     init_hardware(wnd_parms).unwrap();
@@ -1101,20 +1087,16 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         let mut g_wnd_parms = lock.write().unwrap();
         *g_wnd_parms = *wnd_parms;
     }
-    com::println(
+    com::println!(
         8.into(),
-        &format!(
-            "{}: written WND_PARMS.",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: written WND_PARMS.",
+        std::thread::current().name().unwrap_or("main"),
     );
 
-    com::println(
+    com::println!(
         8.into(),
-        &format!(
-            "{}: waiting for init...",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: waiting for init...",
+        std::thread::current().name().unwrap_or("main"),
     );
 
     {
@@ -1132,13 +1114,11 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             }
         }
     };
-    com::println(
+    com::println!(
         8.into(),
-        format!(
-            "{}: init complete, res={:?}...",
-            std::thread::current().name().unwrap_or("main"),
-            res
-        ),
+        "{}: init complete, res={:?}...",
+        std::thread::current().name().unwrap_or("main"),
+        res,
     );
 
     if res {
@@ -1159,12 +1139,10 @@ lazy_static! {
 }
 
 fn init_graphics_api() -> Result<(), ()> {
-    com::println(
+    com::println!(
         8.into(),
-        &format!(
-            "{}: render::init_graphics_api()...",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: render::init_graphics_api()...",
+        std::thread::current().name().unwrap_or("main"),
     );
     if RENDER_GLOBALS.clone().read().unwrap().device.is_none() {
         if pre_create_window().is_err() {

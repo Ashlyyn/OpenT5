@@ -2,6 +2,7 @@
 #![feature(io_error_more)]
 #![feature(const_option)]
 #![feature(int_roundings)]
+#![feature(format_args_nl)]
 #![warn(
     clippy::all,
     clippy::restriction,
@@ -180,12 +181,10 @@ fn main() {
         com::init();
     });
 
-    com::println(
+    com::println!(
         0.into(),
-        &format!(
-            "{}: com::init spawned, looping until ready for window init...",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: com::init spawned, looping until ready for window init...",
+        std::thread::current().name().unwrap_or("main"),
     );
 
     // The loop here is necessary so that the lock isn't continuously held,
@@ -215,12 +214,10 @@ fn main() {
     let lock = render::WND_PARMS.clone();
     let mut wnd_parms = *lock.write().unwrap();
 
-    com::println(
+    com::println!(
         0.into(),
-        format!(
-            "{}: ready for window init, creating window...",
-            std::thread::current().name().unwrap_or("main")
-        ),
+        "{}: ready for window init, creating window...",
+        std::thread::current().name().unwrap_or("main"),
     );
 
     // Finally, we send the main thread off to die in render::create_window_2.
