@@ -100,83 +100,145 @@ lazy_static! {
 }
 
 #[allow(clippy::print_stdout, clippy::needless_pass_by_value)]
-fn print_internal(channel: Channel, _param_2: i32, message: impl ToString) {
+fn print_internal(channel: Channel, _param_2: i32, arguments: core::fmt::Arguments) {
     if channel.get() > 32 {
         return;
     }
 
-    print!("({}) - {}", channel.get(), message.to_string());
+    std::print!("({}) - {}", channel.get(), arguments);
 }
 
 // Needs to be actually implemented
 // Just a wrapper around print! currently
-pub fn print(channel: Channel, message: impl ToString) {
+pub fn _print(channel: Channel, arguments: core::fmt::Arguments) {
     let lock = PRINT_LOCK.clone();
     let _lock = lock.lock().unwrap();
 
-    print_internal(channel, 0, message);
+    print_internal(channel, 0, arguments);
 }
 
-#[allow(clippy::needless_pass_by_value)]
-pub fn println(channel: Channel, message: impl ToString) {
-    print(channel, format!("{}\n", message.to_string()));
+macro_rules! __print {
+    ($channel:expr, $($arg:tt)*) => {{
+        $crate::com::_print($channel, core::format_args!($($arg)*));
+    }};
 }
+pub(crate) use __print as print;
+
+macro_rules! __println {
+    ($channel:expr) => {
+        $crate::com::__print!(channel, "\n")
+    };
+    ($channel:expr, $($arg:tt)*) => {{
+        $crate::com::_print($channel, core::format_args_nl!($($arg)*));
+    }};
+}
+pub(crate) use __println as println;
 
 cfg_if! {
     if #[cfg(debug_assertions)] {
-        pub fn dprint(channel: Channel, message: impl ToString) {
+        pub fn _dprint(channel: Channel, arguments: core::fmt::Arguments) {
             let lock = PRINT_LOCK.clone();
             let _lock = lock.lock().unwrap();
 
-            print_internal(channel, 0, message);
+            print_internal(channel, 0, arguments);
         }
 
-        #[allow(clippy::needless_pass_by_value)]
-        pub fn dprintln(channel: Channel, message: impl ToString) {
-            print(channel, format!("{}\n", message.to_string()));
+        macro_rules! __dprint {
+            ($channel:expr, $($arg:tt)*) => {{
+                $crate::com::_dprint($channel, core::format_args!($($arg)*));
+            }};
         }
+        #[allow(unused_imports)]
+        pub(crate) use __dprint as dprint;
+        
+        macro_rules! __dprintln {
+            ($channel:expr) => {
+                $crate::com::__dprint!(channel, "\n")
+            };
+            ($channel:expr, $($arg:tt)*) => {{
+                $crate::com::_dprint($channel, core::format_args_nl!($($arg)*));
+            }};
+        }
+        pub(crate) use __dprintln as dprintln;
     } else {
         #[allow(unused)]
-        pub fn dprint(channel: Channel, message: impl ToString) {
+        pub fn _dprint(channel: Channel, core::fmt::Arguments) {
 
         }
 
-        #[allow(unused, clippy::needless_pass_by_value)]
-        pub fn dprintln(channel: Channel, message: impl ToString) {
-
+        macro_rules! __dprint {
+            ($channel:expr, $($arg:tt)*) => {{
+                
+            }};
         }
+        pub(crate) use __dprint as dprint;
+        
+        macro_rules! __dprintln {
+            ($channel:expr) => {
+
+            };
+            ($channel:expr, $($arg:tt)*) => {{
+                
+            }};
+        }
+        pub(crate) use __dprintln as dprintln;
     }
 }
 
 #[allow(clippy::needless_pass_by_value)]
-pub fn warn(channel: Channel, message: impl ToString) {
-    print(channel, format!("^3{}", message.to_string()));
+pub fn _warn(channel: Channel, arguments: core::fmt::Arguments) {
+    print!(channel, "^3{}", arguments);
 }
 
-#[allow(clippy::needless_pass_by_value)]
-pub fn warnln(channel: Channel, message: impl ToString) {
-    warn(channel, format!("{}\n", message.to_string()));
+macro_rules! __warn {
+    ($channel:expr, $($arg:tt)*) => {{
+        $crate::com::_warn($channel, core::format_args!($($arg)*));
+    }};
 }
+#[allow(unused_imports)]
+pub(crate) use __warn as warn;
+
+macro_rules! __warnln {
+    ($channel:expr) => {
+        $crate::com::__warn!(channel, "\n")
+    };
+    ($channel:expr, $($arg:tt)*) => {{
+        $crate::com::_warn($channel, core::format_args_nl!($($arg)*));
+    }};
+}
+pub(crate) use __warnln as warnln;
 
 static COM_ERROR_PRINTS_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 #[allow(clippy::needless_pass_by_value)]
-pub fn print_error(channel: Channel, message: impl ToString) {
-    let prefix = if message.to_string().contains("error") {
+pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
+    let prefix = if arguments.to_string().contains("error") {
         "^1Error: "
     } else {
         "^1"
     };
 
-    let message = format!("{}{}", prefix, message.to_string());
     COM_ERROR_PRINTS_COUNT.increment().unwrap_or_else(|| COM_ERROR_PRINTS_COUNT.store_relaxed(0));
-    print_internal(channel, 3, message);
+    print_internal(channel, 3, format_args!("{}{}", prefix, arguments));
 }
 
-#[allow(clippy::needless_pass_by_value)]
-pub fn print_errorln(channel: Channel, message: impl ToString) {
-    print_error(channel, format!("{}\n", message.to_string()));
+macro_rules! __print_error {
+    ($channel:expr, $($arg:tt)*) => {{
+        $crate::com::_print_error($channel, core::format_args!($($arg)*));
+    }};
 }
+#[allow(unused_imports)]
+pub(crate) use __print_error as print_error;
+
+macro_rules! __print_errorln {
+    ($channel:expr) => {
+        $crate::com::__print_error!(channel, "\n")
+    };
+    ($channel:expr, $($arg:tt)*) => {{
+        $crate::com::_print_error($channel, core::format_args_nl!($($arg)*));
+    }};
+}
+pub(crate) use __print_errorln as print_errorln;
 
 lazy_static! {
     static ref LOG_FILE: Arc<RwLock<Option<File>>> =
@@ -281,7 +343,7 @@ pub const fn get_icon_rgba() -> Option<winit::window::Icon> {
 
 // TODO - implement
 pub fn startup_variable(name: &str) {
-    println(16.into(), format!("com::startup_variable: {}", name));
+    com::println!(16.into(), "com::startup_variable: {}", name);
 }
 
 lazy_static! {
