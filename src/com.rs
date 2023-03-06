@@ -99,10 +99,19 @@ lazy_static! {
     static ref PRINT_LOCK: Arc<Mutex<()>> = Arc::new(Mutex::new(()));
 }
 
+// Not sure what to call this, think of a better name later.
+#[doc(hidden)]
+pub enum MessageType {
+    Print,
+    Warn,
+    Error,
+}
+
+#[doc(hidden)]
 #[allow(clippy::print_stdout, clippy::needless_pass_by_value)]
 pub fn _print_internal(
     channel: Channel,
-    _param_2: i32,
+    _message_type: MessageType,
     arguments: core::fmt::Arguments,
 ) {
     if channel.get() > 32 {
@@ -110,12 +119,6 @@ pub fn _print_internal(
     }
 
     std::print!("({}) - {}", channel.get(), arguments);
-}
-
-macro_rules! __print_internal {
-    ($channel:expr, $p:expr, $($arg:tt)*) => {{
-        $crate::com::_print_internal($channel, $p, core::format_args!($($arg)*));
-    }};
 }
 
 /// Prints text.
@@ -134,7 +137,7 @@ macro_rules! __print_internal {
 /// ```
 macro_rules! __print {
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_print_internal($channel, 0, core::format_args!($($arg)*));
+        $crate::com::_print_internal($channel, $crate::com::MessageType::Print, core::format_args!($($arg)*));
     }};
 }
 pub(crate) use __print as print;
@@ -159,7 +162,7 @@ macro_rules! __println {
         $crate::com::__print!(channel, "\n")
     };
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_print_internal($channel, 0, core::format_args_nl!($($arg)*));
+        $crate::com::_print_internal($channel, $crate::com::MessageType::Print, core::format_args_nl!($($arg)*));
     }};
 }
 pub(crate) use __println as println;
@@ -168,7 +171,7 @@ cfg_if! {
     if #[cfg(debug_assertions)] {
         #[doc(hidden)]
         pub fn _dprint(channel: Channel, arguments: core::fmt::Arguments) {
-            __print_internal!(channel, 0, "{}", arguments);
+            _print_internal(channel, MessageType::Print, arguments);
         }
 
         /// Prints text if the executable is compiled in debug mode.
@@ -283,7 +286,7 @@ cfg_if! {
 #[doc(hidden)]
 #[allow(clippy::needless_pass_by_value)]
 pub fn _warn(channel: Channel, arguments: core::fmt::Arguments) {
-    __print_internal!(channel, 2, "^3{}", arguments);
+    _print_internal(channel, MessageType::Warn, format_args!("^3{}", arguments));
 }
 
 /// Prints a warning.
@@ -344,7 +347,7 @@ pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
     COM_ERROR_PRINTS_COUNT
         .increment()
         .unwrap_or_else(|| COM_ERROR_PRINTS_COUNT.store_relaxed(0));
-    __print_internal!(channel, 3, "{}{}", prefix, arguments);
+    _print_internal(channel, MessageType::Error, format_args!("{}{}", prefix, arguments));
 }
 
 /// Prints an error.
@@ -358,7 +361,7 @@ pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
 /// # Example
 /// 
 /// ```
-/// com::warn!("Warning to com!");
+/// com::print_error!("Error to com!");
 /// ```
 macro_rules! __print_error {
     ($channel:expr, $($arg:tt)*) => {{
@@ -379,7 +382,7 @@ pub(crate) use __print_error as print_error;
 /// # Example
 /// 
 /// ```
-/// com::warnln!("Warning to com!");
+/// com::print_errorln!("Error to com!");
 /// ```
 macro_rules! __print_errorln {
     ($channel:expr) => {
