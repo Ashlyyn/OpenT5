@@ -49,7 +49,6 @@
 )]
 #![allow(clippy::iter_nth_zero)]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
-#![cfg_attr(not(target_os = "windows"), feature(local_key_cell_methods))]
 
 use core::sync::atomic::{AtomicBool, Ordering};
 use discord_rich_presence::activity::Activity;
