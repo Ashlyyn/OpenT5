@@ -2,7 +2,6 @@
 #![feature(io_error_more)]
 #![feature(const_option)]
 #![feature(int_roundings)]
-#![feature(format_args_nl)]
 #![warn(
     clippy::all,
     clippy::restriction,
