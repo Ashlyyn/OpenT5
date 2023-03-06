@@ -1217,16 +1217,16 @@ cfg_if! {
             dialog.add_buttons(buttons);
             dialog.run_async(|obj, answer| {
                 obj.close();
-                GTK_RESPONSE_EVENT.with_borrow_mut(|event| {
+                GTK_RESPONSE_EVENT.with(|event| {
                     #[allow(unused_must_use)]
                     {
-                        event.send(answer);
+                        event.borrow_mut().send(answer)
                     }
                 });
             });
 
-            let response = GTK_RESPONSE_EVENT.with_borrow_mut(|event| {
-                event.acknowledge()
+            let response = GTK_RESPONSE_EVENT.with(|event| {
+                event.borrow_mut().acknowledge()
             });
 
             Some(response.into())
