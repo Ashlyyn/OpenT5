@@ -159,10 +159,10 @@ pub(crate) use __print as print;
 /// ```
 macro_rules! __println {
     ($channel:expr) => {
-        $crate::com::__print!(channel, "\n")
+        $crate::com::print!($channel, "\n")
     };
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_print_internal($channel, $crate::com::MessageType::Print, core::format_args_nl!($($arg)*));
+        $crate::com::print!($channel, "{}\n", core::format_args!($($arg)*));
     }};
 }
 pub(crate) use __println as println;
@@ -220,7 +220,7 @@ cfg_if! {
                 $crate::com::__dprint!(channel, "\n")
             };
             ($channel:expr, $($arg:tt)*) => {{
-                $crate::com::_dprint($channel, core::format_args_nl!($($arg)*));
+                $crate::com::dprint!($channel, "{}\n", core::format_args!($($arg)*));
             }};
         }
         pub(crate) use __dprintln as dprintln;
@@ -325,10 +325,10 @@ pub(crate) use __warn as warn;
 /// ```
 macro_rules! __warnln {
     ($channel:expr) => {
-        $crate::com::__warn!(channel, "\n")
+        $crate::com::warn!(channel, "\n")
     };
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_warn($channel, core::format_args_nl!($($arg)*));
+        $crate::com::warn!($channel, "{}\n", core::format_args!($($arg)*));
     }};
 }
 pub(crate) use __warnln as warnln;
@@ -386,10 +386,10 @@ pub(crate) use __print_error as print_error;
 /// ```
 macro_rules! __print_errorln {
     ($channel:expr) => {
-        $crate::com::__print_error!(channel, "\n")
+        $crate::com::print_error!(channel, "\n")
     };
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_print_error($channel, core::format_args_nl!($($arg)*));
+        $crate::com::print_error!($channel, "{}\n", core::format_args!($($arg)*));
     }};
 }
 pub(crate) use __print_errorln as print_errorln;
