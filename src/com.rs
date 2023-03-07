@@ -174,115 +174,63 @@ cfg_if! {
         pub fn _dprint(channel: Channel, arguments: core::fmt::Arguments) {
             _print_internal(channel, MessageType::Print, arguments);
         }
-
-        /// Prints text if the executable is compiled in debug mode.
-        /// 
-        /// Does nothing in release mode.
-        /// 
-        /// Currently just a wrapper around [`std::print!`], will get a proper 
-        /// implementation in the future.
-        /// 
-        /// # Panics
-        /// 
-        /// Currently panics if [`std::print!`] panics.
-        /// 
-        /// # Example
-        /// 
-        /// ```
-        /// com::dprint!("Hello to com from debug mode!");
-        /// ```
-        macro_rules! __dprint {
-            ($channel:expr, $($arg:tt)*) => {{
-                $crate::com::_dprint($channel, core::format_args!($($arg)*));
-            }};
-        }
-        #[allow(unused_imports)]
-        pub(crate) use __dprint as dprint;
-
-        /// Prints text with a newline appended if the executable is compiled 
-        /// in debug mode.
-        /// 
-        /// Does nothing in release mode.
-        /// 
-        /// Currently just a wrapper around [`com::print!`], will get a proper 
-        /// implementation in the future.
-        /// 
-        /// # Panics
-        /// 
-        /// Currently panics if [`com::print!`] panics.
-        /// 
-        /// # Example
-        /// 
-        /// ```
-        /// com::dprintln!("Hello to com from debug mode!");
-        /// ```
-        macro_rules! __dprintln {
-            ($channel:expr) => {
-                $crate::com::__dprint!(channel, "\n")
-            };
-            ($channel:expr, $($arg:tt)*) => {{
-                $crate::com::dprint!($channel, "{}\n", core::format_args!($($arg)*));
-            }};
-        }
-        pub(crate) use __dprintln as dprintln;
     } else {
-        #[allow(unused)]
-        #[doc(hidden)]
-        pub fn _dprint(channel: Channel, arguments: core::fmt::Arguments) {
-
-        }
-
-        /// Prints text if the executable is compiled in debug mode.
-        /// 
-        /// Does nothing in release mode.
-        /// 
-        /// Currently just a wrapper around [`std::print!`], will get a proper 
-        /// implementation in the future.
-        /// 
-        /// # Panics
-        /// 
-        /// Currently panics if [`std::print!`] panics.
-        /// 
-        /// # Example
-        /// 
-        /// ```
-        /// com::dprint!("Hello to com from debug mode!");
-        /// ```
-        macro_rules! __dprint {
-            ($channel:expr, $($arg:tt)*) => {{
-
-            }};
-        }
-        pub(crate) use __dprint as dprint;
-
-        /// Prints text with a newline appended if the executable is compiled 
-        /// in debug mode.
-        /// 
-        /// Does nothing in release mode.
-        /// 
-        /// Currently just a wrapper around [`com::print!`], will get a proper 
-        /// implementation in the future.
-        /// 
-        /// # Panics
-        /// 
-        /// Currently panics if [`com::print!`] panics.
-        /// 
-        /// # Example
-        /// 
-        /// ```
-        /// com::dprintln!("Hello to com from debug mode!");
-        /// ```
-        macro_rules! __dprintln {
-            ($channel:expr) => {
-
-            };
-            ($channel:expr, $($arg:tt)*) => {{
-
-            }};
-        }
-        pub(crate) use __dprintln as dprintln;
+        pub fn _dprint(_channel: Channel, _arguments: core::fmt::Arguments) {
+            
+        } 
     }
 }
+
+/// Prints text if the executable is compiled in debug mode.
+/// 
+/// Does nothing in release mode.
+/// 
+/// Currently just a wrapper around [`std::print!`], will get a proper 
+/// implementation in the future.
+/// 
+/// # Panics
+/// 
+/// Currently panics if [`std::print!`] panics.
+/// 
+/// # Example
+/// 
+/// ```
+/// com::dprint!("Hello to com from debug mode!");
+/// ```
+macro_rules! __dprint {
+    ($channel:expr, $($arg:tt)*) => {{
+        $crate::com::_dprint($channel, core::format_args!($($arg)*));
+    }};
+}
+#[allow(unused_imports)]
+pub(crate) use __dprint as dprint;
+
+/// Prints text with a newline appended if the executable is compiled 
+/// in debug mode.
+/// 
+/// Does nothing in release mode.
+/// 
+/// Currently just a wrapper around [`com::print!`], will get a proper 
+/// implementation in the future.
+/// 
+/// # Panics
+/// 
+/// Currently panics if [`com::print!`] panics.
+/// 
+/// # Example
+/// 
+/// ```
+/// com::dprintln!("Hello to com from debug mode!");
+/// ```
+macro_rules! __dprintln {
+    ($channel:expr) => {
+        $crate::com::dprint!($channel, "\n")
+    };
+    ($channel:expr, $($arg:tt)*) => {{
+        $crate::com::dprint!($channel, "{}\n", core::format_args!($($arg)*));
+    }};
+}
+pub(crate) use __dprintln as dprintln;
 
 #[doc(hidden)]
 #[allow(clippy::needless_pass_by_value)]
