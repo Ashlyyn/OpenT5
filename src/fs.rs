@@ -139,9 +139,9 @@ pub fn init_filesystem(dev: bool) {
 
 // TODO - fully implement
 fn startup(_param_1: &str, _dev: bool) {
-    com::println!(16.into(), "----- FS_Startup -----");
+    com::println!(16.into(), "----- fs::startup -----");
     register_dvars();
-    com::println!(16.into(), "----------------------");
+    com::println!(16.into(), "-----------------------");
 }
 
 fn register_dvars() {
