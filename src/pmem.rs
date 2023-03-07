@@ -15,7 +15,7 @@ cfg_if! {
         };
     } else if #[cfg(target_family = "unix")] {
         use nix::sys::mman::{mmap, MapFlags, ProtFlags};
-    } else {
+    } else if #[cfg(not(target_arch = "wasm32"))] {
         use libc::malloc;
     }
 }
@@ -180,7 +180,7 @@ cfg_if! {
                 Some(unsafe { core::slice::from_raw_parts_mut(p, size.get()) })
             }
         }
-    } else {
+    } else if #[cfg(not(target_arch = "wasm32"))] {
         fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
             let p = malloc(size.get()) as *mut u8;
             match p.is_null() {
