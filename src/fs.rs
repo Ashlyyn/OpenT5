@@ -192,9 +192,7 @@ pub fn read_file(path: &Path) -> Result<Vec<u8>, std::io::Error> {
     let mut f = open_file_read_current_thread(path)?;
     let mut buf = Vec::new();
     f.read_to_end(&mut buf)?;
-    FS_LOADSTACK
-        .increment()
-        .unwrap_or_else(|| FS_LOADSTACK.store_relaxed(0));
+    FS_LOADSTACK.increment_wrapping();
     Ok(buf)
 }
 

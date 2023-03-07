@@ -345,9 +345,7 @@ pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
         "^1"
     };
 
-    COM_ERROR_PRINTS_COUNT
-        .increment()
-        .unwrap_or_else(|| COM_ERROR_PRINTS_COUNT.store_relaxed(0));
+    COM_ERROR_PRINTS_COUNT.increment_wrapping();
     _print_internal(channel, MessageType::Error, format_args!("{}{}", prefix, arguments));
 }
 
