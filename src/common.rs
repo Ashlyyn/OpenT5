@@ -8,6 +8,7 @@ use gfx::{ListBoxDef, UIAnimInfo, WindowDef};
 pub type Vec2f32 = (f32, f32);
 pub type Vec3f32 = (f32, f32, f32);
 pub type Vec4f32 = (f32, f32, f32, f32);
+pub type Vec3i32 = (i32, i32, i32);
 
 #[derive(Copy, Clone, Default)]
 pub struct RectDef {
@@ -357,4 +358,13 @@ impl ItemDef {
             anim_info: UIAnimInfo::new(),
         }
     }
+}
+
+#[derive(Copy, Clone, Default, Debug)]
+pub enum StanceState {
+    #[default]
+    Stand,
+    Crouch,
+    Prone,
+    Dive,
 }
