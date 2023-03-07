@@ -414,11 +414,11 @@ impl Module {
             }
         } else {
             pub fn load(name: Path) -> Option<Self> {
-                todo!()
+                unimplemented!()
             }
 
             fn unload(&mut self) {
-                todo!()
+                unimplemented!()
             }
         }
     }
@@ -464,10 +464,13 @@ impl EasierAtomicBool for AtomicBool {
 }
 
 pub trait EasierAtomic {
-    type ValueType;
+    type ValueType: num::Zero;
     fn load_relaxed(&self) -> Self::ValueType;
     fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType;
     fn increment(&self) -> Option<Self::ValueType>;
+    fn increment_wrapping(&self) -> Self::ValueType {
+        self.increment().unwrap_or_else(|| self.store_relaxed(num::zero()))
+    }
 }
 
 impl EasierAtomic for AtomicIsize {
