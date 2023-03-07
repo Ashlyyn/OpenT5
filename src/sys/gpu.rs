@@ -66,10 +66,10 @@ impl Instance {
         if render_api_implemented_by_wgpu!() {
             Self {
                 wgpu_instance: Some(wgpu::Instance::new(
-                    wgpu::InstanceDescriptor { 
-                        backends: wgpu::Backends::all(), 
-                        dx12_shader_compiler: wgpu::Dx12Compiler::Fxc 
-                    }
+                    wgpu::InstanceDescriptor {
+                        backends: wgpu::Backends::all(),
+                        dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
+                    },
                 )),
             }
         } else {
@@ -280,7 +280,7 @@ impl Config {
                 height,
                 present_mode: wgpu::PresentMode::AutoNoVsync,
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
-                view_formats: vec![]
+                view_formats: vec![],
             };
 
             Self {

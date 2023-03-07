@@ -46,13 +46,13 @@
     clippy::pattern_type_mismatch,
     clippy::semicolon_outside_block,
     clippy::iter_nth_zero,
-    clippy::missing_inline_in_public_items,
+    clippy::missing_inline_in_public_items
 )]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 
+use cfg_if::cfg_if;
 use core::sync::atomic::{AtomicBool, Ordering};
 use lazy_static::lazy_static;
-use cfg_if::cfg_if;
 extern crate alloc;
 use alloc::sync::Arc;
 
@@ -68,6 +68,7 @@ cfg_if! {
 }
 
 mod cbuf;
+mod cg;
 mod cl;
 mod cmd;
 mod com;
@@ -89,7 +90,6 @@ mod seh;
 mod sys;
 mod util;
 mod vid;
-mod cg;
 
 lazy_static! {
     #[allow(dead_code)]
@@ -97,8 +97,12 @@ lazy_static! {
     static ref S_NOSND: AtomicBool = AtomicBool::new(false);
 }
 
-#[cfg_attr(target_arch="wasm32", wasm_bindgen(start))]
-#[allow(clippy::collapsible_else_if, clippy::missing_panics_doc, clippy::expect_used)]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
+#[allow(
+    clippy::collapsible_else_if,
+    clippy::missing_panics_doc,
+    clippy::expect_used
+)]
 pub fn run() {
     platform::os::target::main();
     let cmdline = sys::get_cmdline();
@@ -147,7 +151,7 @@ pub fn run() {
                 discord_rpc::set_activity(Activity::new().state("Testing...")).unwrap();
             });
         }
-    }    
+    }
 
     // ========================================================================
     // This is probably the most opaque part of the program so far, so some

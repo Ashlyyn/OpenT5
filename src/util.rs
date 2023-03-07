@@ -4,8 +4,8 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use core::time::Duration;
 use std::path::Path;
 
-use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::AtomicIsize;
+use core::sync::atomic::AtomicUsize;
 use std::sync::{Condvar, Mutex};
 
 use raw_window_handle::HasRawWindowHandle;
@@ -471,7 +471,8 @@ pub trait EasierAtomic {
     fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType;
     fn increment(&self) -> Option<Self::ValueType>;
     fn increment_wrapping(&self) -> Self::ValueType {
-        self.increment().unwrap_or_else(|| self.store_relaxed(num::zero()))
+        self.increment()
+            .unwrap_or_else(|| self.store_relaxed(num::zero()))
     }
 }
 

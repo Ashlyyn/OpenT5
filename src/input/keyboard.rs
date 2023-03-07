@@ -8,7 +8,7 @@ use alloc::sync::Arc;
 use lazy_static::lazy_static;
 use num_derive::FromPrimitive;
 
-use super::{super::*, update_use_held, update_use_count};
+use super::{super::*, update_use_count, update_use_held};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Hash, Eq, PartialEq)]

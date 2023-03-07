@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::common::{Vec3f32, Vec3i32};
-use arrayvec::{ArrayString};
+use arrayvec::ArrayString;
 use bitflags::bitflags;
 
 #[derive(Copy, Clone, Default, Debug)]
@@ -71,7 +71,7 @@ pub enum ScoreboardColumnType {
     Tomahawks,
     Humiliated,
     X2Score,
-    Headshots
+    Headshots,
 }
 
 bitflags! {
@@ -119,7 +119,7 @@ pub enum FfaTeam {
 #[derive(Copy, Clone, Debug)]
 pub enum Xuid {
     Xuid(u64),
-    Xuid32([u32; 2])
+    Xuid32([u32; 2]),
 }
 
 impl Default for Xuid {

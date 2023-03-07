@@ -1,4 +1,2 @@
 #[allow(clippy::missing_const_for_fn)]
-pub fn main() {
-
-}
+pub fn main() {}

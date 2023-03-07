@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::sync::RwLock;
 
 use winit::{
-    dpi::{PhysicalPosition},
+    dpi::PhysicalPosition,
     event::*,
     event_loop::{ControlFlow, EventLoop},
     window::{Fullscreen, WindowBuilder},
@@ -576,7 +576,7 @@ lazy_static! {
     clippy::cast_possible_wrap,
     clippy::integer_division,
     clippy::too_many_lines,
-    clippy::expect_used,
+    clippy::expect_used
 )]
 pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     {
@@ -675,7 +675,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             // the size manually when on web.
             use winit::dpi::PhysicalSize;
             main_window.set_inner_size(PhysicalSize::new(MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION));
-    
+
             use winit::platform::web::WindowExtWebSys;
             web_sys::window()
                 .and_then(|win| win.document())
@@ -690,21 +690,20 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         }
     }
 
-
     com::println!(8.into(), "Game window successfully created.");
 
     // ========================================================================
     cfg_if! {
         if #[cfg(not(target_arch = "wasm32"))] {
-            // This part is supposed to be done in sys::create_console, but 
-            // you can't bind windows to an event loop after calling 
-            // event_loop::run, so instead we create them here, set them to 
-            // invisible, and then set them to visible in sys::create_console 
+            // This part is supposed to be done in sys::create_console, but
+            // you can't bind windows to an event loop after calling
+            // event_loop::run, so instead we create them here, set them to
+            // invisible, and then set them to visible in sys::create_console
             // instead of creating them there.
             //
-            // I'm not entirely sure how we're going to implement the console 
-            // for other platforms, so this logic might end up being handled 
-            // with, e.g., GTK, instead, but for now we're just going to keep 
+            // I'm not entirely sure how we're going to implement the console
+            // for other platforms, so this logic might end up being handled
+            // with, e.g., GTK, instead, but for now we're just going to keep
             // things simple. If we have to move things around later, we can.
 
             let console_title = com::get_build_display_name();
@@ -742,7 +741,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
             let parent = Some(conbuf::s_wcd_window_handle());
             // SAFETY:
-            // Assuming the state of the program is otherwise valid, 
+            // Assuming the state of the program is otherwise valid,
             // the parent window being passed will be valid.
             let cod_logo_window = unsafe {
                 winit::window::WindowBuilder::new()
@@ -755,7 +754,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             };
 
             // SAFETY:
-            // Assuming the state of the program is otherwise valid, 
+            // Assuming the state of the program is otherwise valid,
             // the parent window being passed will be valid.
             let input_line_window = unsafe {
                 winit::window::WindowBuilder::new()

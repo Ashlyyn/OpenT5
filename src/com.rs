@@ -4,8 +4,8 @@ use crate::console::Channel;
 use crate::util::EasierAtomic;
 use crate::*;
 use arrayvec::ArrayVec;
-use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::AtomicIsize;
+use core::sync::atomic::AtomicUsize;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
@@ -123,16 +123,16 @@ pub fn _print_internal(
 }
 
 /// Prints text.
-/// 
-/// Currently just a wrapper around [`std::print!`], will get a proper 
+///
+/// Currently just a wrapper around [`std::print!`], will get a proper
 /// implementation in the future.
-/// 
+///
 /// # Panics
-/// 
+///
 /// Currently panics if [`std::print!`] panics.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// com::print!("Hello to com!");
 /// ```
@@ -143,18 +143,17 @@ macro_rules! __print {
 }
 pub(crate) use __print as print;
 
-
 /// Prints text with a newline.
-/// 
+///
 /// Invokes [`com::print`] with the supplied text and a newline appended.
 /// Analogous to [`std::println!`]
-/// 
+///
 /// # Panics
-/// 
+///
 /// Currently panics if [`com::print!`] panics.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// com::println!("Hello to com!");
 /// ```
@@ -176,24 +175,24 @@ cfg_if! {
         }
     } else {
         pub fn _dprint(_channel: Channel, _arguments: core::fmt::Arguments) {
-            
-        } 
+
+        }
     }
 }
 
 /// Prints text if the executable is compiled in debug mode.
-/// 
+///
 /// Does nothing in release mode.
-/// 
-/// Currently just a wrapper around [`std::print!`], will get a proper 
+///
+/// Currently just a wrapper around [`std::print!`], will get a proper
 /// implementation in the future.
-/// 
+///
 /// # Panics
-/// 
+///
 /// Currently panics if [`std::print!`] panics.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// com::dprint!("Hello to com from debug mode!");
 /// ```
@@ -205,20 +204,20 @@ macro_rules! __dprint {
 #[allow(unused_imports)]
 pub(crate) use __dprint as dprint;
 
-/// Prints text with a newline appended if the executable is compiled 
+/// Prints text with a newline appended if the executable is compiled
 /// in debug mode.
-/// 
+///
 /// Does nothing in release mode.
-/// 
-/// Currently just a wrapper around [`com::print!`], will get a proper 
+///
+/// Currently just a wrapper around [`com::print!`], will get a proper
 /// implementation in the future.
-/// 
+///
 /// # Panics
-/// 
+///
 /// Currently panics if [`com::print!`] panics.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// com::dprintln!("Hello to com from debug mode!");
 /// ```
@@ -235,19 +234,23 @@ pub(crate) use __dprintln as dprintln;
 #[doc(hidden)]
 #[allow(clippy::needless_pass_by_value)]
 pub fn _warn(channel: Channel, arguments: core::fmt::Arguments) {
-    _print_internal(channel, MessageType::Warn, format_args!("^3{}", arguments));
+    _print_internal(
+        channel,
+        MessageType::Warn,
+        format_args!("^3{}", arguments),
+    );
 }
 
 /// Prints a warning.
-/// 
+///
 /// Implemented simply as a wrapper around [`com::print!`].
-/// 
+///
 /// # Panics
-/// 
+///
 /// Currently panics if [`com::print!`] panics.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// com::warn!("Warning to com!");
 /// ```
@@ -260,15 +263,15 @@ macro_rules! __warn {
 pub(crate) use __warn as warn;
 
 /// Prints a warning with a newline appended.
-/// 
+///
 /// Implemented simply as a wrapper around [`com::warn!`].
-/// 
+///
 /// # Panics
-/// 
+///
 /// Currently panics if [`com::warn!`] panics.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// com::warnln!("Warning to com!");
 /// ```
@@ -294,19 +297,23 @@ pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
     };
 
     COM_ERROR_PRINTS_COUNT.increment_wrapping();
-    _print_internal(channel, MessageType::Error, format_args!("{}{}", prefix, arguments));
+    _print_internal(
+        channel,
+        MessageType::Error,
+        format_args!("{}{}", prefix, arguments),
+    );
 }
 
 /// Prints an error.
-/// 
+///
 /// Implemented simply as a wrapper around [`com::print!`].
-/// 
+///
 /// # Panics
-/// 
+///
 /// Currently panics if [`com::print!`] panics.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// com::print_error!("Error to com!");
 /// ```
@@ -319,15 +326,15 @@ macro_rules! __print_error {
 pub(crate) use __print_error as print_error;
 
 /// Prints an error with a newline appended.
-/// 
+///
 /// Implemented simply as a wrapper around [`com::print_error!`].
-/// 
+///
 /// # Panics
-/// 
+///
 /// Currently panics if [`com::print_error!`] panics.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 /// com::print_errorln!("Error to com!");
 /// ```

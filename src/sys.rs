@@ -432,7 +432,7 @@ cfg_if! {
             system.refresh_all();
             system.cpus().len()
         }
-        
+
         pub fn get_physical_cpu_count() -> usize {
             let mut system = sysinfo::System::new_all();
             system.refresh_all();
@@ -440,19 +440,19 @@ cfg_if! {
                 .physical_core_count()
                 .map_or_else(get_logical_cpu_count, |u| u)
         }
-        
+
         pub fn get_system_ram_in_bytes() -> u64 {
             let mut system = sysinfo::System::new_all();
             system.refresh_all();
             system.total_memory()
         }
-        
+
         pub fn get_cpu_vendor() -> String {
             let mut system = sysinfo::System::new_all();
             system.refresh_all();
             system.global_cpu_info().vendor_id().to_owned()
         }
-        
+
         pub fn get_cpu_name() -> String {
             let mut system = sysinfo::System::new_all();
             system.refresh_all();
@@ -468,21 +468,21 @@ cfg_if! {
         pub fn get_logical_cpu_count() -> usize {
             0
         }
-        
+
         #[allow(clippy::missing_const_for_fn)]
         pub fn get_physical_cpu_count() -> usize {
             0
         }
-        
+
         #[allow(clippy::missing_const_for_fn)]
         pub fn get_system_ram_in_bytes() -> u64 {
             0
         }
-        
+
         pub fn get_cpu_vendor() -> String {
             "Unknown CPU vendor".to_owned()
         }
-        
+
         pub fn get_cpu_name() -> String {
             "Unknown CPU name".to_owned()
         }
@@ -1326,7 +1326,7 @@ cfg_if! {
             if conbuf::s_wcd_window_is_none() {
                 create_console();
             }
-        
+
             conbuf::s_wcd_window_set_visible(true);
         }
 

@@ -1,8 +1,6 @@
 use std::arch::x86::{CpuidResult, __cpuid};
 
-pub const fn main() {
-
-}
+pub const fn main() {}
 
 pub fn cpuid(leaf: u32) -> CpuidResult {
     // SAFETY:

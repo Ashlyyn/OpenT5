@@ -71,7 +71,7 @@ cfg_if! {
         lazy_static! {
             static ref TEXT_APPENDED: AtomicUsize = AtomicUsize::new(0);
         }
-        
+
         #[allow(clippy::partial_pub_fields)]
         #[derive(Default, Debug)]
         pub struct ConsoleData {
@@ -86,90 +86,90 @@ cfg_if! {
             pub window_width: i16,
             pub window_height: i16,
         }
-        
+
         lazy_static! {
             pub static ref S_WCD: Arc<RwLock<ConsoleData>> =
                 Arc::new(RwLock::new(ConsoleData::default()));
         }
-        
+
         pub fn s_wcd_set_window(window: winit::window::Window) {
             let lock = S_WCD.clone();
             let mut s_wcd = lock.write().unwrap();
             s_wcd.window = Some(window);
         }
-        
+
         pub fn s_wcd_set_buffer_window(window: winit::window::Window) {
             let lock = S_WCD.clone();
             let mut s_wcd = lock.write().unwrap();
             s_wcd.buffer_window = Some(window);
         }
-        
+
         pub fn s_wcd_set_input_line_window(window: winit::window::Window) {
             let lock = S_WCD.clone();
             let mut s_wcd = lock.write().unwrap();
             s_wcd.input_line_window = Some(window);
         }
-        
+
         pub fn s_wcd_clear_input_line_window() {
             let lock = S_WCD.clone();
             let mut s_wcd = lock.write().unwrap();
             s_wcd.input_line_window = None;
         }
-        
+
         pub fn s_wcd_set_cod_logo_window(window: winit::window::Window) {
             let lock = S_WCD.clone();
             let mut s_wcd = lock.write().unwrap();
             s_wcd.cod_logo_window = Some(window);
         }
-        
+
         pub fn s_wcd_set_error_string(error: String) {
             let lock = S_WCD.clone();
             let mut s_wcd = lock.write().unwrap();
             s_wcd.error_string = error;
         }
-        
+
         pub fn s_wcd_window_is_none() -> bool {
             let lock = S_WCD.clone();
             let s_wcd = lock.read().unwrap();
             s_wcd.window.is_none()
         }
-        
+
         pub fn s_wcd_window_set_visible(visible: bool) {
             let lock = S_WCD.clone();
             let mut s_wcd = lock.write().unwrap();
             s_wcd.window.as_mut().unwrap().set_visible(visible);
         }
-        
+
         pub fn s_wcd_buffer_window_handle() -> WindowHandle {
             let lock = S_WCD.clone();
             let s_wcd = lock.read().unwrap();
             s_wcd.buffer_window.as_ref().unwrap().window_handle()
         }
-        
+
         pub fn s_wcd_buffer_is_none() -> bool {
             let lock = S_WCD.clone();
             let s_wcd = lock.read().unwrap();
             s_wcd.buffer_window.is_none()
         }
-        
+
         pub fn s_wcd_set_window_width(width: i16) {
             let lock = S_WCD.clone();
             let mut s_wcd = lock.write().unwrap();
             s_wcd.window_width = width;
         }
-        
+
         pub fn s_wcd_window_width() -> i16 {
             let lock = S_WCD.clone();
             let s_wcd = lock.read().unwrap();
             s_wcd.window_width
         }
-        
+
         pub fn s_wcd_window_height() -> i16 {
             let lock = S_WCD.clone();
             let s_wcd = lock.read().unwrap();
             s_wcd.window_height
         }
-        
+
         pub fn s_wcd_window_handle() -> RawWindowHandle {
             let lock = S_WCD.clone();
             let s_wcd = lock.read().unwrap();
@@ -218,7 +218,7 @@ cfg_if! {
             if s_wcd_buffer_is_none() {
                 return;
             }
-        
+
             //if sys::is_main_thread() {
             append_text(text);
             //}

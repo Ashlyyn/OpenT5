@@ -10,7 +10,10 @@ use bitflags::bitflags;
 use lazy_static::lazy_static;
 use num_derive::FromPrimitive;
 
-use crate::{common::{StanceState, Vec3f32}, cg};
+use crate::{
+    cg,
+    common::{StanceState, Vec3f32},
+};
 
 #[derive(Copy, Clone, Default, Debug, FromPrimitive)]
 #[repr(u8)]
@@ -30,7 +33,7 @@ pub enum Connstate {
     ACTIVE = 10,
 }
 
-bitflags! { 
+bitflags! {
     #[derive(Default)]
     pub struct ClientUiActiveFlags: i32 {
 
@@ -49,14 +52,23 @@ pub struct ClientUiActive {
 }
 
 lazy_static! {
-    static ref CLIENT_UI_ACTIVES: Arc<RwLock<[ClientUiActive; 4]>> = Arc::new(RwLock::new([ClientUiActive::default(); 4]));
+    static ref CLIENT_UI_ACTIVES: Arc<RwLock<[ClientUiActive; 4]>> =
+        Arc::new(RwLock::new([ClientUiActive::default(); 4]));
 }
 
 pub fn get_local_client_connection_state(local_client_num: usize) -> Connstate {
-    CLIENT_UI_ACTIVES.clone().read().unwrap().iter().nth(local_client_num).unwrap().connection_state
+    CLIENT_UI_ACTIVES
+        .clone()
+        .read()
+        .unwrap()
+        .iter()
+        .nth(local_client_num)
+        .unwrap()
+        .connection_state
 }
 
-pub fn get_local_client_ui_actives_mut() -> RwLockWriteGuard<'static, [ClientUiActive; 4]> {
+pub fn get_local_client_ui_actives_mut(
+) -> RwLockWriteGuard<'static, [ClientUiActive; 4]> {
     CLIENT_UI_ACTIVES.write().unwrap()
 }
 
@@ -152,13 +164,16 @@ pub struct ClientActive {
 }
 
 lazy_static! {
-    static ref CLIENTS: Arc<RwLock<Vec<ClientActive>>> = Arc::new(RwLock::new(Vec::new()));
-}   
+    static ref CLIENTS: Arc<RwLock<Vec<ClientActive>>> =
+        Arc::new(RwLock::new(Vec::new()));
+}
 
-pub fn get_local_client_globals() -> RwLockReadGuard<'static, Vec<ClientActive>> {
+pub fn get_local_client_globals() -> RwLockReadGuard<'static, Vec<ClientActive>>
+{
     CLIENTS.read().unwrap()
 }
 
-pub fn get_local_client_globals_mut() -> RwLockWriteGuard<'static, Vec<ClientActive>> {
+pub fn get_local_client_globals_mut(
+) -> RwLockWriteGuard<'static, Vec<ClientActive>> {
     CLIENTS.write().unwrap()
 }
