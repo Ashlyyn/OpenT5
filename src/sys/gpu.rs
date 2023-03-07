@@ -66,9 +66,10 @@ impl Instance {
         if render_api_implemented_by_wgpu!() {
             Self {
                 wgpu_instance: Some(wgpu::Instance::new(
-                    wgpu::Backends::VULKAN
-                        | wgpu::Backends::DX12
-                        | wgpu::Backends::METAL,
+                    wgpu::InstanceDescriptor { 
+                        backends: wgpu::Backends::all(), 
+                        dx12_shader_compiler: wgpu::Dx12Compiler::Fxc 
+                    }
                 )),
             }
         } else {
@@ -93,6 +94,7 @@ impl Surface {
                         .as_ref()
                         .unwrap()
                         .create_surface(&window)
+                        .unwrap()
                 }),
             }
         } else {
@@ -270,15 +272,15 @@ impl Config {
                     .wgpu_surface
                     .as_ref()
                     .unwrap()
-                    .get_supported_formats(
-                        adapter.wgpu_adapter.as_ref().unwrap(),
-                    )
+                    .get_capabilities(adapter.wgpu_adapter.as_ref().unwrap())
+                    .formats
                     .get(0)
                     .unwrap(),
                 width,
                 height,
                 present_mode: wgpu::PresentMode::AutoNoVsync,
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
+                view_formats: vec![]
             };
 
             Self {
