@@ -5,6 +5,7 @@ use crate::util::EasierAtomic;
 use crate::*;
 use arrayvec::ArrayVec;
 use core::sync::atomic::AtomicUsize;
+use std::sync::atomic::AtomicIsize;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
@@ -510,4 +511,10 @@ pub fn safe_mode() -> bool {
 
 pub fn force_safe_mode() {
     SAFE_MODE.store(true, Ordering::SeqCst);
+}
+
+static FRAME_TIME: AtomicIsize = AtomicIsize::new(0);
+
+pub fn frame_time() -> isize {
+    FRAME_TIME.load_relaxed()
 }
