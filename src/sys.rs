@@ -6,7 +6,6 @@ use crate::platform::WindowHandle;
 use crate::util::SmpEvent;
 use crate::*;
 use num_derive::FromPrimitive;
-use sysinfo::{CpuExt, SystemExt};
 
 pub mod gpu;
 
@@ -34,6 +33,12 @@ cfg_if! {
         use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_HIDDEN;
         use windows::core::PCSTR;
         use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
+    }
+}
+
+cfg_if! {
+    if #[cfg(not(target_arch = "wasm32"))] {
+        use sysinfo::{CpuExt, SystemExt};
     }
 }
 
@@ -267,7 +272,7 @@ cfg_if! {
     // Fallback method - if no platform-specific method is used, try to get the executable name from argv[0]
     else {
         pub fn get_executable_name() -> String {
-            let argv_0 = std::env::args().collect::<Vec<String>>()[0];
+            let argv_0 = std::env::args().collect::<Vec<String>>()[0].clone();
             let path = PathBuf::from(argv_0);
             let file_name = path.file_name()
                 .unwrap()
@@ -307,7 +312,7 @@ cfg_if! {
         }
     } else {
         pub fn get_semaphore_file_name() -> String {
-            println!("sys::get_semaphore_file: using default implementation.");
+            com::dprintln!(0.into(), "sys::get_semaphore_file: using default implementation.");
             format!("__{}", get_executable_name())
         }
     }
@@ -418,42 +423,67 @@ pub fn start_minidump(b: bool) {
 }
 
 // Abstracted out in case a certain platform needs an implementation using
-// something other than the num_cpus crate
-pub fn get_logical_cpu_count() -> usize {
-    let mut system = sysinfo::System::new_all();
-    system.refresh_all();
-    system.cpus().len()
-}
+// something other than the sysinfo crate
 
-pub fn get_physical_cpu_count() -> usize {
-    let mut system = sysinfo::System::new_all();
-    system.refresh_all();
-    system
-        .physical_core_count()
-        .map_or_else(get_logical_cpu_count, |u| u)
-}
-
-pub fn get_system_ram_in_bytes() -> u64 {
-    let mut system = sysinfo::System::new_all();
-    system.refresh_all();
-    system.total_memory()
-}
-
-pub fn get_cpu_vendor() -> String {
-    let mut system = sysinfo::System::new_all();
-    system.refresh_all();
-    system.global_cpu_info().vendor_id().to_owned()
-}
-
-pub fn get_cpu_name() -> String {
-    let mut system = sysinfo::System::new_all();
-    system.refresh_all();
-    system
-        .global_cpu_info()
-        .brand()
-        .to_owned()
-        .trim()
-        .to_owned()
+cfg_if! {
+    if #[cfg(not(target_arch = "wasm32"))] {
+        pub fn get_logical_cpu_count() -> usize {
+            let mut system = sysinfo::System::new_all();
+            system.refresh_all();
+            system.cpus().len()
+        }
+        
+        pub fn get_physical_cpu_count() -> usize {
+            let mut system = sysinfo::System::new_all();
+            system.refresh_all();
+            system
+                .physical_core_count()
+                .map_or_else(get_logical_cpu_count, |u| u)
+        }
+        
+        pub fn get_system_ram_in_bytes() -> u64 {
+            let mut system = sysinfo::System::new_all();
+            system.refresh_all();
+            system.total_memory()
+        }
+        
+        pub fn get_cpu_vendor() -> String {
+            let mut system = sysinfo::System::new_all();
+            system.refresh_all();
+            system.global_cpu_info().vendor_id().to_owned()
+        }
+        
+        pub fn get_cpu_name() -> String {
+            let mut system = sysinfo::System::new_all();
+            system.refresh_all();
+            system
+                .global_cpu_info()
+                .brand()
+                .to_owned()
+                .trim()
+                .to_owned()
+        }
+    } else {
+        pub fn get_logical_cpu_count() -> usize {
+            0
+        }
+        
+        pub fn get_physical_cpu_count() -> usize {
+            0
+        }
+        
+        pub fn get_system_ram_in_bytes() -> u64 {
+            0
+        }
+        
+        pub fn get_cpu_vendor() -> String {
+            "Unknown CPU vendor".to_owned()
+        }
+        
+        pub fn get_cpu_name() -> String {
+            "Unknown CPU name".to_owned()
+        }
+    }
 }
 
 pub fn detect_video_card() -> String {
@@ -1270,8 +1300,8 @@ cfg_if! {
             unsafe { OutputDebugStringA(PCSTR(string.as_ptr())); }
         }
     } else {
-        const fn output_debug_string(_string: &str) {
-
+        fn output_debug_string(string: &str) {
+            com::dprint!(0.into(), "sys::print: {}", string);
         }
     }
 }
@@ -1286,29 +1316,39 @@ pub fn print(text: &str) {
 
 const fn create_console() {}
 
-pub fn show_console() {
-    if conbuf::s_wcd_window_is_none() {
-        create_console();
+cfg_if! {
+    if #[cfg(not(target_arch = "wasm32"))] {
+        pub fn show_console() {
+            if conbuf::s_wcd_window_is_none() {
+                create_console();
+            }
+        
+            conbuf::s_wcd_window_set_visible(true);
+        }
+
+        fn post_error(error: &str) {
+            conbuf::s_wcd_set_error_string(error.into());
+            conbuf::s_wcd_clear_input_line_window();
+
+            // DestroyWindow(s_wcd.hwndInputLine);
+
+            let handle = render::main_window_handle();
+            message_box(
+                handle,
+                "Error",
+                error,
+                MessageBoxType::Ok,
+                MessageBoxIcon::Stop.into(),
+            )
+            .unwrap();
+        }
+    } else {
+        pub fn show_console() {}
+
+        pub fn post_error(_error: &str) {
+
+        }
     }
-
-    conbuf::s_wcd_window_set_visible(true);
-}
-
-fn post_error(error: &str) {
-    conbuf::s_wcd_set_error_string(error.into());
-    conbuf::s_wcd_clear_input_line_window();
-
-    // DestroyWindow(s_wcd.hwndInputLine);
-
-    let handle = render::main_window_handle();
-    message_box(
-        handle,
-        "Error",
-        error,
-        MessageBoxType::Ok,
-        MessageBoxIcon::Stop.into(),
-    )
-    .unwrap();
 }
 
 pub fn error(error: &str) -> ! {
