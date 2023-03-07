@@ -413,7 +413,7 @@ impl Module {
                 unsafe { dlclose(self.ptr.cast()); }
             }
         } else {
-            pub fn load(name: Path) -> Option<Self> {
+            pub fn load(_name: &Path) -> Option<Self> {
                 unimplemented!()
             }
 
