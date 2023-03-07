@@ -48,6 +48,7 @@ pub const fn shutdown() {
     mouse::deactivate();
 }
 
+#[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
 pub fn update_use_held() {
     let mut cgs = cl::get_local_client_globals_mut();
     let cg = cgs.iter_mut().nth(0).unwrap();
@@ -66,9 +67,8 @@ pub fn update_use_count() {
 
     if (com::frame_time() - cg.use_time as isize) < (dvar::get_int("cl_dblTapMaxDelayTime").unwrap() as isize) {
         cg.use_count += 1;
-        cg.use_held = false;
     } else {
         cg.use_count = 0;
-        cg.use_held = false;
     }
+    cg.use_held = false;
 }

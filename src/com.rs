@@ -5,7 +5,7 @@ use crate::util::EasierAtomic;
 use crate::*;
 use arrayvec::ArrayVec;
 use core::sync::atomic::AtomicUsize;
-use std::sync::atomic::AtomicIsize;
+use core::sync::atomic::AtomicIsize;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;

@@ -5,7 +5,7 @@ use core::time::Duration;
 use std::path::Path;
 
 use core::sync::atomic::AtomicUsize;
-use std::sync::atomic::AtomicIsize;
+use core::sync::atomic::AtomicIsize;
 use std::sync::{Condvar, Mutex};
 
 use raw_window_handle::HasRawWindowHandle;
