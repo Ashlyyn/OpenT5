@@ -13,6 +13,10 @@ cfg_if! {
     }
 }
 
+pub fn main() {
+    target::main();
+}
+
 pub fn detect_cpu_vendor_and_name() -> (Option<String>, Option<String>) {
     let res = target::cpuid(0x0000_0000);
     let mut vendor_buf =
