@@ -13,7 +13,7 @@ cfg_if! {
     }
 }
 
-pub fn main() {
+pub const fn main() {
     target::main();
 }
 

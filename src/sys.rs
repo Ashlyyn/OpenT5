@@ -272,7 +272,7 @@ cfg_if! {
     // Fallback method - if no platform-specific method is used, try to get the executable name from argv[0]
     else {
         pub fn get_executable_name() -> String {
-            let argv_0 = std::env::args().collect::<Vec<String>>()[0].clone();
+            let argv_0 = std::env::args().collect::<Vec<String>>().get(0).unwrap().clone();
             let path = PathBuf::from(argv_0);
             let file_name = path.file_name()
                 .unwrap()
@@ -281,7 +281,7 @@ cfg_if! {
                 .to_owned();
             let pos = file_name.find('.')
                 .unwrap_or(file_name.len());
-            file_name[..pos].to_owned()
+            file_name.get(..pos).unwrap().to_owned()
         }
     }
 }
@@ -464,14 +464,17 @@ cfg_if! {
                 .to_owned()
         }
     } else {
+        #[allow(clippy::missing_const_for_fn)]
         pub fn get_logical_cpu_count() -> usize {
             0
         }
         
+        #[allow(clippy::missing_const_for_fn)]
         pub fn get_physical_cpu_count() -> usize {
             0
         }
         
+        #[allow(clippy::missing_const_for_fn)]
         pub fn get_system_ram_in_bytes() -> u64 {
             0
         }
@@ -1262,8 +1265,9 @@ cfg_if! {
             Some(response.into())
         }
     } else {
+        #[allow(clippy::print_stdout, clippy::use_debug)]
         pub fn message_box(
-            _handle: Option<WindowHandle>,
+            handle: Option<WindowHandle>,
             text: &str,
             title: &str,
             msg_box_type: MessageBoxType,
@@ -1271,7 +1275,7 @@ cfg_if! {
         ) -> Option<MessageBoxResult> {
             println!(
                 "message_box: handle={:?}, text={}, title={}, type={:?}, icon={:?}",
-                _handle,
+                handle,
                 text,
                 title,
                 msg_box_type,
@@ -1343,8 +1347,10 @@ cfg_if! {
             .unwrap();
         }
     } else {
+        #[allow(clippy::missing_const_for_fn)]
         pub fn show_console() {}
 
+        #[allow(clippy::missing_const_for_fn)]
         pub fn post_error(_error: &str) {
 
         }

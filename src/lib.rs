@@ -46,6 +46,7 @@
     clippy::pattern_type_mismatch,
     clippy::semicolon_outside_block,
     clippy::iter_nth_zero,
+    clippy::missing_inline_in_public_items,
 )]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 
@@ -60,7 +61,7 @@ cfg_if! {
         use wasm_bindgen::prelude::*;
     } else {
         use discord_rich_presence::activity::Activity;
-        
+
         mod discord_rpc;
         mod pmem;
     }
@@ -97,7 +98,7 @@ lazy_static! {
 }
 
 #[cfg_attr(target_arch="wasm32", wasm_bindgen(start))]
-#[allow(clippy::collapsible_else_if)]
+#[allow(clippy::collapsible_else_if, clippy::missing_panics_doc, clippy::expect_used)]
 pub fn run() {
     platform::os::target::main();
     let cmdline = sys::get_cmdline();

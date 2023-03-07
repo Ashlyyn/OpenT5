@@ -413,10 +413,12 @@ impl Module {
                 unsafe { dlclose(self.ptr.cast()); }
             }
         } else {
+            #[allow(clippy::unimplemented)]
             pub fn load(_name: &Path) -> Option<Self> {
                 unimplemented!()
             }
 
+            #[allow(clippy::unimplemented, clippy::unused_self)]
             fn unload(&mut self) {
                 unimplemented!()
             }
@@ -473,6 +475,7 @@ pub trait EasierAtomic {
     }
 }
 
+#[allow(clippy::missing_trait_methods)]
 impl EasierAtomic for AtomicIsize {
     type ValueType = isize;
     fn load_relaxed(&self) -> Self::ValueType {
@@ -490,6 +493,7 @@ impl EasierAtomic for AtomicIsize {
     }
 }
 
+#[allow(clippy::missing_trait_methods)]
 impl EasierAtomic for AtomicUsize {
     type ValueType = usize;
     fn load_relaxed(&self) -> Self::ValueType {

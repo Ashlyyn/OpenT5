@@ -90,6 +90,7 @@ cfg_if::cfg_if! {
             Some(std::env::var(envar).map_or(envar_default, |s| s))
         }
     } else if #[cfg(target_arch = "wasm32")] {
+        #[allow(clippy::missing_const_for_fn)]
         pub fn get_os_folder_path(_os_folder: OsFolder) -> Option<String> {
             None
         }

@@ -575,7 +575,8 @@ lazy_static! {
     clippy::cast_precision_loss,
     clippy::cast_possible_wrap,
     clippy::integer_division,
-    clippy::too_many_lines
+    clippy::too_many_lines,
+    clippy::expect_used,
 )]
 pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     {
