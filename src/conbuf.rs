@@ -14,7 +14,11 @@ cfg_if! {
         use alloc::sync::Arc;
         use core::sync::atomic::AtomicUsize;
         use arrayvec::ArrayString;
-    } else {
+    }
+}
+
+cfg_if! {
+    if #[cfg(all(not(target_os = "windows"), not(target_arch = "wasm32")))] {
         use crate::*;
     }
 }
