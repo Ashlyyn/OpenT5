@@ -5,6 +5,7 @@ use core::time::Duration;
 use std::path::Path;
 
 use core::sync::atomic::AtomicUsize;
+use std::sync::atomic::AtomicIsize;
 use std::sync::{Condvar, Mutex};
 
 use raw_window_handle::HasRawWindowHandle;
@@ -467,6 +468,23 @@ pub trait EasierAtomic {
     fn load_relaxed(&self) -> Self::ValueType;
     fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType;
     fn increment(&self) -> Option<Self::ValueType>;
+}
+
+impl EasierAtomic for AtomicIsize {
+    type ValueType = isize;
+    fn load_relaxed(&self) -> Self::ValueType {
+        self.load(Ordering::Relaxed)
+    }
+
+    fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType {
+        self.store(value, Ordering::Relaxed);
+        value
+    }
+
+    fn increment(&self) -> Option<isize> {
+        self.store_relaxed(self.load_relaxed().checked_add(1)?)
+            .into()
+    }
 }
 
 impl EasierAtomic for AtomicUsize {
