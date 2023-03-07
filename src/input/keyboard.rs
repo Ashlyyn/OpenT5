@@ -8,7 +8,7 @@ use alloc::sync::Arc;
 use lazy_static::lazy_static;
 use num_derive::FromPrimitive;
 
-use super::super::*;
+use super::{super::*, update_use_held, update_use_count};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Hash, Eq, PartialEq)]
@@ -203,12 +203,12 @@ fn key_up(code: KeybindCode) {
 }
 
 fn activate_down() {
-    // TODO - updateUseHeld
+    update_use_held();
     key_down(KeybindCode::Activate);
 }
 
 fn activate_up() {
-    // TODO - updateUseCount
+    update_use_count();
     key_up(KeybindCode::Activate);
 }
 
@@ -414,12 +414,12 @@ fn raise_stance() {
 }
 
 fn reload_down() {
-    // TODO - updateUseHeld
+    update_use_held();
     key_down(KeybindCode::Reload);
 }
 
 fn reload_up() {
-    // TODO - updateUseCount
+    update_use_count();
     key_up(KeybindCode::Reload);
 }
 
@@ -584,12 +584,12 @@ fn up_up() {
 }
 
 fn use_reload_down() {
-    // TODO - updateUseHeld
+    update_use_held();
     key_down(KeybindCode::Reload);
 }
 
 fn use_reload_up() {
-    // TODO - updateUseCount
+    update_use_count();
     key_up(KeybindCode::Reload);
 }
 
