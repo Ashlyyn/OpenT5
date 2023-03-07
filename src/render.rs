@@ -7,14 +7,20 @@ extern crate alloc;
 use alloc::collections::VecDeque;
 use std::collections::HashSet;
 use std::sync::RwLock;
-use winit::dpi::Position;
 
 use winit::{
-    dpi::{PhysicalPosition, PhysicalSize},
+    dpi::{PhysicalPosition},
     event::*,
     event_loop::{ControlFlow, EventLoop},
     window::{Fullscreen, WindowBuilder},
 };
+
+cfg_if! {
+    if #[cfg(not(target_arch = "wasm32"))] {
+        use winit::dpi::PhysicalSize;
+        use winit::dpi::Position;
+    }
+}
 
 pub const MIN_HORIZONTAL_RESOLUTION: u16 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u16 = 480;
@@ -662,101 +668,128 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         wg.window_handle = Some(main_window.window_handle());
     }
 
+    cfg_if! {
+        if #[cfg(target_arch = "wasm32")] {
+            // Winit prevents sizing with CSS, so we have to set
+            // the size manually when on web.
+            use winit::dpi::PhysicalSize;
+            main_window.set_inner_size(PhysicalSize::new(MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION));
+    
+            use winit::platform::web::WindowExtWebSys;
+            web_sys::window()
+                .and_then(|win| win.document())
+                .and_then(|doc| {
+                    let dst = doc.get_element_by_id("open_t5")?;
+                    let canvas = web_sys::Element::from(main_window.canvas());
+                    dst.append_child(&canvas).ok()?;
+                 Some(())
+                })
+                .expect("Couldn't append canvas to document body."
+            );
+        }
+    }
+
+
     com::println!(8.into(), "Game window successfully created.");
 
     // ========================================================================
-    // This part is supposed to be done in sys::create_console, but you can't
-    // bind windows to an event loop after calling event_loop::run, so instead
-    // we create them here, set them to invisible, and then set them to visible
-    // in sys::create_console instead of creating them there.
-    //
-    // I'm not entirely sure how we're going to implement the console for
-    // other platforms, so this logic might end up being handled with, e.g.,
-    // GTK, instead, but for now we're just going to keep things simple. If
-    // we have to move things around later, we can.
+    cfg_if! {
+        if #[cfg(not(target_arch = "wasm32"))] {
+            // This part is supposed to be done in sys::create_console, but 
+            // you can't bind windows to an event loop after calling 
+            // event_loop::run, so instead we create them here, set them to 
+            // invisible, and then set them to visible in sys::create_console 
+            // instead of creating them there.
+            //
+            // I'm not entirely sure how we're going to implement the console 
+            // for other platforms, so this logic might end up being handled 
+            // with, e.g., GTK, instead, but for now we're just going to keep 
+            // things simple. If we have to move things around later, we can.
 
-    let console_title = com::get_build_display_name();
-    let monitor = main_window
-        .current_monitor()
-        .or_else(|| main_window.available_monitors().nth(0))
-        .unwrap();
-    let horzres = (monitor.size().width - 450) / 2;
-    let vertres = (monitor.size().height - 600) / 2;
-    let console_width = conbuf::s_wcd_window_width();
-    let console_height = conbuf::s_wcd_window_height();
-    let console_window = winit::window::WindowBuilder::new()
-        .with_title(console_title)
-        .with_position(Position::Physical(PhysicalPosition::new(
-            horzres.clamp(0, u32::MAX) as _,
-            vertres.clamp(0, u32::MAX) as _,
-        )))
-        .with_inner_size(PhysicalSize::new(console_width, console_height))
-        .with_visible(false)
-        .build(&event_loop)
-        .unwrap();
+            let console_title = com::get_build_display_name();
+            let monitor = main_window
+                .current_monitor()
+                .or_else(|| main_window.available_monitors().nth(0))
+                .unwrap();
+            let horzres = (monitor.size().width - 450) / 2;
+            let vertres = (monitor.size().height - 600) / 2;
+            let console_width = conbuf::s_wcd_window_width();
+            let console_height = conbuf::s_wcd_window_height();
+            let console_window = winit::window::WindowBuilder::new()
+                .with_title(console_title)
+                .with_position(Position::Physical(PhysicalPosition::new(
+                    horzres.clamp(0, u32::MAX) as _,
+                    vertres.clamp(0, u32::MAX) as _,
+                )))
+                .with_inner_size(PhysicalSize::new(console_width, console_height))
+                .with_visible(false)
+                .build(&event_loop)
+                .unwrap();
 
-    conbuf::s_wcd_set_window(console_window);
+            conbuf::s_wcd_set_window(console_window);
 
-    const CODLOGO_POS_X: i32 = 5;
-    const CODLOGO_POS_Y: i32 = 5;
-    const INPUT_LINE_POS_X: i32 = 6;
-    const INPUT_LINE_POS_Y: i32 = 400;
-    const INPUT_LINE_SIZE_W: i32 = 608;
-    const INPUT_LINE_SIZE_H: i32 = 20;
-    const BUFFER_POS_X: i32 = 6;
-    const BUFFER_POS_Y: i32 = 70;
-    const BUFFER_SIZE_W: i32 = 606;
-    const BUFFER_SIZE_H: i32 = 324;
+            const CODLOGO_POS_X: i32 = 5;
+            const CODLOGO_POS_Y: i32 = 5;
+            const INPUT_LINE_POS_X: i32 = 6;
+            const INPUT_LINE_POS_Y: i32 = 400;
+            const INPUT_LINE_SIZE_W: i32 = 608;
+            const INPUT_LINE_SIZE_H: i32 = 20;
+            const BUFFER_POS_X: i32 = 6;
+            const BUFFER_POS_Y: i32 = 70;
+            const BUFFER_SIZE_W: i32 = 606;
+            const BUFFER_SIZE_H: i32 = 324;
 
-    let parent = Some(conbuf::s_wcd_window_handle());
-    // SAFETY:
-    // Assuming the state of the program is otherwise valid, the parent window
-    // being passed will be valid.
-    let cod_logo_window = unsafe {
-        winit::window::WindowBuilder::new()
-            .with_parent_window(parent)
-            .with_position(PhysicalPosition::new(CODLOGO_POS_X, CODLOGO_POS_Y))
-            .with_decorations(false)
-            .with_visible(false)
-            .build(&event_loop)
-            .unwrap()
-    };
+            let parent = Some(conbuf::s_wcd_window_handle());
+            // SAFETY:
+            // Assuming the state of the program is otherwise valid, 
+            // the parent window being passed will be valid.
+            let cod_logo_window = unsafe {
+                winit::window::WindowBuilder::new()
+                    .with_parent_window(parent)
+                    .with_position(PhysicalPosition::new(CODLOGO_POS_X, CODLOGO_POS_Y))
+                    .with_decorations(false)
+                    .with_visible(false)
+                    .build(&event_loop)
+                    .unwrap()
+            };
 
-    // SAFETY:
-    // Assuming the state of the program is otherwise valid, the parent window
-    // being passed will be valid.
-    let input_line_window = unsafe {
-        winit::window::WindowBuilder::new()
-            .with_parent_window(parent)
-            .with_position(PhysicalPosition::new(
-                INPUT_LINE_POS_X,
-                INPUT_LINE_POS_Y,
-            ))
-            .with_inner_size(PhysicalSize::new(
-                INPUT_LINE_SIZE_H,
-                INPUT_LINE_SIZE_W,
-            ))
-            .with_visible(false)
-            .build(&event_loop)
-            .unwrap()
-    };
+            // SAFETY:
+            // Assuming the state of the program is otherwise valid, 
+            // the parent window being passed will be valid.
+            let input_line_window = unsafe {
+                winit::window::WindowBuilder::new()
+                    .with_parent_window(parent)
+                    .with_position(PhysicalPosition::new(
+                        INPUT_LINE_POS_X,
+                        INPUT_LINE_POS_Y,
+                    ))
+                    .with_inner_size(PhysicalSize::new(
+                        INPUT_LINE_SIZE_H,
+                        INPUT_LINE_SIZE_W,
+                    ))
+                    .with_visible(false)
+                    .build(&event_loop)
+                    .unwrap()
+            };
 
-    // SAFETY:
-    // Assuming the state of the program is otherwise valid, the parent window
-    // being passed will be valid.
-    let buffer_window = unsafe {
-        winit::window::WindowBuilder::new()
-            .with_parent_window(parent)
-            .with_position(PhysicalPosition::new(BUFFER_POS_X, BUFFER_POS_Y))
-            .with_inner_size(PhysicalSize::new(BUFFER_SIZE_H, BUFFER_SIZE_W))
-            .with_visible(false)
-            .build(&event_loop)
-            .unwrap()
-    };
+            // SAFETY:
+            // Assuming the state of the program is otherwise valid,
+            // the parent window being passed will be valid.
+            let buffer_window = unsafe {
+                winit::window::WindowBuilder::new()
+                    .with_parent_window(parent)
+                    .with_position(PhysicalPosition::new(BUFFER_POS_X, BUFFER_POS_Y))
+                    .with_inner_size(PhysicalSize::new(BUFFER_SIZE_H, BUFFER_SIZE_W))
+                    .with_visible(false)
+                    .build(&event_loop)
+                    .unwrap()
+            };
 
-    conbuf::s_wcd_set_cod_logo_window(cod_logo_window);
-    conbuf::s_wcd_set_input_line_window(input_line_window);
-    conbuf::s_wcd_set_buffer_window(buffer_window);
+            conbuf::s_wcd_set_cod_logo_window(cod_logo_window);
+            conbuf::s_wcd_set_input_line_window(input_line_window);
+            conbuf::s_wcd_set_buffer_window(buffer_window);
+        }
+    }
     // ========================================================================
 
     event_loop.run(move |event, _, control_flow| match event {
