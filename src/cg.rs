@@ -1,31 +1,41 @@
 #![allow(dead_code)]
 
-use crate::common::{Vec3f32, Vec3i32};
+use std::time::Duration;
+
+use crate::{util::{Point, Angle, Velocity}};
 use arrayvec::ArrayString;
 use bitflags::bitflags;
 
 #[derive(Copy, Clone, Default, Debug)]
 pub struct ExtraButtons;
 
+pub type Angles3 = (Angle, Angle, Angle);
+
 #[derive(Copy, Clone, Default, Debug)]
 pub struct PredictedVehicleInfo {
     in_vehicle: bool,
-    origin: Vec3f32,
-    angles: Vec3f32,
-    tvel: Vec3f32,
-    avel: Vec3f32,
+    origin: Point,
+    angles: Angles3,
+    tvel: Velocity,
+    avel: Velocity,
 }
 
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Buttons;
 
 #[derive(Copy, Clone, Default, Debug)]
+pub struct WeaponId(u16);
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct OffhandId(u16);
+
+#[derive(Copy, Clone, Default, Debug)]
 pub struct UserCmd {
-    server_time: i32,
+    server_time: Duration,
     buttons: Buttons,
-    angles: Vec3i32,
-    weapon: u16,
-    offhand_index: u16,
+    angles: Angles3,
+    weapon: WeaponId,
+    offhand_index: OffhandId,
     last_weapon_alt_mode_switch: u16,
     forward_move: i8,
     right_move: i8,
@@ -80,14 +90,17 @@ bitflags! {
     }
 }
 
+#[derive(Copy, Clone, Default, Debug)]
+pub struct ScoreCount(pub i32);
+
 #[derive(Copy, Clone, Debug)]
 pub struct UnarchivedMatchState {
-    allies_score: i32,
-    axis_score: i32,
-    score_limit: i32,
+    allies_score: ScoreCount,
+    axis_score: ScoreCount,
+    score_limit: ScoreCount,
     match_ui_visibility_flags: UiVisibilityFlags,
     scoreboard_column_types: [ScoreboardColumnType; 4],
-    map_center: Vec3f32,
+    map_center: Point,
     talk_flags: TalkFlags,
 }
 
@@ -116,17 +129,8 @@ pub enum FfaTeam {
     Allies,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum Xuid {
-    Xuid(u64),
-    Xuid32([u32; 2]),
-}
-
-impl Default for Xuid {
-    fn default() -> Self {
-        Self::Xuid(0)
-    }
-}
+#[derive(Copy, Clone, Default, Debug)]
+pub struct Xuid(pub u64);
 
 #[derive(Copy, Clone, Default, Debug)]
 pub enum VehicleAnimState {
@@ -138,31 +142,52 @@ pub enum VehicleAnimState {
 }
 
 #[derive(Copy, Clone, Default, Debug)]
+pub struct Ping(pub i32);
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct StatusIconId(pub i32);
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct ScoreboardPlacement(pub i32);
+
+#[derive(Copy, Clone, Debug)]
 pub struct Score {
-    ping: i32,
-    status_icon: i32,
-    place: i32,
-    score: i32,
+    ping: Ping,
+    status_icon: StatusIconId,
+    place: ScoreboardPlacement,
+    score: ScoreCount,
     kills: i32,
     assists: i32,
     deaths: i32,
-    scoreboard_columns: [i32; 4],
+    scoreboard_columns: [ScoreboardColumnType; 4],
 }
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct ClientId(pub u8);
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct ModelId(pub usize);
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct Rank(pub u16);
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct Prestige(pub u8);
 
 #[derive(Clone, Default, Debug)]
 pub struct ClientState {
-    client_idx: usize,
+    client_id: ClientId,
     team: Team,
     ffa_team: FfaTeam,
-    model_idx: usize,
+    model_idx: ModelId,
     attach_model_idx: [i32; 6],
     attach_tag_idx: [i32; 6],
     name: ArrayString<32>,
     max_sprint_time_multiplier: f32,
-    rank: i32,
-    prestige: i32,
-    last_damage_time: i32,
-    last_stand_start_time: i32,
+    rank: Rank,
+    prestige: Prestige,
+    last_damage_time: Duration,
+    last_stand_start_time: Duration,
     xuid: Xuid,
     perks: [u32; 2],
     clan_abbrev: ArrayString<8>,
@@ -170,6 +195,6 @@ pub struct ClientState {
     attached_vehicle_seat: i32,
     needs_revive: bool,
     vehicle_anim_state: VehicleAnimState,
-    score: Score,
+    score: ScoreCount,
     client_ui_visibility_flags: UiVisibilityFlags,
 }

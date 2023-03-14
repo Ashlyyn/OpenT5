@@ -3,7 +3,7 @@
 extern crate alloc;
 use alloc::sync::Arc;
 
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::{sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}, time::Duration};
 
 use arrayvec::{ArrayString, ArrayVec};
 use bitflags::bitflags;
@@ -11,8 +11,8 @@ use lazy_static::lazy_static;
 use num_derive::FromPrimitive;
 
 use crate::{
-    cg,
-    common::{StanceState, Vec3f32},
+    cg::{self, WeaponId, OffhandId, Angles3},
+    common::{StanceState, Vec3f32}, util::{Velocity, Angle, Point},
 };
 
 #[derive(Copy, Clone, Default, Debug, FromPrimitive)]
@@ -99,20 +99,23 @@ pub struct EntityState;
 
 const SKEL_MAX_MEM: usize = 0x0004_0000;
 
+#[derive(Copy, Clone, Default, Debug)]
+pub struct ServerId(i32);
+
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, Default, Debug)]
 pub struct ClientActive {
     pub using_ads: bool,
     pub timeout_count: i32,
     pub snap: Snapshot,
-    pub server_time: i32,
-    pub old_server_time: i32,
-    pub old_frame_server_time: i32,
-    pub server_time_delta: i32,
-    pub old_snap_server_time: i32,
+    pub server_time: Duration,
+    pub old_server_time: Duration,
+    pub old_frame_server_time: Duration,
+    pub server_time_delta: Duration,
+    pub old_snap_server_time: Duration,
     pub extrapolated_snapshot: i32,
     pub new_snapshots: i32,
-    pub server_id: i32,
+    pub server_id: ServerId,
     pub mapname: ArrayString<64>,
     pub parse_match_state_num: i32,
     pub parse_entinties_num: i32,
@@ -122,24 +125,24 @@ pub struct ClientActive {
     pub stance_held: bool,
     pub stance: StanceState,
     pub stance_position: StanceState,
-    pub stance_time: i32,
-    pub cgame_user_cmd_weapon: i32,
-    pub cgame_user_cmd_offhand_index: i32,
+    pub stance_time: Duration,
+    pub cgame_user_cmd_weapon: WeaponId,
+    pub cgame_user_cmd_offhand_index: OffhandId,
     pub cgame_user_cmd_last_weapon_for_alt: i32,
     pub cgame_fov_sensitivity_scale: f32,
     pub cgame_max_pitch_speed: f32,
     pub cgame_max_yaw_speed: f32,
-    pub cgame_kick_angles: Vec3f32,
-    pub cgame_origin: Vec3f32,
-    pub cgame_velocity: Vec3f32,
-    pub cgame_viewangles: Vec3f32,
+    pub cgame_kick_angles: Angles3,
+    pub cgame_origin: Point,
+    pub cgame_velocity: Velocity,
+    pub cgame_viewangles: Angles3,
     pub cgame_bob_cycle: i32,
-    pub cgame_movement_dir: i32,
+    pub cgame_movement_dir: Angle,
     pub cgame_extra_buttons: cg::ExtraButtons,
-    pub cgame_predicted_data_server_time: i32,
+    pub cgame_predicted_data_server_time: Duration,
     pub cgame_vehicle: cg::PredictedVehicleInfo,
-    pub view_angles: Vec3f32,
-    pub skel_timestamp: i32,
+    pub view_angles: Angles3,
+    pub skel_timestamp: Duration,
     pub skel_mem_pos: isize,
     pub skel_memory: ArrayVec<u8, SKEL_MAX_MEM>,
     pub skel_memory_start: usize,
@@ -156,9 +159,9 @@ pub struct ClientActive {
     pub parse_clients: ArrayVec<cg::ClientState, 2048>,
     pub corrupted_translation_file: i32,
     pub translation_version: ArrayString<256>,
-    pub last_fire_time: i32,
+    pub last_fire_time: Duration,
     pub use_held: bool,
-    pub use_time: i32,
+    pub use_time: Duration,
     pub use_count: i32,
     pub was_in_vehicle: i32,
 }

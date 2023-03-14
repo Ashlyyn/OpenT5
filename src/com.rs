@@ -4,8 +4,9 @@ use crate::console::Channel;
 use crate::util::EasierAtomic;
 use crate::*;
 use arrayvec::ArrayVec;
-use core::sync::atomic::AtomicIsize;
 use core::sync::atomic::AtomicUsize;
+use std::sync::atomic::AtomicU64;
+use std::time::Duration;
 use lazy_static::lazy_static;
 use std::fs::File;
 use std::sync::Mutex;
@@ -466,8 +467,8 @@ pub fn force_safe_mode() {
     SAFE_MODE.store(true, Ordering::SeqCst);
 }
 
-static FRAME_TIME: AtomicIsize = AtomicIsize::new(0);
+static FRAME_TIME: AtomicU64 = AtomicU64::new(0);
 
-pub fn frame_time() -> isize {
-    FRAME_TIME.load_relaxed()
+pub fn frame_time() -> Duration {
+    Duration::from_millis(FRAME_TIME.load_relaxed())
 }

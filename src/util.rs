@@ -2,10 +2,12 @@
 
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::time::Duration;
+use std::f32::consts::PI;
 use std::path::Path;
 
 use core::sync::atomic::AtomicIsize;
 use core::sync::atomic::AtomicUsize;
+use std::sync::atomic::AtomicU64;
 use std::sync::{Condvar, Mutex};
 
 use raw_window_handle::HasRawWindowHandle;
@@ -477,6 +479,24 @@ pub trait EasierAtomic {
 }
 
 #[allow(clippy::missing_trait_methods)]
+impl EasierAtomic for AtomicU64 {
+    type ValueType = u64;
+    fn load_relaxed(&self) -> Self::ValueType {
+        self.load(Ordering::Relaxed)
+    }
+
+    fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType {
+        self.store(value, Ordering::Relaxed);
+        value
+    }
+
+    fn increment(&self) -> Option<u64> {
+        self.store_relaxed(self.load_relaxed().checked_add(1)?)
+            .into()
+    }
+}
+
+#[allow(clippy::missing_trait_methods)]
 impl EasierAtomic for AtomicIsize {
     type ValueType = isize;
     fn load_relaxed(&self) -> Self::ValueType {
@@ -509,5 +529,203 @@ impl EasierAtomic for AtomicUsize {
     fn increment(&self) -> Option<usize> {
         self.store_relaxed(self.load_relaxed().checked_add(1)?)
             .into()
+    }
+}
+
+const UNITS_TO_METERS: f64 = 0.0254;
+const METERS_TO_UNITS: f64 = 1.0 / 0.0254;
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct Units(pub f64);
+
+impl Units {
+    const ZERO: Self = Self(0f64);
+    const ONE: Self = Self(1f64);
+    const MAX: Self = Self(f64::MAX);
+
+    pub fn new(units: f64) -> Self {
+        Self(units)
+    }
+
+    pub fn from_meters(meters: Meters) -> Self {
+        Self(meters.0 * METERS_TO_UNITS)
+    }
+
+    pub fn as_meters(&self) -> Meters {
+        Meters(self.0 * UNITS_TO_METERS)
+    }
+}
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct Meters(pub f64);
+
+impl Meters {
+    const ZERO: Self = Self(0f64);
+    const ONE: Self = Self(1f64);
+    const MAX: Self = Self(f64::MAX);
+
+    pub fn new(meters: f64) -> Self {
+        Self(meters)
+    }
+
+    pub fn from_units(units: Units) -> Self {
+        Self(units.0 * UNITS_TO_METERS)
+    }
+    
+    pub fn as_units(&self) -> Units {
+        Units(self.0 * METERS_TO_UNITS)
+    }
+}
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct Distance(Units);
+
+impl Distance {
+    const ZERO: Self = Self(Units::ZERO);
+    const ONE: Self = Self(Units::ONE);
+    const MAX: Self = Self(Units::MAX);
+
+    pub fn from_units(units: Units) -> Self {
+        Self(units)
+    }
+
+    pub fn from_meters(meters: Meters) -> Self {
+        Self(Units::from_meters(meters))
+    }
+
+    pub fn as_units(&self) -> Units {
+        self.0
+    }
+
+    pub fn as_meters(&self) -> Meters {
+        self.0.as_meters()
+    }
+}
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct ScalarSpeed(Units);
+
+impl ScalarSpeed {
+    const ZERO: Self = Self(Units::ZERO);
+    const ONE: Self = Self(Units::ONE);
+    const MAX: Self = Self(Units::MAX);
+
+    pub fn from_units_per_second(units_per_second: Units) -> Self {
+        Self(units_per_second)
+    }
+
+    pub fn from_meters_per_second(meters_per_second: Meters) -> Self {
+        Self(Units::from_meters(meters_per_second))
+    }
+
+    pub fn as_units_per_second(&self) -> Units {
+        self.0
+    }
+
+    pub fn as_meters_per_second(&self) -> Meters {
+        self.0.as_meters()
+    }
+}
+
+const DEGREES_TO_RADIANS: f32 = PI / 180.0f32;
+const RADIANS_TO_DEGREES: f32 = 180.0f32 / PI;
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct Degrees(f32);
+
+impl Degrees {
+    const ZERO: Self = Self(0f32);
+    const ONE: Self = Self(1f32);
+    const MAX: Self = Self(360.0f32);
+
+    pub fn new(degrees: f32) -> Self {
+        Self(degrees)
+    }
+
+    pub fn from_radians(radians: Radians) -> Self {
+        Self(radians.0 * RADIANS_TO_DEGREES)
+    }
+    
+    pub fn as_radians(&self) -> Radians {
+        Radians(self.0)
+    }
+}
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct Radians(f32);
+
+impl Radians {
+    const ZERO: Self = Self(0f32);
+    const MAX: Self = Self(2.0f32 * PI);
+
+    pub fn new(degrees: f32) -> Self {
+        Self(degrees)
+    }
+
+    pub fn from_degrees(degrees: Degrees) -> Self {
+        Self(degrees.0 * DEGREES_TO_RADIANS)
+    }
+    
+    pub fn as_degrees(&self) -> Degrees {
+        Degrees(self.0 * RADIANS_TO_DEGREES)
+    }
+}
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct Angle(Radians);
+
+impl Angle {
+    pub fn from_degrees(degrees: Degrees) -> Self {
+        Self(Radians::from_degrees(degrees))
+    }
+
+    pub fn from_radians(radians: Radians) -> Self {
+        Self(radians)
+    }
+
+    pub fn as_degrees(&self) -> Degrees {
+        self.0.as_degrees()
+    }
+
+    pub fn as_radians(&self) -> Radians {
+        self.0
+    }
+}
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct Velocity((Units, Units, Units));
+
+impl Velocity {
+    pub fn from_units(x: Units, y: Units, z: Units) -> Self {
+        Self((x, y, z))
+    }
+
+    pub fn from_meters(x: Meters, y: Meters, z: Meters) -> Self {
+        Self((x.as_units(), y.as_units(), z.as_units()))
+    }
+
+    pub fn as_units(&self) -> (Units, Units, Units) {
+        self.0
+    }
+
+    pub fn as_meters(&self) -> (Meters, Meters, Meters) {
+        (self.0.1.as_meters(), self.0.1.as_meters(), self.0.2.as_meters())
+    }
+}
+
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+impl Point {
+    pub const ORIGIN: Self = Self { x: 0.0, y: 0.0, z: 0.0 };
+
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
+        Self {
+            x, y, z,
+        }
     }
 }
