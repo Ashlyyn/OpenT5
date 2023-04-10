@@ -25,6 +25,3 @@ None of the game files are required yet (you will get some weird-looking localiz
 Linux and macOS builds currently require libgtk4, so you'll want to grab that from your package manager if you don't have it installed (might swap it out for egui or something else later). Windows doesn't require anything special.
 
 The project will currently *build* for WASM, but it's entirely untested, and there are some things that will *definitely* need to be changed (e.g. use of stdlib threads, blocking the main thread, etc.) to get it to work correctly in the browser, so it's by no means functional.
-
-## Contact
-Feel free to hit me up on Discord `@Fingerlingus#0199` if you have any questions, inquiries, etc.
