@@ -2,7 +2,7 @@
 
 use core::time::Duration;
 
-use crate::{util::{Point, Angle, Velocity}};
+use crate::util::{Angle, Point, Velocity};
 use arrayvec::ArrayString;
 use bitflags::bitflags;
 

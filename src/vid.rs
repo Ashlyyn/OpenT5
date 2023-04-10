@@ -24,8 +24,7 @@ pub struct Config {
 }
 
 lazy_static! {
-    pub static ref CONFIG: RwLock<Config> =
-        RwLock::new(Config::default());
+    pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
 }
 
 pub fn config() -> Config {

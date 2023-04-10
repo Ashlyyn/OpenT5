@@ -5,8 +5,8 @@ use pollster::block_on;
 use sscanf::scanf;
 extern crate alloc;
 use alloc::collections::VecDeque;
-use std::{collections::HashSet, sync::Mutex};
 use std::sync::RwLock;
+use std::{collections::HashSet, sync::Mutex};
 
 use winit::{
     dpi::PhysicalPosition,
@@ -410,7 +410,12 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
         dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
 }
 
-#[allow(clippy::panic, clippy::panic_in_result_fn, clippy::unnecessary_wraps, clippy::significant_drop_tightening)]
+#[allow(
+    clippy::panic,
+    clippy::panic_in_result_fn,
+    clippy::unnecessary_wraps,
+    clippy::significant_drop_tightening
+)]
 fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     let mut vid_config = vid::CONFIG.write().unwrap();
 
@@ -1102,7 +1107,7 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     );
 
     WINDOW_AWAITING_INIT.lock().unwrap().clone().send(());
-    let res = { 
+    let res = {
         let mut ev = WINDOW_INITIALIZED.lock().unwrap().clone();
         ev.acknowledge()
     };

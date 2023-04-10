@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 
+use core::f32::consts::PI;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::time::Duration;
-use core::f32::consts::PI;
 use std::path::Path;
 
 use core::sync::atomic::AtomicIsize;
-use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::AtomicU64;
+use core::sync::atomic::AtomicUsize;
 extern crate alloc;
 use alloc::sync::Arc;
 use std::sync::{Condvar, Mutex};
@@ -63,7 +63,10 @@ impl<T: Sized + Clone> SmpEvent<T> {
     pub fn new(state: T, signaled: bool, manual_reset: bool) -> Self {
         Self {
             manual_reset,
-            inner: Arc::new((Mutex::new(SmpEventInner::new(signaled, state)), Condvar::new())),
+            inner: Arc::new((
+                Mutex::new(SmpEventInner::new(signaled, state)),
+                Condvar::new(),
+            )),
         }
     }
 
@@ -84,7 +87,8 @@ impl<T: Sized + Clone> SmpEvent<T> {
     }
 
     pub fn try_get_state(&self) -> Result<T, ()> {
-        self.inner.0
+        self.inner
+            .0
             .try_lock()
             .map_or_else(|_| Err(()), |g| Ok(g.state.clone()))
     }
@@ -584,7 +588,7 @@ impl Meters {
     pub const fn from_units(units: Units) -> Self {
         Self(units.0 * UNITS_TO_METERS)
     }
-    
+
     pub const fn as_units(self) -> Units {
         Units(self.0 * METERS_TO_UNITS)
     }
@@ -658,7 +662,7 @@ impl Degrees {
     pub const fn from_radians(radians: Radians) -> Self {
         Self(radians.0 * RADIANS_TO_DEGREES)
     }
-    
+
     pub const fn as_radians(self) -> Radians {
         Radians(self.0)
     }
@@ -678,7 +682,7 @@ impl Radians {
     pub const fn from_degrees(degrees: Degrees) -> Self {
         Self(degrees.0 * DEGREES_TO_RADIANS)
     }
-    
+
     pub const fn as_degrees(self) -> Degrees {
         Degrees(self.0 * RADIANS_TO_DEGREES)
     }
@@ -722,7 +726,11 @@ impl Velocity {
     }
 
     pub const fn as_meters(&self) -> (Meters, Meters, Meters) {
-        (self.0.1.as_meters(), self.0.1.as_meters(), self.0.2.as_meters())
+        (
+            self.0 .1.as_meters(),
+            self.0 .1.as_meters(),
+            self.0 .2.as_meters(),
+        )
     }
 }
 
@@ -734,11 +742,13 @@ pub struct Point {
 }
 
 impl Point {
-    pub const ORIGIN: Self = Self { x: 0.0, y: 0.0, z: 0.0 };
+    pub const ORIGIN: Self = Self {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+    };
 
     pub const fn new(x: f64, y: f64, z: f64) -> Self {
-        Self {
-            x, y, z,
-        }
+        Self { x, y, z }
     }
 }

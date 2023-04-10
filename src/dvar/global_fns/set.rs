@@ -50,7 +50,12 @@ pub fn set_variant_from_source(
 ) -> Result<(), ()> {
     match find(name) {
         Some(_) => {
-            DVARS.write().unwrap().get_mut(name).unwrap().set_variant(value, source);
+            DVARS
+                .write()
+                .unwrap()
+                .get_mut(name)
+                .unwrap()
+                .set_variant(value, source);
             Ok(())
         }
         None => Err(()),
@@ -1429,11 +1434,12 @@ pub fn add_to_enumeration_domain(
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
-                match &mut DVARS.write().unwrap().get_mut(name).unwrap().domain {
+                match &mut DVARS.write().unwrap().get_mut(name).unwrap().domain
+                {
                     DvarLimits::Enumeration(l) => {
                         l.strings.insert(domain_str.to_owned());
                         Ok(())
-                    },
+                    }
                     _ => Err(()),
                 }
             }
@@ -1450,11 +1456,12 @@ pub fn remove_from_enumeration_domain(
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(_) => {
-                match &mut DVARS.write().unwrap().get_mut(name).unwrap().domain {
+                match &mut DVARS.write().unwrap().get_mut(name).unwrap().domain
+                {
                     DvarLimits::Enumeration(l) => {
                         l.strings.remove(&domain_str.to_owned());
                         Ok(())
-                    },
+                    }
                     _ => Err(()),
                 }
             }

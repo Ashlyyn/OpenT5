@@ -3,8 +3,8 @@
 extern crate alloc;
 use alloc::sync::Arc;
 
-use std::{sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}};
 use core::time::Duration;
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use arrayvec::{ArrayString, ArrayVec};
 use bitflags::bitflags;
@@ -12,8 +12,9 @@ use lazy_static::lazy_static;
 use num_derive::FromPrimitive;
 
 use crate::{
-    cg::{self, WeaponId, OffhandId, Angles3},
-    common::{StanceState, Vec3f32}, util::{Velocity, Angle, Point},
+    cg::{self, Angles3, OffhandId, WeaponId},
+    common::{StanceState, Vec3f32},
+    util::{Angle, Point, Velocity},
 };
 
 #[derive(Copy, Clone, Default, Debug, FromPrimitive)]

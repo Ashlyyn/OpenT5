@@ -162,7 +162,11 @@ pub fn init() -> Language {
 
 #[allow(clippy::redundant_closure_for_method_calls)]
 pub fn localize_ref(s: &str) -> String {
-    LOCALIZATION.read().unwrap().strings.clone()
+    LOCALIZATION
+        .read()
+        .unwrap()
+        .strings
+        .clone()
         .get(&s.to_owned())
         .map_or_else(|| s.to_owned(), |s| s.clone())
 }

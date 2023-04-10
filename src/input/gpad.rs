@@ -204,8 +204,12 @@ type GPadIdx = u8;
 const MAX_GPADS: GPadIdx = 1;
 
 fn port_index_to_id(port_index: GPadIdx) -> Option<gilrs::GamepadId> {
-    S_GAMEPADS.read().unwrap().iter().nth(port_index as _).map(|g| g.id)
-    
+    S_GAMEPADS
+        .read()
+        .unwrap()
+        .iter()
+        .nth(port_index as _)
+        .map(|g| g.id)
 }
 
 #[allow(clippy::cast_possible_truncation)]
@@ -219,7 +223,12 @@ fn id_to_port_index(id: gilrs::GamepadId) -> Option<GPadIdx> {
 }
 
 pub fn is_active(port_index: GPadIdx) -> Option<bool> {
-    S_GAMEPADS.read().unwrap().iter().nth(port_index as _).map(|g| g.enabled)
+    S_GAMEPADS
+        .read()
+        .unwrap()
+        .iter()
+        .nth(port_index as _)
+        .map(|g| g.enabled)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]

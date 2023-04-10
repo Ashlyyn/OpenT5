@@ -48,7 +48,11 @@ pub const fn shutdown() {
     mouse::deactivate();
 }
 
-#[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::significant_drop_tightening)]
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::significant_drop_tightening
+)]
 pub fn update_use_held() {
     let mut cgs = cl::get_local_client_globals_mut();
     let cg = cgs.iter_mut().nth(0).unwrap();

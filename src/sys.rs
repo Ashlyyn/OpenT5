@@ -617,7 +617,12 @@ pub fn create_event(manual_reset: bool, initial_state: bool, name: &str) {
         SmpEvent::new((), initial_state, manual_reset),
     );
     if initial_state {
-        EVENTS.write().unwrap().get_mut(&name.to_owned()).unwrap().send(());
+        EVENTS
+            .write()
+            .unwrap()
+            .get_mut(&name.to_owned())
+            .unwrap()
+            .send(());
     }
 }
 

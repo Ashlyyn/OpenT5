@@ -92,17 +92,17 @@ cfg_if! {
 
         impl Default for ConsoleData {
             fn default() -> Self {
-                Self { 
-                    window: None, 
-                    buffer_window: None, 
-                    cod_logo_window: None, 
-                    buffer_font: None, 
-                    input_line_window: None, 
-                    error_string: String::new(), 
-                    console_text: ArrayString::new(), 
+                Self {
+                    window: None,
+                    buffer_window: None,
+                    cod_logo_window: None,
+                    buffer_font: None,
+                    input_line_window: None,
+                    error_string: String::new(),
+                    console_text: ArrayString::new(),
                     returned_text: ArrayString::new(),
-                    window_width: 620, 
-                    window_height: 450, 
+                    window_width: 620,
+                    window_height: 450,
                 }
             }
         }

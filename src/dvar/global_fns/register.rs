@@ -39,30 +39,35 @@ pub fn register_bool(
     description: Option<&str>,
 ) -> Result<(), ()> {
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_bool()
-            .value(value)
-            .build();
-        if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-            let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            Err(())
-        } else {
-            Ok(())
-        }
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_bool()
+        .value(value)
+        .build();
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Bool`],
@@ -182,32 +187,37 @@ pub fn register_float(
     flags: DvarFlags,
     description: Option<&str>,
 ) -> Result<(), ()> {
-        if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+    if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_float()
-            .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
-            .value(value)
-            .build();
-        if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-            let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            Err(())
-        } else {
-            Ok(())
-        }
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_float()
+        .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
+        .value(value)
+        .build();
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Float`],
@@ -350,32 +360,37 @@ pub fn register_vector2(
     description: Option<&str>,
 ) -> Result<(), ()> {
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_vector2()
-            .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
-            .value(value)
-            .build();
-        
-            if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-                let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-                com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-                Err(())
-            } else {
-                Ok(())
-            }
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_vector2()
+        .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
+        .value(value)
+        .build();
+
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Vector2`],
@@ -518,32 +533,37 @@ pub fn register_vector3(
     flags: DvarFlags,
     description: Option<&str>,
 ) -> Result<(), ()> {
-        if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+    if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_vector3()
-            .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
-            .value(value)
-            .build();
-        if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-            let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            Err(())
-        } else {
-            Ok(())
-        }
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_vector3()
+        .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
+        .value(value)
+        .build();
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Vector3`],
@@ -686,33 +706,38 @@ pub fn register_vector4(
     flags: DvarFlags,
     description: Option<&str>,
 ) -> Result<(), ()> {
-        if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+    if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_vector4()
-            .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
-            .value(value)
-            .build();
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_vector4()
+        .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
+        .value(value)
+        .build();
 
-        if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-            let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            Err(())
-        } else {
-            Ok(())
-        }
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Vector4`],
@@ -855,33 +880,38 @@ pub fn register_int(
     flags: DvarFlags,
     description: Option<&str>,
 ) -> Result<(), ()> {
-        if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+    if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_int()
-            .domain(min.unwrap_or(i32::MIN), max.unwrap_or(i32::MAX))
-            .value(value)
-            .build();
-        
-            if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-                let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-                com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-                Err(())
-            } else {
-                Ok(())
-            }
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_int()
+        .domain(min.unwrap_or(i32::MIN), max.unwrap_or(i32::MAX))
+        .value(value)
+        .build();
+
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Int`],
@@ -1013,32 +1043,37 @@ pub fn register_string(
     flags: DvarFlags,
     description: Option<&str>,
 ) -> Result<(), ()> {
-        if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+    if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_string()
-            .value(value.to_owned())
-            .build();
-       
-            if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-                let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-                com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-                Err(())
-            } else {
-                Ok(())
-            }
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_string()
+        .value(value.to_owned())
+        .build();
+
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::String`], using the
@@ -1153,33 +1188,38 @@ pub fn register_enumeration(
     flags: DvarFlags,
     description: Option<&str>,
 ) -> Result<(), ()> {
-        if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+    if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_enumeration()
-            .domain(&domain.unwrap_or_default())
-            .value(value)
-            .build();
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_enumeration()
+        .domain(&domain.unwrap_or_default())
+        .value(value)
+        .build();
 
-        if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-            let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            Err(())
-        } else {
-            Ok(())
-        }
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Enumeration`], using the
@@ -1318,32 +1358,37 @@ pub fn register_color(
     let b = blue.clamp(0.0, 1.0).mul_add(255.0, 0.001);
     let a = alpha.clamp(0.0, 1.0).mul_add(255.0, 0.001);
 
-        if DVARS.write().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+    if DVARS.write().unwrap().len() + 1 > DVAR_COUNT_MAX {
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_color()
-            .value((r, g, b, a))
-            .build();
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_color()
+        .value((r, g, b, a))
+        .build();
 
-        if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-            let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            Err(())
-        } else {
-            Ok(())
-        }
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Color`], using the
@@ -1485,33 +1530,38 @@ pub fn register_int64(
     flags: DvarFlags,
     description: Option<&str>,
 ) -> Result<(), ()> {
-        if DVARS.write().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+    if DVARS.write().unwrap().len() + 1 > DVAR_COUNT_MAX {
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_int64()
-            .domain(min.unwrap_or(i64::MIN), max.unwrap_or(i64::MAX))
-            .value(value)
-            .build();
-        
-            if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-                let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
-                com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-                Err(())
-            } else {
-                Ok(())
-            }
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_int64()
+        .domain(min.unwrap_or(i64::MIN), max.unwrap_or(i64::MAX))
+        .value(value)
+        .build();
+
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::Int64`],
@@ -1660,32 +1710,37 @@ pub fn register_linear_color_rgb(
     description: Option<&str>,
 ) -> Result<(), ()> {
     if DVARS.write().unwrap().len() + 1 > DVAR_COUNT_MAX {
-            com::errorln(
-                com::ErrorParm::FATAL,
-                format!(
-                    "Can\'t create dvar \'{}\': {} dvars already exist",
-                    name, DVAR_COUNT_MAX
-                ),
-            );
-            return Err(());
-        }
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "Can\'t create dvar \'{}\': {} dvars already exist",
+                name, DVAR_COUNT_MAX
+            ),
+        );
+        return Err(());
+    }
 
-        let dvar = DvarBuilder::new()
-            .name(name)
-            .description(description.unwrap_or_default().to_owned())
-            .flags(flags)
-            .type_linear_color_rgb()
-            .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
-            .value((red, green, blue))
-            .build();
-        
-        if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
-            let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
-            com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
-            Err(())
-        } else {
-            Ok(())
-        }    
+    let dvar = DvarBuilder::new()
+        .name(name)
+        .description(description.unwrap_or_default().to_owned())
+        .flags(flags)
+        .type_linear_color_rgb()
+        .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
+        .value((red, green, blue))
+        .build();
+
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
+        let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
+        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 /// Registers a new [`Dvar`] of type [`DvarValue::LinearColorRGB`],
@@ -1884,7 +1939,12 @@ pub fn register_color_xyz(
         .domain(min.unwrap_or(f32::MIN), max.unwrap_or(f32::MAX))
         .value((x, y, z))
         .build();
-    if DVARS.write().unwrap().insert(name.to_owned(), Box::new(dvar)).is_some() {
+    if DVARS
+        .write()
+        .unwrap()
+        .insert(name.to_owned(), Box::new(dvar))
+        .is_some()
+    {
         let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
         com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
         Err(())
@@ -1892,8 +1952,6 @@ pub fn register_color_xyz(
         Ok(())
     }
 }
-
-    
 
 /// Registers a new [`Dvar`] of type [`DvarValue::ColorXYZ`],
 /// using the provided name, value, flags, and description.

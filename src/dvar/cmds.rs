@@ -247,7 +247,6 @@ fn set_command(name: &str, value: &str) {
             d.add_flags(DvarFlags::AUTOEXEC);
             d.reset = d.current.clone();
         }
-        
     }
 }
 
@@ -588,7 +587,11 @@ fn reset_f() {
 fn list_f() {
     DVAR_COUNT_LOCAL.store(0, Ordering::SeqCst);
     let argv_1 = cmd::argv(1);
-    DVARS.read().unwrap().values().for_each(|d| list_single(d, &argv_1));
+    DVARS
+        .read()
+        .unwrap()
+        .values()
+        .for_each(|d| list_single(d, &argv_1));
     com::println!(
         0.into(),
         "\n{} total dvars",
@@ -866,10 +869,15 @@ fn display_dvar(dvar: &Dvar, i: &mut i32) {
 #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn list_saved_dvars() {
     let mut i = 0;
-    DVARS.read().unwrap().values().enumerate().for_each(|(j, d)| {
-        display_dvar(d, &mut (j as _));
-        i = j;
-    });
+    DVARS
+        .read()
+        .unwrap()
+        .values()
+        .enumerate()
+        .for_each(|(j, d)| {
+            display_dvar(d, &mut (j as _));
+            i = j;
+        });
 
     com::println!(0.into(), "\n{} total SAVED dvars", i);
 }
