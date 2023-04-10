@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/Fingerlingus/OpenT5"
 license = "MIT"
-license-file = "LICENSE"
 description = "An open-source Rust reimplementation of T5 (the engine running Call of Duty Black Ops)"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
