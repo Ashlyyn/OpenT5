@@ -445,6 +445,7 @@ impl Dvar {
         }
     }
 
+    #[allow(clippy::significant_drop_tightening)]
     fn set_variant(&mut self, value: DvarValue, source: SetSource) {
         if self.name.is_empty() {
             return;

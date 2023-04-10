@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::time::Duration;
+use core::time::Duration;
 
 use crate::{util::{Point, Angle, Velocity}};
 use arrayvec::ArrayString;

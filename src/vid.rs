@@ -24,12 +24,12 @@ pub struct Config {
 }
 
 lazy_static! {
-    pub static ref CONFIG: Arc<RwLock<Config>> =
-        Arc::new(RwLock::new(Config::default()));
+    pub static ref CONFIG: RwLock<Config> =
+        RwLock::new(Config::default());
 }
 
 pub fn config() -> Config {
-    *CONFIG.clone().read().unwrap()
+    *CONFIG.read().unwrap()
 }
 
 #[allow(clippy::print_stdout)]

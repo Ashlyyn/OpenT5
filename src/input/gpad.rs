@@ -33,8 +33,8 @@ struct GamePad {
 }
 
 lazy_static! {
-    static ref S_GAMEPADS: Arc<RwLock<ArrayVec<GamePad, { MAX_GPADS as _ }>>> =
-        Arc::new(RwLock::new(ArrayVec::new()));
+    static ref S_GAMEPADS: RwLock<ArrayVec<GamePad, { MAX_GPADS as _ }>> =
+        RwLock::new(ArrayVec::new());
 }
 
 pub fn startup() {
@@ -170,10 +170,10 @@ fn init_dvars() {
     .unwrap();
 }
 
+#[allow(clippy::significant_drop_tightening)]
 fn init_all() {
     init_dvars();
     S_GAMEPADS
-        .clone()
         .write()
         .unwrap()
         .get_mut(0)
@@ -182,7 +182,6 @@ fn init_all() {
         .rumble
         .left_motor_speed = 0;
     S_GAMEPADS
-        .clone()
         .write()
         .unwrap()
         .get_mut(0)
@@ -192,8 +191,7 @@ fn init_all() {
         .right_motor_speed = 0;
 
     for i in 0..MAX_GPADS {
-        let lock = S_GAMEPADS.clone();
-        let mut gamepads = lock.write().unwrap();
+        let mut gamepads = S_GAMEPADS.write().unwrap();
         let gpad = gamepads.get_mut(i as usize).unwrap();
 
         gpad.feedback.rumble.left_motor_speed = 0;
@@ -206,16 +204,13 @@ type GPadIdx = u8;
 const MAX_GPADS: GPadIdx = 1;
 
 fn port_index_to_id(port_index: GPadIdx) -> Option<gilrs::GamepadId> {
-    let lock = S_GAMEPADS.clone();
-    let gamepads = lock.read().unwrap();
-    let mut iter = gamepads.iter();
-    iter.nth(port_index as _).map(|g| g.id)
+    S_GAMEPADS.read().unwrap().iter().nth(port_index as _).map(|g| g.id)
+    
 }
 
 #[allow(clippy::cast_possible_truncation)]
 fn id_to_port_index(id: gilrs::GamepadId) -> Option<GPadIdx> {
-    let lock = S_GAMEPADS.clone();
-    let gamepads = lock.read().unwrap();
+    let gamepads = S_GAMEPADS.read().unwrap();
     gamepads
         .iter()
         .enumerate()
@@ -224,10 +219,7 @@ fn id_to_port_index(id: gilrs::GamepadId) -> Option<GPadIdx> {
 }
 
 pub fn is_active(port_index: GPadIdx) -> Option<bool> {
-    let lock = S_GAMEPADS.clone();
-    let gamepads = lock.read().unwrap();
-    let mut iter = gamepads.iter();
-    iter.nth(port_index as _).map(|g| g.enabled)
+    S_GAMEPADS.read().unwrap().iter().nth(port_index as _).map(|g| g.enabled)
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -387,14 +379,14 @@ pub fn is_stick_released(port_index: GPadIdx, stick: Stick) -> Option<bool> {
 }
 
 // TODO - verify implementation is actually correct
+#[allow(clippy::significant_drop_tightening)]
 fn update_sticks_down(port_index: GPadIdx) {
     let stick_pressed =
         dvar::get_float("gpad_stick_pressed").unwrap_or_default();
 
-    let lock = S_GAMEPADS.clone();
-    let Ok(mut gamepads) = lock.write() else { return };
+    let mut gamepads = S_GAMEPADS.write().unwrap();
     let mut iter = gamepads.iter_mut();
-    let Some(gpad) = iter.nth(port_index as _) else { return };
+    let gpad = iter.nth(port_index as _).unwrap();
 
     gpad.lstick_last.1 = gpad.lstick.1;
 
@@ -427,21 +419,18 @@ fn update_sticks_down(port_index: GPadIdx) {
     gpad.rstick.1 = (s < gpad.rstick.0 .0).into();
 }
 
-#[allow(clippy::semicolon_outside_block)]
+#[allow(clippy::semicolon_outside_block, clippy::significant_drop_tightening)]
 pub fn update_sticks(port_index: GPadIdx) {
+    let lstick = get_stick(port_index, Stick::LStick).unwrap();
+    let rstick = get_stick(port_index, Stick::RStick).unwrap();
+    let lx = lstick.0 .0;
+    let ly = lstick.0 .1;
+    let rx = rstick.0 .0;
+    let ry = rstick.0 .1;
+
     {
-        let lock = S_GAMEPADS.clone();
-        let Ok(mut gamepads) = lock.write() else { return };
-        let mut iter = gamepads.iter_mut();
-        let Some(gpad) = iter.nth(port_index as _) else { return };
-        let Some(lstick) = get_stick(port_index, Stick::LStick) else { return };
-        let Some(rstick) = get_stick(port_index, Stick::RStick) else { return };
-
-        let lx = lstick.0 .0;
-        let ly = lstick.0 .1;
-        let rx = rstick.0 .0;
-        let ry = rstick.0 .1;
-
+        let mut gpads = S_GAMEPADS.write().unwrap();
+        let gpad = gpads.iter_mut().nth(port_index as _).unwrap();
         gpad.lstick_last = gpad.lstick;
         gpad.rstick_last = gpad.rstick;
         gpad.lstick.0 = (lx, ly);

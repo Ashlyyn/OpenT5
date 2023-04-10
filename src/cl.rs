@@ -3,7 +3,8 @@
 extern crate alloc;
 use alloc::sync::Arc;
 
-use std::{sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}, time::Duration};
+use std::{sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}};
+use core::time::Duration;
 
 use arrayvec::{ArrayString, ArrayVec};
 use bitflags::bitflags;

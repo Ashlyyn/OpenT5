@@ -2,13 +2,15 @@
 
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::time::Duration;
-use std::f32::consts::PI;
+use core::f32::consts::PI;
 use std::path::Path;
 
 use core::sync::atomic::AtomicIsize;
 use core::sync::atomic::AtomicUsize;
-use std::sync::atomic::AtomicU64;
-use std::sync::{Condvar, Mutex, Arc};
+use core::sync::atomic::AtomicU64;
+extern crate alloc;
+use alloc::sync::Arc;
+use std::sync::{Condvar, Mutex};
 
 use raw_window_handle::HasRawWindowHandle;
 
@@ -92,12 +94,12 @@ impl<T: Sized + Clone> SmpEvent<T> {
     }
 
     fn try_set_state(&mut self, state: T) -> Result<(), ()> {
-        let Ok(guard) = &mut self.inner.0.try_lock() else {
-            return Err(())
-        };
-
-        guard.state= state;
-        Ok(())
+        if let Ok(guard) = &mut self.inner.0.try_lock() {
+            guard.state = state;
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     fn wait(&self) {
@@ -554,15 +556,15 @@ impl Units {
     const ONE: Self = Self(1f64);
     const MAX: Self = Self(f64::MAX);
 
-    pub fn new(units: f64) -> Self {
+    pub const fn new(units: f64) -> Self {
         Self(units)
     }
 
-    pub fn from_meters(meters: Meters) -> Self {
+    pub const fn from_meters(meters: Meters) -> Self {
         Self(meters.0 * METERS_TO_UNITS)
     }
 
-    pub fn as_meters(&self) -> Meters {
+    pub const fn as_meters(self) -> Meters {
         Meters(self.0 * UNITS_TO_METERS)
     }
 }
@@ -575,15 +577,15 @@ impl Meters {
     const ONE: Self = Self(1f64);
     const MAX: Self = Self(f64::MAX);
 
-    pub fn new(meters: f64) -> Self {
+    pub const fn new(meters: f64) -> Self {
         Self(meters)
     }
 
-    pub fn from_units(units: Units) -> Self {
+    pub const fn from_units(units: Units) -> Self {
         Self(units.0 * UNITS_TO_METERS)
     }
     
-    pub fn as_units(&self) -> Units {
+    pub const fn as_units(self) -> Units {
         Units(self.0 * METERS_TO_UNITS)
     }
 }
@@ -596,19 +598,19 @@ impl Distance {
     const ONE: Self = Self(Units::ONE);
     const MAX: Self = Self(Units::MAX);
 
-    pub fn from_units(units: Units) -> Self {
+    pub const fn from_units(units: Units) -> Self {
         Self(units)
     }
 
-    pub fn from_meters(meters: Meters) -> Self {
+    pub const fn from_meters(meters: Meters) -> Self {
         Self(Units::from_meters(meters))
     }
 
-    pub fn as_units(&self) -> Units {
+    pub const fn as_units(self) -> Units {
         self.0
     }
 
-    pub fn as_meters(&self) -> Meters {
+    pub const fn as_meters(self) -> Meters {
         self.0.as_meters()
     }
 }
@@ -621,19 +623,19 @@ impl ScalarSpeed {
     const ONE: Self = Self(Units::ONE);
     const MAX: Self = Self(Units::MAX);
 
-    pub fn from_units_per_second(units_per_second: Units) -> Self {
+    pub const fn from_units_per_second(units_per_second: Units) -> Self {
         Self(units_per_second)
     }
 
-    pub fn from_meters_per_second(meters_per_second: Meters) -> Self {
+    pub const fn from_meters_per_second(meters_per_second: Meters) -> Self {
         Self(Units::from_meters(meters_per_second))
     }
 
-    pub fn as_units_per_second(&self) -> Units {
+    pub const fn as_units_per_second(self) -> Units {
         self.0
     }
 
-    pub fn as_meters_per_second(&self) -> Meters {
+    pub const fn as_meters_per_second(self) -> Meters {
         self.0.as_meters()
     }
 }
@@ -649,15 +651,15 @@ impl Degrees {
     const ONE: Self = Self(1f32);
     const MAX: Self = Self(360.0f32);
 
-    pub fn new(degrees: f32) -> Self {
+    pub const fn new(degrees: f32) -> Self {
         Self(degrees)
     }
 
-    pub fn from_radians(radians: Radians) -> Self {
+    pub const fn from_radians(radians: Radians) -> Self {
         Self(radians.0 * RADIANS_TO_DEGREES)
     }
     
-    pub fn as_radians(&self) -> Radians {
+    pub const fn as_radians(self) -> Radians {
         Radians(self.0)
     }
 }
@@ -669,15 +671,15 @@ impl Radians {
     const ZERO: Self = Self(0f32);
     const MAX: Self = Self(2.0f32 * PI);
 
-    pub fn new(degrees: f32) -> Self {
+    pub const fn new(degrees: f32) -> Self {
         Self(degrees)
     }
 
-    pub fn from_degrees(degrees: Degrees) -> Self {
+    pub const fn from_degrees(degrees: Degrees) -> Self {
         Self(degrees.0 * DEGREES_TO_RADIANS)
     }
     
-    pub fn as_degrees(&self) -> Degrees {
+    pub const fn as_degrees(self) -> Degrees {
         Degrees(self.0 * RADIANS_TO_DEGREES)
     }
 }
@@ -686,19 +688,19 @@ impl Radians {
 pub struct Angle(Radians);
 
 impl Angle {
-    pub fn from_degrees(degrees: Degrees) -> Self {
+    pub const fn from_degrees(degrees: Degrees) -> Self {
         Self(Radians::from_degrees(degrees))
     }
 
-    pub fn from_radians(radians: Radians) -> Self {
+    pub const fn from_radians(radians: Radians) -> Self {
         Self(radians)
     }
 
-    pub fn as_degrees(&self) -> Degrees {
+    pub const fn as_degrees(self) -> Degrees {
         self.0.as_degrees()
     }
 
-    pub fn as_radians(&self) -> Radians {
+    pub const fn as_radians(self) -> Radians {
         self.0
     }
 }
@@ -707,19 +709,19 @@ impl Angle {
 pub struct Velocity((Units, Units, Units));
 
 impl Velocity {
-    pub fn from_units(x: Units, y: Units, z: Units) -> Self {
+    pub const fn from_units(x: Units, y: Units, z: Units) -> Self {
         Self((x, y, z))
     }
 
-    pub fn from_meters(x: Meters, y: Meters, z: Meters) -> Self {
+    pub const fn from_meters(x: Meters, y: Meters, z: Meters) -> Self {
         Self((x.as_units(), y.as_units(), z.as_units()))
     }
 
-    pub fn as_units(&self) -> (Units, Units, Units) {
+    pub const fn as_units(&self) -> (Units, Units, Units) {
         self.0
     }
 
-    pub fn as_meters(&self) -> (Meters, Meters, Meters) {
+    pub const fn as_meters(&self) -> (Meters, Meters, Meters) {
         (self.0.1.as_meters(), self.0.1.as_meters(), self.0.2.as_meters())
     }
 }
@@ -734,7 +736,7 @@ pub struct Point {
 impl Point {
     pub const ORIGIN: Self = Self { x: 0.0, y: 0.0, z: 0.0 };
 
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Self {
             x, y, z,
         }

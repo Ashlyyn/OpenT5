@@ -48,13 +48,13 @@ pub const fn shutdown() {
     mouse::deactivate();
 }
 
-#[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
+#[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::significant_drop_tightening)]
 pub fn update_use_held() {
     let mut cgs = cl::get_local_client_globals_mut();
     let cg = cgs.iter_mut().nth(0).unwrap();
     if cg.use_held == false {
-        if dvar::get_int("cl_dblTapMaxDelayTime").unwrap() as isize
-            <= (com::frame_time() - cg.use_time).as_millis() as isize
+        if dvar::get_int("cl_dblTapMaxDelayTime").unwrap()
+            <= (com::frame_time() - cg.use_time).as_millis() as i32
         {
             cg.use_count = 0;
         }
@@ -63,12 +63,13 @@ pub fn update_use_held() {
     }
 }
 
+#[allow(clippy::cast_possible_truncation, clippy::significant_drop_tightening)]
 pub fn update_use_count() {
     let mut cgs = cl::get_local_client_globals_mut();
     let cg = cgs.iter_mut().nth(0).unwrap();
 
-    if ((com::frame_time() - cg.use_time).as_millis() as isize)
-        < (dvar::get_int("cl_dblTapMaxDelayTime").unwrap() as isize)
+    if ((com::frame_time() - cg.use_time).as_millis() as i32)
+        < (dvar::get_int("cl_dblTapMaxDelayTime").unwrap())
     {
         cg.use_count += 1;
     } else {

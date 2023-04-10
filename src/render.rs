@@ -244,8 +244,8 @@ impl Default for RenderGlobals {
 }
 
 lazy_static! {
-    pub static ref RENDER_GLOBALS: Arc<RwLock<RenderGlobals>> =
-        Arc::new(RwLock::new(RenderGlobals::default()));
+    pub static ref RENDER_GLOBALS: RwLock<RenderGlobals> =
+        RwLock::new(RenderGlobals::default());
 }
 
 fn fatal_init_error(error: &str) -> ! {
@@ -373,8 +373,7 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
         scanf!(r_mode, "{}x{}", u16, u16).unwrap();
 
     if !wnd_parms.fullscreen {
-        let lock = RENDER_GLOBALS.clone();
-        let render_globals = lock.read().unwrap();
+        let render_globals = RENDER_GLOBALS.read().unwrap();
 
         if render_globals.adapter_native_width < wnd_parms.display_width {
             wnd_parms.display_width = wnd_parms
@@ -411,10 +410,9 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
         dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
 }
 
-#[allow(clippy::panic, clippy::panic_in_result_fn, clippy::unnecessary_wraps)]
+#[allow(clippy::panic, clippy::panic_in_result_fn, clippy::unnecessary_wraps, clippy::significant_drop_tightening)]
 fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
-    let lock = vid::CONFIG.clone();
-    let mut vid_config = lock.write().unwrap();
+    let mut vid_config = vid::CONFIG.write().unwrap();
 
     vid_config.scene_width = wnd_parms.scene_width;
     vid_config.scene_height = wnd_parms.scene_height;
@@ -426,8 +424,7 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     vid_config.aspect_ratio_window =
         match dvar::get_enumeration("r_aspectRatio").unwrap().as_str() {
             ASPECT_RATIO_AUTO => {
-                let render_globals_lock = RENDER_GLOBALS.clone();
-                let render_globals = render_globals_lock.write().unwrap();
+                let render_globals = RENDER_GLOBALS.write().unwrap();
 
                 let (display_width, display_height) =
                     if vid_config.is_fullscreen {
@@ -470,8 +467,7 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         * vid_config.aspect_ratio_window)
         / f32::from(vid_config.scene_width);
 
-    let render_globals_lock = RENDER_GLOBALS.clone();
-    let render_globals = render_globals_lock.write().unwrap();
+    let render_globals = RENDER_GLOBALS.write().unwrap();
 
     vid_config.aspect_ratio_display_pixel = if !vid_config.is_fullscreen {
         1.0
@@ -517,11 +513,12 @@ fn choose_adapter() -> Option<sys::gpu::Adapter> {
     Some(block_on(sys::gpu::Adapter::new(&instance, None)))
 }
 
+#[allow(clippy::significant_drop_tightening)]
 fn pre_create_window() -> Result<(), ()> {
     com::println!(8.into(), "Getting Device interface...");
     let instance = sys::gpu::Instance::new();
     let adapter = block_on(sys::gpu::Adapter::new(&instance, None));
-    RENDER_GLOBALS.clone().write().unwrap().device =
+    RENDER_GLOBALS.write().unwrap().device =
         if let Some(d) = block_on(sys::gpu::Device::new(&adapter)) {
             Some(d)
         } else {
@@ -529,7 +526,7 @@ fn pre_create_window() -> Result<(), ()> {
             return Err(());
         };
 
-    RENDER_GLOBALS.clone().write().unwrap().adapter = choose_adapter();
+    RENDER_GLOBALS.write().unwrap().adapter = choose_adapter();
     dvar::register_enumeration(
         "r_mode",
         "640x480".into(),
@@ -575,17 +572,13 @@ lazy_static! {
     clippy::cast_possible_wrap,
     clippy::integer_division,
     clippy::too_many_lines,
-    clippy::expect_used
+    clippy::expect_used,
+    clippy::significant_drop_tightening,
+    clippy::panic_in_result_fn
 )]
 pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
-    {
-        let mut window_awaiting_init = WINDOW_AWAITING_INIT.lock().unwrap();
-        window_awaiting_init.send_cleared(());
-    }
-    {
-        let mut window_initializing = WINDOW_INITIALIZING.lock().unwrap();
-        window_initializing.send(());
-    }
+    WINDOW_AWAITING_INIT.lock().unwrap().send_cleared(());
+    WINDOW_INITIALIZING.lock().unwrap().send(());
 
     if wnd_parms.fullscreen {
         com::println!(
@@ -701,13 +694,13 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 .or_else(|| main_window.available_monitors().nth(0))
                 .unwrap();
             let horzres = (monitor.size().width - 450) / 2;
-            assert_ne!(horzres, 0);
+            assert_ne!(horzres, 0, "Horizontal resolution should never be zero. It's a logic error, and it'll cause invalid calcultations.");
             let vertres = (monitor.size().height - 600) / 2;
-            assert_ne!(vertres, 0);
+            assert_ne!(vertres, 0, "Vertical resolution should never be zero. It's a logic error, and it'll cause invalid calcultations.");
             let console_width = conbuf::s_wcd_window_width();
-            assert_ne!(console_width, 0);
+            assert_ne!(console_width, 0, "Console window width should not be zero. It's a logic error, and it causes a runtime panic with X.");
             let console_height = conbuf::s_wcd_window_height();
-            assert_ne!(console_height, 0);
+            assert_ne!(console_height, 0, "Console window height should not be zero. It's a logic error, and it causes a runtime panic with X.");
             let console_window = winit::window::WindowBuilder::new()
                 .with_title(console_title)
                 .with_position(Position::Physical(PhysicalPosition::new(
@@ -803,7 +796,6 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
             for m in valid_modes.clone() {
                 RENDER_GLOBALS
-                .clone()
                 .write()
                 .unwrap()
                 .resolution_names
@@ -814,8 +806,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             let width = monitor.size().width;
             let height = monitor.size().height;
             {
-               let lock = RENDER_GLOBALS.clone();
-               let mut render_globals = lock.write().unwrap();
+               let mut render_globals = RENDER_GLOBALS.write().unwrap();
                render_globals.adapter_native_width = width as _;
                render_globals.adapter_native_height = height as _;
                render_globals.adapter_fullscreen_width = width as _;
@@ -823,9 +814,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             }
 
             let mode = {
-                let lock = RENDER_GLOBALS.clone();
-                let render_globals = lock.read().unwrap();
-                let mut names: Vec<_> = render_globals.resolution_names.iter().cloned().collect();
+                let mut names: Vec<_> = RENDER_GLOBALS.read().unwrap().resolution_names.iter().cloned().collect();
                 names.sort_by_key(|n| scanf!(n, "{}x{}", u16, u16).unwrap().0);
                 names
                 .iter()
@@ -838,7 +827,6 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 "r_mode",
                 mode,
                 Some(RENDER_GLOBALS
-                        .clone()
                         .read()
                         .unwrap()
                         .resolution_names
@@ -860,7 +848,6 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             #[allow(clippy::integer_division)]
             for m in modes {
                 RENDER_GLOBALS
-                .clone()
                 .write()
                 .unwrap()
                 .refresh_rate_names
@@ -873,9 +860,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             }
 
             let refresh = {
-                let lock = RENDER_GLOBALS.clone();
-                let render_globals = lock.read().unwrap();
-                let mut names: Vec<_> = render_globals.refresh_rate_names.iter().cloned().collect();
+                let mut names: Vec<_> = RENDER_GLOBALS.read().unwrap().refresh_rate_names.iter().cloned().collect();
                 names.sort_by_key(|n| scanf!(n, "{} Hz", u16).unwrap());
                 names
                 .iter()
@@ -889,7 +874,6 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 refresh,
                 Some(Vec::from_iter(
                     RENDER_GLOBALS
-                        .clone()
                         .read()
                         .unwrap()
                         .refresh_rate_names
@@ -1067,10 +1051,11 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 set_wnd_parms(&mut wnd_parms);
                 store_window_settings(&mut wnd_parms).unwrap();
                 set_wnd_parms(&mut wnd_parms);
-                let lock = RENDER_GLOBALS.clone();
-                let mut render_globals = lock.write().unwrap();
-                render_globals.window.width = wnd_parms.display_width;
-                render_globals.window.height = wnd_parms.display_height;
+                {
+                    let mut render_globals = RENDER_GLOBALS.write().unwrap();
+                    render_globals.window.width = wnd_parms.display_width;
+                    render_globals.window.height = wnd_parms.display_height;
+                }
                 if !wnd_parms.fullscreen {
                     com::println!(8.into(), "Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y);
                 } else {
@@ -1153,7 +1138,7 @@ fn init_graphics_api() -> Result<(), ()> {
         "{}: render::init_graphics_api()...",
         std::thread::current().name().unwrap_or("main"),
     );
-    if RENDER_GLOBALS.clone().read().unwrap().device.is_none() {
+    if RENDER_GLOBALS.read().unwrap().device.is_none() {
         if pre_create_window().is_err() {
             return Err(());
         }

@@ -2,6 +2,7 @@
 #![feature(io_error_more)]
 #![feature(const_option)]
 #![feature(int_roundings)]
+#![feature(const_fn_floating_point_arithmetic)]
 #![warn(
     clippy::all,
     clippy::restriction,
@@ -46,7 +47,12 @@
     clippy::pattern_type_mismatch,
     clippy::semicolon_outside_block,
     clippy::iter_nth_zero,
-    clippy::missing_inline_in_public_items
+    clippy::missing_inline_in_public_items,
+    clippy::semicolon_if_nothing_returned,
+    clippy::let_underscore_untyped,
+    clippy::let_unit_value,
+    clippy::question_mark_used,
+    clippy::impl_trait_in_params
 )]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 

@@ -242,17 +242,12 @@ fn set_command(name: &str, value: &str) {
         return;
     }
 
-    let lock = super::DVARS.clone();
-    let mut writer = lock.write().unwrap();
-
-    if !exists(name) {
-        return;
-    }
-
-    let d = writer.get_mut(name).unwrap();
     if IS_LOADING_AUTO_EXEC_GLOBAL_FLAG.load(Ordering::SeqCst) == true {
-        d.add_flags(DvarFlags::AUTOEXEC);
-        d.reset = d.current.clone();
+        if let Some(d) = DVARS.write().unwrap().get_mut(name) {
+            d.add_flags(DvarFlags::AUTOEXEC);
+            d.reset = d.current.clone();
+        }
+        
     }
 }
 
@@ -476,8 +471,7 @@ fn sets_f() {
     set_f();
     let name = cmd::argv(1);
 
-    let lock = DVARS.clone();
-    let mut writer = lock.write().unwrap();
+    let mut writer = DVARS.write().unwrap();
 
     if let Some(d) = writer.get_mut(&name) {
         d.add_flags(DvarFlags::SERVER_INFO);
@@ -493,8 +487,7 @@ fn seta_f() {
     set_f();
     let name = cmd::argv(1);
 
-    let lock = DVARS.clone();
-    let mut writer = lock.write().unwrap();
+    let mut writer = DVARS.write().unwrap();
 
     if let Some(d) = writer.get_mut(&name) {
         d.add_flags(DvarFlags::ARCHIVE);
@@ -508,11 +501,8 @@ fn set_admin_f() {
     }
 
     let name = cmd::argv(1);
-    let lock = DVARS.clone();
-    let mut dvars = lock.write().unwrap();
-    let dvar = dvars.get_mut(&name);
 
-    if let Some(d) = dvar {
+    if let Some(d) = DVARS.write().unwrap().get_mut(&name) {
         if d.flags.contains(DvarFlags::CON_ACCESS) {
             d.add_flags(DvarFlags::ARCHIVE);
         }
@@ -542,8 +532,7 @@ fn set_from_dvar_f() {
     let dest_dvar_name = cmd::argv(1);
     let source_dvar_name = cmd::argv(2);
 
-    let lock = DVARS.clone();
-    let mut writer = lock.write().unwrap();
+    let mut writer = DVARS.write().unwrap();
     if let Some(d) = writer.get_mut(&source_dvar_name) {
         set_command(&dest_dvar_name, &d.current.to_string());
     } else {
@@ -590,8 +579,7 @@ fn reset_f() {
     let name = cmd::argv(1);
 
     if exists(&name) {
-        let lock = DVARS.clone();
-        let mut writer = lock.write().unwrap();
+        let mut writer = DVARS.write().unwrap();
         writer.get_mut(&name).unwrap().reset(SetSource::External);
     }
 }
@@ -600,12 +588,7 @@ fn reset_f() {
 fn list_f() {
     DVAR_COUNT_LOCAL.store(0, Ordering::SeqCst);
     let argv_1 = cmd::argv(1);
-    {
-        let lock = DVARS.clone();
-        let dvars = lock.read().unwrap();
-        let iter = dvars.values();
-        iter.for_each(|d| list_single(d, &argv_1));
-    }
+    DVARS.read().unwrap().values().for_each(|d| list_single(d, &argv_1));
     com::println!(
         0.into(),
         "\n{} total dvars",
@@ -865,10 +848,7 @@ fn restore_dvars() {
         return;
     }
 
-    let lock = DVARS.clone();
-    let mut writer = lock.write().unwrap();
-    let iter = writer.values_mut();
-    iter.for_each(|d| {
+    DVARS.write().unwrap().values_mut().for_each(|d| {
         if d.loaded_from_save_game == true {
             d.loaded_from_save_game = false;
             d.set_variant(d.saved.clone(), SetSource::Internal);
@@ -885,12 +865,8 @@ fn display_dvar(dvar: &Dvar, i: &mut i32) {
 
 #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn list_saved_dvars() {
-    let lock = DVARS.clone();
-    let reader = lock.write().unwrap();
-
-    let iter = reader.values();
     let mut i = 0;
-    iter.enumerate().for_each(|(j, d)| {
+    DVARS.read().unwrap().values().enumerate().for_each(|(j, d)| {
         display_dvar(d, &mut (j as _));
         i = j;
     });

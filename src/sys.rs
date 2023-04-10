@@ -518,9 +518,7 @@ impl Display for SysInfo {
 
 impl SysInfo {
     fn new() -> Self {
-        Self {
-            ..Default::default()
-        }
+        Self::default()
     }
 
     #[allow(
@@ -609,26 +607,23 @@ pub fn render_fatal_error() -> ! {
 }
 
 lazy_static! {
-    static ref EVENTS: Arc<RwLock<HashMap<String, SmpEvent<()>>>> =
-        Arc::new(RwLock::new(HashMap::new()));
+    static ref EVENTS: RwLock<HashMap<String, SmpEvent<()>>> =
+        RwLock::new(HashMap::new());
 }
 
 pub fn create_event(manual_reset: bool, initial_state: bool, name: &str) {
-    let lock = EVENTS.clone();
-    let mut events = lock.write().unwrap();
-    events.insert(
+    EVENTS.write().unwrap().insert(
         name.to_owned(),
         SmpEvent::new((), initial_state, manual_reset),
     );
     if initial_state {
-        events.get_mut(&name.to_owned()).unwrap().send(());
+        EVENTS.write().unwrap().get_mut(&name.to_owned()).unwrap().send(());
     }
 }
 
 #[allow(clippy::panic, clippy::as_conversions)]
 fn wait_for_event_timeout(name: &str, timeout: usize) -> bool {
-    let lock = EVENTS.clone();
-    let mut events = lock.write().unwrap();
+    let mut events = EVENTS.write().unwrap();
     events.get_mut(&name.to_owned()).map_or_else(
         || panic!("sys::wait_for_event_timeout: event not found."),
         |e| {

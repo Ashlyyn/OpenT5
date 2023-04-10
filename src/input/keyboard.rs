@@ -97,14 +97,12 @@ impl Keybind {
 }
 
 lazy_static! {
-    static ref KEYBINDS: Arc<RwLock<HashMap<KeybindCode, Keybind>>> =
-        Arc::new(RwLock::new(HashMap::with_capacity(47)));
+    static ref KEYBINDS: RwLock<HashMap<KeybindCode, Keybind>> =
+        RwLock::new(HashMap::with_capacity(47));
 }
 
 fn find_keybind(code: KeybindCode) -> Option<Keybind> {
-    let lock = KEYBINDS.clone();
-    let reader = lock.read().unwrap();
-    reader.get(&code).copied()
+    KEYBINDS.read().unwrap().get(&code).copied()
 }
 
 fn key_down(code: KeybindCode) {
@@ -125,9 +123,7 @@ fn key_down(code: KeybindCode) {
     };
 
     if bind.down[0] == i || bind.down[1] == i {
-        let lock = KEYBINDS.clone();
-        let mut writer = lock.write().unwrap();
-        writer.insert(code, bind);
+        KEYBINDS.write().unwrap().insert(code, bind);
         return;
     }
 
@@ -149,9 +145,7 @@ fn key_down(code: KeybindCode) {
         bind.was_pressed = true;
     }
 
-    let lock = KEYBINDS.clone();
-    let mut writer = lock.write().unwrap();
-    writer.insert(code, bind);
+    KEYBINDS.write().unwrap().insert(code, bind);
 }
 
 fn key_up(code: KeybindCode) {
@@ -162,9 +156,7 @@ fn key_up(code: KeybindCode) {
         bind.down = [0, 0];
         bind.active = false;
 
-        let lock = KEYBINDS.clone();
-        let mut writer = lock.write().unwrap();
-        writer.insert(code, bind);
+        KEYBINDS.write().unwrap().insert(code, bind);
         return;
     }
 
@@ -179,10 +171,7 @@ fn key_up(code: KeybindCode) {
     }
 
     if bind.down != [0, 0] {
-        let lock = KEYBINDS.clone();
-        let mut writer = lock.write().unwrap();
-        writer.insert(code, bind);
-        return;
+        KEYBINDS.write().unwrap().insert(code, bind);
     }
 
     bind.active = false;
@@ -197,9 +186,7 @@ fn key_up(code: KeybindCode) {
     bind.val = 0.0;
     bind.active = false;
 
-    let lock = KEYBINDS.clone();
-    let mut writer = lock.write().unwrap();
-    writer.insert(code, bind);
+    KEYBINDS.write().unwrap().insert(code, bind);
 }
 
 fn activate_down() {
@@ -372,9 +359,7 @@ fn melee_breath_up() {
 }
 
 fn mlook_down() {
-    let lock = KEYBINDS.clone();
-    let mut writer = lock.write().unwrap();
-    if let Some(r) = writer.get_mut(&KeybindCode::MLook) {
+    if let Some(r) = KEYBINDS.write().unwrap().get_mut(&KeybindCode::MLook) {
         r.active = true;
     };
 }
@@ -668,7 +653,6 @@ fn vehicle_swap_pickup_up() {
 fn is_talk_key_held() -> bool {
     dvar::get_bool("cl_talking").unwrap_or(false)
         && KEYBINDS
-            .clone()
             .read()
             .unwrap()
             .get(&KeybindCode::Talk)

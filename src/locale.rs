@@ -5,7 +5,6 @@ use std::{collections::HashMap, sync::RwLock};
 
 use core::fmt::Write;
 extern crate alloc;
-use alloc::sync::Arc;
 
 use lazy_static::lazy_static;
 use num::Integer;
@@ -69,8 +68,8 @@ struct Localization {
 }
 
 lazy_static! {
-    static ref LOCALIZATION: Arc<RwLock<Localization>> =
-        Arc::new(RwLock::new(Localization::default()));
+    static ref LOCALIZATION: RwLock<Localization> =
+        RwLock::new(Localization::default());
 }
 
 /// Gets the localization language from localization.txt
@@ -154,7 +153,7 @@ pub fn init() -> Language {
         );
     }
 
-    *LOCALIZATION.clone().write().unwrap() = Localization {
+    *LOCALIZATION.write().unwrap() = Localization {
         language: lang,
         strings: map,
     };
@@ -163,11 +162,7 @@ pub fn init() -> Language {
 
 #[allow(clippy::redundant_closure_for_method_calls)]
 pub fn localize_ref(s: &str) -> String {
-    let lock = LOCALIZATION.clone();
-    let Ok(localization) = lock.read() else { return s.to_owned() };
-
-    let strings = localization.strings.clone();
-    strings
+    LOCALIZATION.read().unwrap().strings.clone()
         .get(&s.to_owned())
         .map_or_else(|| s.to_owned(), |s| s.clone())
 }

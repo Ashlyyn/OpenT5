@@ -2,9 +2,6 @@
 
 use std::{collections::HashMap, sync::RwLock};
 
-extern crate alloc;
-use alloc::sync::Arc;
-
 use lazy_static::lazy_static;
 
 use crate::dvar::Dvar;
@@ -23,8 +20,8 @@ pub use get::*;
 const DVAR_COUNT_MAX: usize = 4096;
 
 lazy_static! {
-    pub(super) static ref DVARS: Arc<RwLock<HashMap<String, Box<Dvar>>>> =
-        Arc::new(RwLock::new(HashMap::new()));
+    pub(super) static ref DVARS: RwLock<HashMap<String, Box<Dvar>>> =
+        RwLock::new(HashMap::new());
 }
 
 /// Finds a previously-registered [`Dvar`] by name and returns a copy if present.
@@ -57,8 +54,7 @@ lazy_static! {
 /// };
 /// ```
 pub(super) fn find(name: &str) -> Option<Dvar> {
-    let lock = DVARS.clone();
-    let reader = lock.read().unwrap();
+    let reader = DVARS.read().unwrap();
 
     if !reader.contains_key(name) {
         return None;
@@ -116,8 +112,7 @@ pub fn exists(name: &str) -> bool {
 /// clear_modified(name);
 /// ```
 pub fn clear_modified(name: &str) -> Result<(), ()> {
-    let lock = DVARS.clone();
-    let mut writer = lock.write().unwrap();
+    let mut writer = DVARS.write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.modified = false;
         return Ok(());
@@ -150,8 +145,7 @@ pub fn clear_modified(name: &str) -> Result<(), ()> {
 /// add_flags(name, flags);
 /// ```
 pub fn add_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
-    let lock = DVARS.clone();
-    let mut writer = lock.write().unwrap();
+    let mut writer = DVARS.write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.add_flags(flags);
         return Ok(());
@@ -184,8 +178,7 @@ pub fn add_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
 /// clear_flags(name, flags);
 /// ```
 pub fn clear_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
-    let lock = DVARS.clone();
-    let mut writer = lock.write().unwrap();
+    let mut writer = DVARS.write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.clear_flags(flags);
         return Ok(());
@@ -195,8 +188,7 @@ pub fn clear_flags(name: &str, flags: DvarFlags) -> Result<(), ()> {
 }
 
 pub fn make_latched_value_current(name: &str) -> Result<(), ()> {
-    let lock = DVARS.clone();
-    let mut writer = lock.write().unwrap();
+    let mut writer = DVARS.write().unwrap();
     if let Some(d) = writer.get_mut(name) {
         d.make_latched_value_current();
         return Ok(());
