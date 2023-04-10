@@ -5,7 +5,7 @@ use pollster::block_on;
 use sscanf::scanf;
 extern crate alloc;
 use alloc::collections::VecDeque;
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Mutex};
 use std::sync::RwLock;
 
 use winit::{
@@ -56,7 +56,7 @@ pub fn begin_registration_internal() -> Result<(), ()> {
     if init().is_err() {
         return Err(());
     }
-    sys::wait_event("rg_registered", usize::MAX);
+    sys::wait_event("rgRegisteredEvent", usize::MAX);
     Ok(())
 }
 
@@ -153,7 +153,6 @@ fn init() -> Result<(), ()> {
 
     register();
 
-    env_logger::init();
     init_graphics_api().unwrap();
 
     Ok(())
@@ -555,12 +554,12 @@ fn pre_create_window() -> Result<(), ()> {
 }
 
 lazy_static! {
-    pub static ref WINDOW_AWAITING_INIT: Arc<RwLock<SmpEvent<()>>> =
-        Arc::new(RwLock::new(SmpEvent::new((), false, false)));
-    pub static ref WINDOW_INITIALIZING: Arc<RwLock<SmpEvent<()>>> =
-        Arc::new(RwLock::new(SmpEvent::new((), false, false)));
-    pub static ref WINDOW_INITIALIZED: Arc<RwLock<SmpEvent<bool>>> =
-        Arc::new(RwLock::new(SmpEvent::new(false, false, false)));
+    pub static ref WINDOW_AWAITING_INIT: Mutex<SmpEvent<()>> =
+        Mutex::new(SmpEvent::new((), false, false));
+    pub static ref WINDOW_INITIALIZING: Mutex<SmpEvent<()>> =
+        Mutex::new(SmpEvent::new((), false, false));
+    pub static ref WINDOW_INITIALIZED: Mutex<SmpEvent<bool>> =
+        Mutex::new(SmpEvent::new(false, false, false));
 }
 
 #[allow(
@@ -580,14 +579,12 @@ lazy_static! {
 )]
 pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     {
-        let lock = WINDOW_AWAITING_INIT.clone();
-        let mut window_awaiting_init = lock.write().unwrap();
+        let mut window_awaiting_init = WINDOW_AWAITING_INIT.lock().unwrap();
         window_awaiting_init.send_cleared(());
     }
     {
-        let lock = WINDOW_INITIALIZING.clone();
-        let mut writer = lock.write().unwrap();
-        writer.send(());
+        let mut window_initializing = WINDOW_INITIALIZING.lock().unwrap();
+        window_initializing.send(());
     }
 
     if wnd_parms.fullscreen {
@@ -643,16 +640,8 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         Err(e) => {
             com::println!(8.into(), "Couldn't create a window.");
             com::dprintln!(8.into(), "{}", e);
-            {
-                let lock = WINDOW_INITIALIZING.clone();
-                let mut window_initializing = lock.write().unwrap();
-                window_initializing.send_cleared(());
-            }
-            {
-                let lock = WINDOW_INITIALIZED.clone();
-                let mut writer = lock.write().unwrap();
-                writer.send(false);
-            }
+            WINDOW_INITIALIZING.lock().unwrap().clone().send_cleared(());
+            WINDOW_INITIALIZED.lock().unwrap().clone().send(false);
             return Err(());
         }
     };
@@ -712,9 +701,13 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 .or_else(|| main_window.available_monitors().nth(0))
                 .unwrap();
             let horzres = (monitor.size().width - 450) / 2;
+            assert_ne!(horzres, 0);
             let vertres = (monitor.size().height - 600) / 2;
+            assert_ne!(vertres, 0);
             let console_width = conbuf::s_wcd_window_width();
+            assert_ne!(console_width, 0);
             let console_height = conbuf::s_wcd_window_height();
+            assert_ne!(console_height, 0);
             let console_window = winit::window::WindowBuilder::new()
                 .with_title(console_title)
                 .with_position(Position::Physical(PhysicalPosition::new(
@@ -951,18 +944,8 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 Some("Automatically set the priority of the windows process when the game is minimized"),
             ).unwrap();
 
-            #[allow(clippy::semicolon_outside_block)]
-            {
-                let lock = WINDOW_INITIALIZING.clone();
-                let mut window_initializing = lock.write().unwrap();
-                window_initializing.send_cleared(());
-            }
-            #[allow(clippy::semicolon_outside_block)]
-            {
-                let lock = WINDOW_INITIALIZED.clone();
-                let mut writer = lock.write().unwrap();
-                writer.send(true);
-            }
+            WINDOW_INITIALIZING.lock().unwrap().clone().send_cleared(());
+            WINDOW_INITIALIZED.lock().unwrap().clone().send(false);
         },
         Event::WindowEvent {
             ref event,
@@ -1118,8 +1101,7 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     init_hardware(wnd_parms).unwrap();
 
     {
-        let lock = WND_PARMS.clone();
-        let mut g_wnd_parms = lock.write().unwrap();
+        let mut g_wnd_parms = WND_PARMS.lock().unwrap();
         *g_wnd_parms = *wnd_parms;
     }
     com::println!(
@@ -1134,21 +1116,12 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         std::thread::current().name().unwrap_or("main"),
     );
 
-    {
-        let lock = WINDOW_AWAITING_INIT.clone();
-        let mut window_awaiting_init = lock.write().unwrap();
-        window_awaiting_init.send(());
-    }
-
-    let res = loop {
-        {
-            let lock = WINDOW_INITIALIZED.clone();
-            let mut window_initialized = lock.write().unwrap();
-            if window_initialized.try_acknowledge().is_some() {
-                break window_initialized.get_state();
-            }
-        }
+    WINDOW_AWAITING_INIT.lock().unwrap().clone().send(());
+    let res = { 
+        let mut ev = WINDOW_INITIALIZED.lock().unwrap().clone();
+        ev.acknowledge()
     };
+
     com::println!(
         8.into(),
         "{}: init complete, res={:?}...",
@@ -1170,8 +1143,8 @@ const fn init_systems() -> Result<(), ()> {
 }
 
 lazy_static! {
-    pub static ref WND_PARMS: Arc<RwLock<gfx::WindowParms>> =
-        Arc::new(RwLock::new(gfx::WindowParms::default()));
+    pub static ref WND_PARMS: Mutex<gfx::WindowParms> =
+        Mutex::new(gfx::WindowParms::default());
 }
 
 fn init_graphics_api() -> Result<(), ()> {

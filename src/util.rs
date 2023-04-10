@@ -8,7 +8,7 @@ use std::path::Path;
 use core::sync::atomic::AtomicIsize;
 use core::sync::atomic::AtomicUsize;
 use std::sync::atomic::AtomicU64;
-use std::sync::{Condvar, Mutex};
+use std::sync::{Condvar, Mutex, Arc};
 
 use raw_window_handle::HasRawWindowHandle;
 
@@ -30,10 +30,22 @@ cfg_if! {
     }
 }
 
-pub struct SmpEvent<T: Sized> {
+#[derive(Clone, Debug)]
+struct SmpEventInner<T: Sized + Clone> {
+    signaled: bool,
+    state: T,
+}
+
+impl<T: Sized + Clone> SmpEventInner<T> {
+    const fn new(signaled: bool, state: T) -> Self {
+        Self { signaled, state }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SmpEvent<T: Sized + Clone> {
     manual_reset: bool,
-    condvar: Condvar,
-    mutex: Mutex<(bool, T)>,
+    inner: Arc<(Mutex<SmpEventInner<T>>, Condvar)>,
 }
 
 impl<T: Sized + Clone> SmpEvent<T> {
@@ -46,87 +58,86 @@ impl<T: Sized + Clone> SmpEvent<T> {
     /// * `manual_reset` - Whether or not the event has to be manually-reset.
     /// If [`false`], [`Self::acknowledge`] and its variants will clear the
     /// signaled state. If not, this must be done manually.
-    pub const fn new(state: T, signaled: bool, manual_reset: bool) -> Self {
+    pub fn new(state: T, signaled: bool, manual_reset: bool) -> Self {
         Self {
             manual_reset,
-            condvar: Condvar::new(),
-            mutex: Mutex::new((signaled, state)),
+            inner: Arc::new((Mutex::new(SmpEventInner::new(signaled, state)), Condvar::new())),
         }
     }
 
     pub fn signaled(&self) -> bool {
-        self.mutex.lock().unwrap().0
+        self.inner.0.lock().unwrap().signaled
     }
 
     fn set_signaled(&mut self) {
-        self.mutex.lock().unwrap().0 = true;
+        self.inner.0.lock().unwrap().signaled = true;
     }
 
     fn clear_signaled(&mut self) {
-        self.mutex.lock().unwrap().0 = false;
+        self.inner.0.lock().unwrap().signaled = false;
     }
 
     pub fn get_state(&self) -> T {
-        self.mutex.lock().unwrap().1.clone()
+        self.inner.0.lock().unwrap().state.clone()
     }
 
     pub fn try_get_state(&self) -> Result<T, ()> {
-        self.mutex
+        self.inner.0
             .try_lock()
-            .map_or_else(|_| Err(()), |g| Ok(g.1.clone()))
+            .map_or_else(|_| Err(()), |g| Ok(g.state.clone()))
     }
 
     fn set_state(&mut self, state: T) {
-        self.mutex.lock().unwrap().1 = state;
+        self.inner.0.lock().unwrap().state = state;
     }
 
     fn try_set_state(&mut self, state: T) -> Result<(), ()> {
-        let Ok(guard) = &mut self.mutex.try_lock() else {
+        let Ok(guard) = &mut self.inner.0.try_lock() else {
             return Err(())
         };
 
-        guard.1 = state;
+        guard.state= state;
         Ok(())
     }
 
     fn wait(&self) {
-        let guard = self.mutex.lock().unwrap();
+        let guard = self.inner.0.lock().unwrap();
 
         #[allow(unused_must_use, clippy::semicolon_outside_block)]
         {
-            self.condvar.wait(guard).unwrap();
+            self.inner.1.wait(guard).unwrap();
         }
     }
 
     #[allow(clippy::semicolon_outside_block, clippy::unwrap_in_result)]
     fn try_wait(&self) -> Result<(), ()> {
-        let Ok(guard) = self.mutex.try_lock() else {
+        let Ok(guard) = self.inner.0.try_lock() else {
             return Err(())
         };
 
         #[allow(unused_must_use)]
         {
-            self.condvar.wait(guard).unwrap();
+            self.inner.1.wait(guard).unwrap();
         }
         Ok(())
     }
 
     fn wait_timeout(&self, timeout: Duration) {
-        let guard = self.mutex.lock().unwrap();
+        let guard = self.inner.0.lock().unwrap();
 
         #[allow(unused_must_use, clippy::semicolon_outside_block)]
         {
-            self.condvar.wait_timeout(guard, timeout).unwrap();
+            self.inner.1.wait_timeout(guard, timeout).unwrap();
         }
     }
 
     #[allow(clippy::map_err_ignore, clippy::semicolon_outside_block)]
     fn try_wait_timeout(&self, timeout: Duration) -> Result<(), ()> {
-        let Ok(guard) = self.mutex.try_lock() else { return Err(()) };
+        let Ok(guard) = self.inner.0.try_lock() else { return Err(()) };
 
         #[allow(unused_must_use)]
         {
-            self.condvar.wait_timeout(guard, timeout).map_err(|_| ())?;
+            self.inner.1.wait_timeout(guard, timeout).map_err(|_| ())?;
         }
 
         Ok(())
@@ -137,7 +148,7 @@ impl<T: Sized + Clone> SmpEvent<T> {
         &self,
         condition: F,
     ) -> bool {
-        let guard = match self.mutex.lock() {
+        let guard = match self.inner.lock() {
             Ok(g) => g,
             Err(_) => return false,
         };
@@ -153,7 +164,7 @@ impl<T: Sized + Clone> SmpEvent<T> {
         &self,
         condition: F,
     ) -> bool {
-        let guard = match self.mutex.try_lock() {
+        let guard = match self.inner.try_lock() {
             Ok(g) => g,
             Err(_) => return false,
         };
@@ -170,7 +181,7 @@ impl<T: Sized + Clone> SmpEvent<T> {
         duration: Duration,
         condition: F,
     ) -> bool {
-        let guard = match self.mutex.lock() {
+        let guard = match self.inner.lock() {
             Ok(g) => g,
             Err(_) => return false,
         };
@@ -189,7 +200,7 @@ impl<T: Sized + Clone> SmpEvent<T> {
         duration: Duration,
         condition: F,
     ) -> bool {
-        let guard = match self.mutex.try_lock() {
+        let guard = match self.inner.try_lock() {
             Ok(g) => g,
             Err(_) => return false,
         };
@@ -217,12 +228,12 @@ impl<T: Sized + Clone> SmpEvent<T> {
     */
 
     fn notify_one(&self) {
-        self.condvar.notify_one();
+        self.inner.1.notify_one();
     }
 
     #[allow(dead_code)]
     fn notify_all(&self) {
-        self.condvar.notify_all();
+        self.inner.1.notify_all();
     }
 
     /// Acknowledges the event and retrieves the internal state.

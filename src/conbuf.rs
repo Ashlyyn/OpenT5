@@ -11,7 +11,6 @@ cfg_if! {
         };
         use std::sync::RwLock;
         extern crate alloc;
-        use alloc::sync::Arc;
         use core::sync::atomic::AtomicUsize;
         use arrayvec::ArrayString;
     }
@@ -77,7 +76,7 @@ cfg_if! {
         }
 
         #[allow(clippy::partial_pub_fields)]
-        #[derive(Default, Debug)]
+        #[derive(Debug)]
         pub struct ConsoleData {
             pub window: Option<winit::window::Window>,
             pub buffer_window: Option<winit::window::Window>,
@@ -91,92 +90,95 @@ cfg_if! {
             pub window_height: i16,
         }
 
+        impl Default for ConsoleData {
+            fn default() -> Self {
+                Self { 
+                    window: None, 
+                    buffer_window: None, 
+                    cod_logo_window: None, 
+                    buffer_font: None, 
+                    input_line_window: None, 
+                    error_string: String::new(), 
+                    console_text: ArrayString::new(), 
+                    returned_text: ArrayString::new(),
+                    window_width: 620, 
+                    window_height: 450, 
+                }
+            }
+        }
+
         lazy_static! {
-            pub static ref S_WCD: Arc<RwLock<ConsoleData>> =
-                Arc::new(RwLock::new(ConsoleData::default()));
+            pub static ref S_WCD: RwLock<ConsoleData> =
+                RwLock::new(ConsoleData::default());
         }
 
         pub fn s_wcd_set_window(window: winit::window::Window) {
-            let lock = S_WCD.clone();
-            let mut s_wcd = lock.write().unwrap();
+            let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.window = Some(window);
         }
 
         pub fn s_wcd_set_buffer_window(window: winit::window::Window) {
-            let lock = S_WCD.clone();
-            let mut s_wcd = lock.write().unwrap();
+            let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.buffer_window = Some(window);
         }
 
         pub fn s_wcd_set_input_line_window(window: winit::window::Window) {
-            let lock = S_WCD.clone();
-            let mut s_wcd = lock.write().unwrap();
+            let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.input_line_window = Some(window);
         }
 
         pub fn s_wcd_clear_input_line_window() {
-            let lock = S_WCD.clone();
-            let mut s_wcd = lock.write().unwrap();
+            let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.input_line_window = None;
         }
 
         pub fn s_wcd_set_cod_logo_window(window: winit::window::Window) {
-            let lock = S_WCD.clone();
-            let mut s_wcd = lock.write().unwrap();
+            let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.cod_logo_window = Some(window);
         }
 
         pub fn s_wcd_set_error_string(error: String) {
-            let lock = S_WCD.clone();
-            let mut s_wcd = lock.write().unwrap();
+            let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.error_string = error;
         }
 
         pub fn s_wcd_window_is_none() -> bool {
-            let lock = S_WCD.clone();
-            let s_wcd = lock.read().unwrap();
+            let s_wcd = S_WCD.read().unwrap();
             s_wcd.window.is_none()
         }
 
         pub fn s_wcd_window_set_visible(visible: bool) {
-            let lock = S_WCD.clone();
-            let mut s_wcd = lock.write().unwrap();
+            let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.window.as_mut().unwrap().set_visible(visible);
         }
 
         pub fn s_wcd_buffer_window_handle() -> WindowHandle {
-            let lock = S_WCD.clone();
-            let s_wcd = lock.read().unwrap();
+            let s_wcd = S_WCD.read().unwrap();
             s_wcd.buffer_window.as_ref().unwrap().window_handle()
         }
 
         pub fn s_wcd_buffer_is_none() -> bool {
-            let lock = S_WCD.clone();
-            let s_wcd = lock.read().unwrap();
+            let s_wcd = S_WCD.read().unwrap();
             s_wcd.buffer_window.is_none()
         }
 
         pub fn s_wcd_set_window_width(width: i16) {
-            let lock = S_WCD.clone();
-            let mut s_wcd = lock.write().unwrap();
+            let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.window_width = width;
         }
 
         pub fn s_wcd_window_width() -> i16 {
-            let lock = S_WCD.clone();
-            let s_wcd = lock.read().unwrap();
+            let s_wcd = S_WCD.read().unwrap();
             s_wcd.window_width
         }
 
         pub fn s_wcd_window_height() -> i16 {
-            let lock = S_WCD.clone();
-            let s_wcd = lock.read().unwrap();
+            let s_wcd = S_WCD.read().unwrap();
             s_wcd.window_height
         }
 
         pub fn s_wcd_window_handle() -> RawWindowHandle {
-            let lock = S_WCD.clone();
-            let s_wcd = lock.read().unwrap();
+            let s_wcd = S_WCD.read().unwrap();
             s_wcd.window.as_ref().unwrap().raw_window_handle()
         }
     }

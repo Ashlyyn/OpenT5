@@ -128,9 +128,11 @@ pub fn run() {
         || cmdline.chars().nth(9).unwrap_or(' ') > ' '
     {
         if !cmdline.contains("g_connectpaths 3") {
+            /*
             if sys::check_crash_or_rerun() == false {
                 return;
             }
+            */
         }
     }
 
@@ -221,16 +223,10 @@ pub fn run() {
     // access render::WINDOW_AWATING_INIT to signal to the main thread that
     // it's ready for render::create_window_2 to be called, but the lock on
     // render::AWAITING_WINDOW_INIT is already held in main.
-    loop {
-        {
-            let lock = render::WINDOW_AWAITING_INIT.clone();
-            let mut writer = lock.write().unwrap();
-            // loop until it's ready
-            if writer.try_acknowledge().is_some() {
-                break;
-            }
-        }
-    }
+    let _ = {
+        let mut ev = render::WINDOW_AWAITING_INIT.lock().unwrap().clone();
+        ev.acknowledge()
+    };
 
     // render::create_window_2 needs a gfx::WindowParms to be passed to it.
     // Normally, a gfx::WindowParms is created early in the initialization of
@@ -240,8 +236,7 @@ pub fn run() {
     // manually. render::create_window stores it in render::WND_PARMS right
     // before it signals the main thread to call render::create_window_2.
     // Thus we can just take it from there.
-    let lock = render::WND_PARMS.clone();
-    let mut wnd_parms = *lock.write().unwrap();
+    let mut wnd_parms = *render::WND_PARMS.lock().unwrap();
 
     com::println!(
         0.into(),
