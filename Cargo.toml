@@ -12,7 +12,7 @@ description = "An open-source Rust reimplementation of T5 (the engine running Ca
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "open_t5"
+name = "open_t5_sp"
 path = "src/main.rs"
 
 [dependencies]
