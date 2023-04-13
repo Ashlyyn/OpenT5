@@ -4,7 +4,7 @@
 #![allow(non_snake_case)]
 use std::{mem::size_of_val, ptr::addr_of, collections::VecDeque};
 
-use raw_window_handle::{HasRawDisplayHandle, RawDisplayHandle, WindowsDisplayHandle};
+use raw_window_handle::{HasRawDisplayHandle, RawDisplayHandle, WindowsDisplayHandle, RawWindowHandle, Win32WindowHandle};
 use windows::{
     Win32::{
         Foundation::{WPARAM, HWND, LPARAM, LRESULT, COLORREF, HMODULE, RECT, BOOL},
@@ -117,7 +117,12 @@ impl TryFrom<MSG> for WindowEvent {
     type Error = ();
     fn try_from(value: MSG) -> Result<Self, Self::Error> {
         match value.message {
-            WM_CREATE => Ok(Self::Created),
+            WM_CREATE => {
+                let mut handle = Win32WindowHandle::empty();
+                handle.hwnd = value.hwnd.0 as _;
+                handle.hinstance = unsafe { GetModuleHandleA(None) }.unwrap_or(HMODULE(0)).0 as _;
+                Ok(Self::Created(WindowHandle(RawWindowHandle::Win32(handle))))
+            },
             WM_DESTROY => Ok(Self::Destroyed),
             WM_CLOSE => Ok(Self::CloseRequested),
             WM_MOVE => Ok(Self::Moved { x: value.lParam.low_word() as _, y: value.lParam.high_word() as _ }),
@@ -178,7 +183,7 @@ impl TryFrom<MSG> for WindowEvent {
                 }
 
                 if let Some(k) = Modifiers::try_from_vk(vk, kpi.scancode) {
-                    return Ok(Self::ModifiersChanged(k));
+                    return Ok(Self::ModifiersChanged { modifier: k, down });
                 }
 
                 Err(())

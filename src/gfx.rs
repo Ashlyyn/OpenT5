@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::sync::RwLock;
+
 use crate::{
     platform::{WindowHandle, MonitorHandle},
     render::{MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION},
@@ -434,4 +436,25 @@ impl Default for WindowTarget {
     fn default() -> Self {
         Self::new()
     }
+}
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct Globals {
+    pub started_render_thread: bool,
+    is_multiplayer: bool,
+    end_frame_fence: i32,
+    pub is_rendering_remote_update: bool,
+    pub screen_update_notify: bool,
+    pub remote_screen_update_nesting: i32,
+    pub remote_screen_update_in_game: i32,
+    remote_screen_last_scene_resolve_target: u8,
+    back_end_frame_count: i32,
+    frame_buffer: u8,
+    display_buffer: u8,
+    ui_3d_use_frame_buffer: u8,
+    ui_3d_render_target: u8,
+}
+
+lazy_static! {
+    pub static ref R_GLOB: RwLock<Globals> = RwLock::new(Globals::default());
 }

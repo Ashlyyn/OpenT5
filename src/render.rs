@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::gfx::WindowTarget;
+use crate::gfx::{WindowTarget, R_GLOB};
 use crate::platform::MonitorHandle;
 use crate::platform::os::target::monitor_enum_proc;
 use crate::sys::gpu::Device;
@@ -62,6 +62,24 @@ pub fn begin_registration_internal() -> Result<(), ()> {
     }
     sys::wait_rg_registered_event();
     Ok(())
+}
+
+pub fn begin_remote_screen_update() {
+    if dvar::get_bool("useFastFile").unwrap() 
+        && sys::is_main_thread() 
+        && dvar::get_bool("sys_smp_allowed").unwrap()
+    {
+        assert!(R_GLOB.read().unwrap().remote_screen_update_nesting >= 0);
+        if R_GLOB.read().unwrap().started_render_thread &&
+            (cl::local_client_is_in_game(0) == false || R_GLOB.read().unwrap().remote_screen_update_in_game != 0)
+        {
+            assert_ne!(R_GLOB.read().unwrap().screen_update_notify, false);
+            R_GLOB.write().unwrap().remote_screen_update_nesting += 1;
+            sys::notify_renderer();
+        } else {
+            R_GLOB.write().unwrap().remote_screen_update_nesting += 1;
+        }
+    }
 }
 
 fn register() {
@@ -946,189 +964,10 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     // ========================================================================
 
     event_loop.run(move |event, _, control_flow| match event {
-        Event::NewEvents(StartCause::Init) => {
-            let monitor = main_window.current_monitor().or_else(|| main_window.available_monitors().nth(0)).unwrap();
-            let mut modes: Vec<winit::monitor::VideoMode> = monitor.video_modes().collect();
-            modes.sort_by(|a, b| a.size().width.cmp(&b.size().width));
-            let mut valid_modes: Vec<&winit::monitor::VideoMode> = modes
-                .iter()
-                .filter(|&m| {
-                    m.size().width > u32::from(MIN_HORIZONTAL_RESOLUTION)
-                    && m.size().height > u32::from(MIN_VERTICAL_RESOLUTION)
-                })
-            .collect();
-
-            valid_modes.sort_by_key(|m| m.size().width);
-            valid_modes.sort_by_key(|m| m.refresh_rate_millihertz());
-
-            for m in valid_modes.clone() {
-                RENDER_GLOBALS
-                .write()
-                .unwrap()
-                .resolution_names
-                .insert(format!("{}x{}", m.size().width, m.size().height));
-            }
-
-            WINIT_GLOBALS.clone().write().unwrap().video_modes = valid_modes.iter().map(|v| VideoMode((*v).clone())).collect::<Vec<_>>();
-            let width = monitor.size().width;
-            let height = monitor.size().height;
-            {
-               let mut render_globals = RENDER_GLOBALS.write().unwrap();
-               render_globals.adapter_native_width = width as _;
-               render_globals.adapter_native_height = height as _;
-               render_globals.adapter_fullscreen_width = width as _;
-               render_globals.adapter_fullscreen_height = height as _;
-            }
-
-            let mode = {
-                let mut names: Vec<_> = RENDER_GLOBALS.read().unwrap().resolution_names.iter().cloned().collect();
-                names.sort_by_key(|n| scanf!(n, "{}x{}", u16, u16).unwrap().0);
-                names
-                .iter()
-                .last()
-                .unwrap()
-                .clone()
-            };
-
-            dvar::register_enumeration(
-                "r_mode",
-                mode,
-                Some(RENDER_GLOBALS
-                        .read()
-                        .unwrap()
-                        .resolution_names
-                        .iter()
-                        .cloned()
-                        .collect(),
-                ),
-                dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
-        Some("Renderer resolution mode"),
-            ).unwrap();
-
-            /*
-            modes.sort_by(|a, b| {
-                a.refresh_rate_millihertz()
-                    .cmp(&b.refresh_rate_millihertz())
-            });
-            */
-
-            #[allow(clippy::integer_division)]
-            for m in modes {
-                RENDER_GLOBALS
-                .write()
-                .unwrap()
-                .refresh_rate_names
-                .insert(format!(
-                    "{} Hz",
-                    (m.refresh_rate_millihertz()
-                        - (m.refresh_rate_millihertz() % 1000))
-                        / 1000
-                ));
-            }
-
-            let refresh = {
-                let mut names: Vec<_> = RENDER_GLOBALS.read().unwrap().refresh_rate_names.iter().cloned().collect();
-                names.sort_by_key(|n| scanf!(n, "{} Hz", u16).unwrap());
-                names
-                .iter()
-                .last()
-                .unwrap()
-                .clone()
-            };
-
-            dvar::register_enumeration(
-                "r_displayRefresh",
-                refresh,
-                Some(Vec::from_iter(
-                    RENDER_GLOBALS
-                        .read()
-                        .unwrap()
-                        .refresh_rate_names
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<String>>(),
-                    )
-                ),
-                dvar::DvarFlags::ARCHIVE
-                    | dvar::DvarFlags::LATCHED
-                    | dvar::DvarFlags::CHANGEABLE_RESET,
-                Some("Refresh rate"),
-            ).unwrap();
-
-            let mut wnd_parms = gfx::WindowParms::new();
-            set_wnd_parms(&mut wnd_parms);
-            let width = wnd_parms.display_width;
-            let height = wnd_parms.display_height;
-            let hz = wnd_parms.hz;
-
-            let window_fullscreen = if fullscreen {
-                let modes = main_window.current_monitor().unwrap().video_modes();
-                {
-                    let lock = WINIT_GLOBALS.clone();
-                    let mut winit_globals = lock.write().unwrap();
-                    winit_globals.video_modes = modes.map(VideoMode).collect();
-                }
-                let mut modes = main_window.current_monitor().unwrap().video_modes();
-                let mode = modes
-                    .find(|m| {
-                        m.size().width == u32::from(width)
-                            && m.size().height == u32::from(height)
-                            && m.refresh_rate_millihertz().div_floor(1000)
-                                == u32::from(hz)
-                    })
-                    .unwrap();
-                Some(Fullscreen::Exclusive(mode))
-            } else {
-                None
-            };
-
-            main_window.set_fullscreen(window_fullscreen);
-            if dvar::get_bool("r_reflectionProbeGenerate").unwrap()
-                && dvar::get_bool("r_fullscreen").unwrap() 
-            {
-                dvar::set_bool_internal("r_fullscreen", false).unwrap();
-                cbuf::add_textln(0, "vid_restart");
-            }
-            dvar::register_bool("r_autopriority",
-                false,
-                dvar::DvarFlags::ARCHIVE,
-                Some("Automatically set the priority of the windows process when the game is minimized"),
-            ).unwrap();
-
-            WINDOW_INITIALIZING.lock().unwrap().clone().send_cleared(());
-            WINDOW_INITIALIZED.lock().unwrap().clone().send(false);
-        },
         Event::WindowEvent {
             ref event,
             window_id,
         } if window_id == main_window.id() => match event {
-            WindowEvent::Destroyed => {
-                //FUN_004dfd60()
-                platform::clear_window_handle();
-            },
-            WindowEvent::ModifiersChanged(m) => {
-                modifiers = *m;
-            }
-            WindowEvent::Moved(position) => {
-                if dvar::get_bool("r_fullscreen").unwrap() {
-                    input::mouse::activate(0);
-                } else {
-                    dvar::set_int_internal("vid_xpos", position.x).unwrap();
-                    dvar::set_int_internal("vid_ypos", position.y).unwrap();
-                    dvar::clear_modified("vid_xpos").unwrap();
-                    dvar::clear_modified("vid_ypos").unwrap();
-                    if platform::get_platform_vars().active_app {
-                        input::activate(true);
-                    }
-                }
-            },
-            WindowEvent::Focused(b) => {
-                vid::app_activate(*b, platform::get_minimized());
-            },
-            WindowEvent::CloseRequested => {
-                cbuf::add_textln(0, "quit");
-                *control_flow = ControlFlow::Exit;
-            },
             WindowEvent::MouseWheel {
                 delta,
                 ..

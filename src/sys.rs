@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-use crate::platform::{WindowHandle, get_platform_vars};
+use crate::platform::{WindowHandle};
 use crate::util::{SmpEvent};
 use crate::*;
 use num_derive::FromPrimitive;
@@ -22,7 +22,7 @@ use std::{ptr::addr_of_mut};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::sync::{RwLock, Mutex};
-use std::thread::JoinHandle;
+use std::thread::{JoinHandle, ThreadId};
 use std::{path::PathBuf, time::SystemTime};
 cfg_if! {
     if #[cfg(target_os = "windows")] {
@@ -562,13 +562,16 @@ pub fn find_info() -> SysInfo {
     sys_info.as_ref().unwrap().clone()
 }
 
+#[derive(Clone, Debug)]
 pub enum EventType {
     None,
-    Key(input::keyboard::KeyScancode, bool),
-    Mouse(input::mouse::Scancode, bool),
+    Key(KeyboardScancode, bool),
+    Mouse(MouseScancode, bool),
+    Character(char),
     Console,
 }
 
+#[derive(Clone, Debug)]
 pub struct Event {
     time: isize,
     event_type: EventType,
@@ -590,18 +593,16 @@ impl Event {
 }
 
 lazy_static! {
-    static ref EVENT_QUEUE: Arc<RwLock<VecDeque<Event>>> =
-        Arc::new(RwLock::new(VecDeque::new()));
+    static ref EVENT_QUEUE: RwLock<VecDeque<Event>> =
+        RwLock::new(VecDeque::new());
 }
 
-pub fn enqueue_event(mut event: Event) {
-    if event.time == 0 {
-        event.time = milliseconds();
+pub fn enqueue_event(mut ev: Event) {
+    if ev.time == 0 {
+        ev.time = milliseconds();
     }
 
-    let lock = EVENT_QUEUE.clone();
-    let mut event_queue = lock.write().unwrap();
-    event_queue.push_back(event);
+    EVENT_QUEUE.write().unwrap().push_back(ev);
 }
 
 pub fn render_fatal_error() -> ! {
@@ -656,11 +657,6 @@ pub fn wait_rg_registered_event() {
 lazy_static! {
     static ref BACKEND_EVENT: Mutex<SmpEvent> = Mutex::new(SmpEvent::new(false, true));
 }
-
-pub fn clear_backend_event() {
-    let mut ev = BACKEND_EVENT.lock().unwrap().clone();
-    ev.clear();
-}   
 
 pub fn query_backend_event() -> bool {
     let mut ev = BACKEND_EVENT.lock().unwrap().clone();
@@ -1525,6 +1521,26 @@ bitflags! {
     }
 }
 
+impl TryFrom<Modifiers> for KeyboardScancode {
+    type Error = ();
+    fn try_from(value: Modifiers) -> Result<Self, Self::Error> {
+        match value {
+            Modifiers::CAPSLOCK => Ok(Self::CapsLk),
+            Modifiers::LALT => Ok(Self::LAlt),
+            Modifiers::LCTRL => Ok(Self::LCtrl),
+            Modifiers::LSHIFT => Ok(Self::LShift),
+            Modifiers::LSYS => Ok(Self::LSys),
+            Modifiers::NUMLOCK => Ok(Self::NumLk),
+            Modifiers::RALT => Ok(Self::RAlt),
+            Modifiers::RCTRL => Ok(Self::RCtrl),
+            Modifiers::RSHIFT => Ok(Self::RShift),
+            Modifiers::RSYS => Ok(Self::RSys),
+            Modifiers::SCRLOCK => Ok(Self::ScrLk),
+            _ => Err(())
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MouseScancode {
     LClick,
@@ -1608,7 +1624,7 @@ pub enum WindowEvent {
     MouseButtonDown(MouseScancode),
     MouseButtonUp(MouseScancode),
     MouseWheelScroll(f32),
-    ModifiersChanged(Modifiers),
+    ModifiersChanged { modifier: Modifiers, down: bool },
 }
 
 lazy_static! {
@@ -1627,17 +1643,32 @@ pub fn next_window_event() -> Option<WindowEvent> {
             if unsafe { GetMessageA(addr_of_mut!(msg), None, 0, 0) }.0 == 0 {
                 set_quit_event();
             }
-            let mut pv = get_platform_vars();
-            pv.sys_msg_time = msg.time as _;
+            platform::set_msg_time(msg.time as _);
             unsafe { TranslateMessage(addr_of!(msg)) };
             unsafe { DispatchMessageA(addr_of!(msg)) };
-            msg.try_into().ok()
-        } else {
-            None
         }
+        None
     } else {
         MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
     }
+}
+
+static THREAD_ID: RwLock<[Option<ThreadId>; 15]> = RwLock::new([None; 15]);
+
+fn get_current_thread_id() -> ThreadId {
+    std::thread::current().id()
+}
+
+pub fn init_main_thread() {
+    THREAD_ID.write().unwrap()[0] = Some(get_current_thread_id());
+}
+
+pub fn is_main_thread() -> bool {
+    Some(get_current_thread_id()) == THREAD_ID.read().unwrap()[0]
+}
+
+pub fn notify_renderer() {
+    set_backend_event();
 }
 
 pub fn quit() -> ! {

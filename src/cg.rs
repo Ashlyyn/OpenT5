@@ -2,7 +2,7 @@
 
 use core::time::Duration;
 
-use crate::util::{Angle, Point, Velocity};
+use crate::{util::{Angle, Point, Velocity}, dvar};
 use arrayvec::ArrayString;
 use bitflags::bitflags;
 
@@ -197,4 +197,15 @@ pub struct ClientState {
     vehicle_anim_state: VehicleAnimState,
     score: ScoreCount,
     client_ui_visibility_flags: UiVisibilityFlags,
+}
+
+pub fn register_dvars() {
+    dvar::register_int(
+        "developer", 
+        0, 
+        Some(0), 
+        Some(2), 
+        dvar::DvarFlags::empty(), 
+        Some("Turn on Development systems")
+    ).unwrap();
 }

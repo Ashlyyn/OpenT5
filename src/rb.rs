@@ -1,4 +1,8 @@
-use crate::{*, sys::WindowEvent};
+use std::sync::RwLock;
+
+use crate::{*, sys::{WindowEvent, Modifiers, KeyboardScancode}, cl::Connstate, gfx::R_GLOB};
+
+static MODIFIERS: RwLock<Modifiers> = RwLock::new(Modifiers::empty());
 
 fn swap_buffers() {
     while let Some(ev) = sys::next_window_event() {
@@ -43,7 +47,33 @@ fn swap_buffers() {
             WindowEvent::KillFocus => {
                 vid::app_activate(true, platform::get_minimized());
             },
-            
+            WindowEvent::ModifiersChanged { modifier, down } => {
+                if modifier == Modifiers::CAPSLOCK || modifier == Modifiers::NUMLOCK || modifier == Modifiers::SCRLOCK {
+                    *MODIFIERS.write().unwrap() ^= modifier;
+                } else if down {
+                    *MODIFIERS.write().unwrap() |= modifier;
+                } else {
+                    *MODIFIERS.write().unwrap() &= !modifier;
+                }
+                sys::enqueue_event(sys::Event::new(Some(platform::get_msg_time() as _), sys::EventType::Key(modifier.try_into().unwrap(), down), None));
+            },
+            WindowEvent::KeyDown { logical_scancode, .. } => {
+                if logical_scancode == KeyboardScancode::Enter && MODIFIERS.read().unwrap().contains(Modifiers::LALT) {
+                    if cl::get_local_client_connection_state(0) == Connstate::LOADING {
+                        return;
+                    }
+
+                    if dvar::get_int("developer").unwrap() != 0 {
+                        // FUN_005a5360()
+                        dvar::set_bool("r_fullscreen", dvar::get_bool("r_fullscreen").unwrap() == false).unwrap();
+                        cbuf::add_textln(0, "vid_restart");
+                    }
+                }
+                sys::enqueue_event(sys::Event::new(Some(platform::get_msg_time() as _), sys::EventType::Key(logical_scancode, true), None));
+            },
+            WindowEvent::KeyUp { logical_scancode, .. } => {
+                sys::enqueue_event(sys::Event::new(Some(platform::get_msg_time() as _), sys::EventType::Key(logical_scancode, false), None));
+            },
             _ => { },
         }
     }
@@ -52,9 +82,7 @@ fn swap_buffers() {
 #[allow(clippy::panic, clippy::print_stdout)]
 pub fn render_thread() -> ! {
     loop {
-        //com::dprintln!(8.into(), "loop1");
         loop {
-            //com::dprintln!(8.into(), "loop2");
             if !sys::query_backend_event() {
                 if !sys::query_rg_registered_event() {
                     swap_buffers();
@@ -63,8 +91,18 @@ pub fn render_thread() -> ! {
                     sys::clear_rg_registered_event();
                 }
             } else {
-                panic!("");
+                
+            }
+
+            if R_GLOB.read().unwrap().remote_screen_update_nesting != 0 {
+                break;
             }
         }
+
+        assert_eq!(R_GLOB.read().unwrap().screen_update_notify, false);
+        R_GLOB.write().unwrap().screen_update_notify = true;
+        assert_eq!(R_GLOB.read().unwrap().is_rendering_remote_update, false);
+        R_GLOB.write().unwrap().is_rendering_remote_update = true;
     }
+    
 }

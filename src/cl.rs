@@ -17,7 +17,7 @@ use crate::{
     util::{Angle, Point, Velocity}, vid, render,
 };
 
-#[derive(Copy, Clone, Default, Debug, FromPrimitive)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, FromPrimitive)]
 #[repr(u8)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Connstate {
@@ -72,6 +72,10 @@ pub fn get_local_client_connection_state(local_client_num: usize) -> Connstate {
 pub fn get_local_client_ui_actives_mut(
 ) -> RwLockWriteGuard<'static, [ClientUiActive; 4]> {
     CLIENT_UI_ACTIVES.write().unwrap()
+}
+
+pub fn local_client_is_in_game(local_client_num: usize) -> bool {
+    get_local_client_connection_state(local_client_num) == Connstate::LOADING
 }
 
 // TODO - implement
@@ -203,4 +207,8 @@ lazy_static! {
 
 pub fn init_renderer() {
     render::begin_registration(&mut CLS.write().unwrap().vid_config);
+}
+
+pub fn init_once_for_all_clients() {
+    cg::register_dvars();
 }

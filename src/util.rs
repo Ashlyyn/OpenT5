@@ -77,7 +77,12 @@ impl SmpEvent {
 
     pub fn set(&mut self) {
         *self.inner.0.lock().unwrap() = true;
-        self.notify_one();
+
+        if self.manual_reset {
+            self.notify_all();
+        } else {
+            self.notify_one();
+        }
     }
 
     fn notify_one(&self) {
