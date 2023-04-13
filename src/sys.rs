@@ -1570,11 +1570,15 @@ bitflags! {
 #[non_exhaustive]
 pub enum WindowEvent {
     MouseWheel(u32),
-    Created,
+    Created(WindowHandle),
     Destroyed,
     Moved { 
         x: u32, 
-        y : u32 
+        y: u32 
+    },
+    Resized {
+        width: u32, 
+        height: u32,
     },
     Activate,
     Deactivate,
