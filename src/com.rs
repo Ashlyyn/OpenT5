@@ -450,6 +450,8 @@ fn init_try_block_function() {
     init_dvars();
     fs::init_filesystem(true);
     render::init_threads();
+    cl::init_renderer();
+    self::println!(16.into(), "--- Common Initialization Complete ---");
 }
 
 #[allow(clippy::todo)]

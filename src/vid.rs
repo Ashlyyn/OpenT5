@@ -9,12 +9,12 @@ use lazy_static::lazy_static;
 
 #[derive(Copy, Clone, Default)]
 pub struct Config {
-    pub scene_width: u16,
-    pub scene_height: u16,
-    pub display_width: u16,
-    pub display_height: u16,
-    pub output_display_width: u16,
-    pub output_display_height: u16,
+    pub scene_width: u32,
+    pub scene_height: u32,
+    pub display_width: u32,
+    pub display_height: u32,
+    pub output_display_width: u32,
+    pub output_display_height: u32,
     pub display_frequency: f32,
     pub is_tool_mode: bool,
     pub is_fullscreen: bool,
@@ -24,6 +24,12 @@ pub struct Config {
     pub max_texture_size: usize,
     pub max_texture_maps: usize,
     pub device_supports_gamma: bool,
+}
+
+impl Config {
+    pub fn new() -> Self {
+        Self::default()
+    }   
 }
 
 lazy_static! {

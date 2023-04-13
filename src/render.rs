@@ -1,14 +1,16 @@
 #![allow(dead_code)]
 
+use crate::gfx::WindowTarget;
 use crate::platform::MonitorHandle;
 use crate::platform::os::target::monitor_enum_proc;
+use crate::sys::gpu::Device;
 use crate::{platform::WindowHandle, *};
 use pollster::block_on;
 use raw_window_handle::{RawWindowHandle, Win32WindowHandle};
 use sscanf::scanf;
 extern crate alloc;
-use windows::Win32::Foundation::{RECT, HWND, LPARAM, POINT};
-use windows::Win32::Graphics::Gdi::{DEVMODEW, EnumDisplayMonitors, MONITOR_DEFAULTTOPRIMARY, MONITOR_DEFAULTTONEAREST, MonitorFromPoint, MonitorFromWindow, GetMonitorInfoW, MONITORINFOEXW, EnumDisplaySettingsExW, ENUM_CURRENT_SETTINGS, ENUM_DISPLAY_SETTINGS_FLAGS, ENUM_DISPLAY_SETTINGS_MODE, DEVMODE_FIELD_FLAGS, DM_BITSPERPEL, DM_PELSWIDTH, DM_PELSHEIGHT, DM_DISPLAYFREQUENCY};
+use windows::Win32::Foundation::{RECT, HWND, LPARAM, POINT, BOOL};
+use windows::Win32::Graphics::Gdi::{DEVMODEW, EnumDisplayMonitors, MONITOR_DEFAULTTOPRIMARY, MONITOR_DEFAULTTONEAREST, MonitorFromPoint, MonitorFromWindow, GetMonitorInfoW, MONITORINFOEXW, EnumDisplaySettingsExW, ENUM_CURRENT_SETTINGS, ENUM_DISPLAY_SETTINGS_FLAGS, ENUM_DISPLAY_SETTINGS_MODE, DEVMODE_FIELD_FLAGS, DM_BITSPERPEL, DM_PELSWIDTH, DM_PELSHEIGHT, DM_DISPLAYFREQUENCY, HMONITOR, HDC};
 use windows::Win32::System::LibraryLoader::GetModuleHandleA;
 use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
 use windows::Win32::UI::WindowsAndMessaging::{WS_EX_LEFT, WS_SYSMENU, WS_CAPTION, WS_VISIBLE, WS_EX_TOPMOST, WS_POPUP, AdjustWindowRectEx, CreateWindowExA, SetWindowPos, HWND_NOTOPMOST, SWP_NOSIZE, SWP_NOMOVE, ShowWindow, SW_SHOW, GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
@@ -21,8 +23,8 @@ use std::ptr::addr_of_mut;
 use std::sync::RwLock;
 use std::{collections::HashSet};
 
-pub const MIN_HORIZONTAL_RESOLUTION: u16 = 640;
-pub const MIN_VERTICAL_RESOLUTION: u16 = 480;
+pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
+pub const MIN_VERTICAL_RESOLUTION: u32 = 480;
 
 fn init_render_thread() {
     if !sys::spawn_render_thread(rb::render_thread) {
@@ -45,11 +47,20 @@ pub fn init_threads() {
     );
 }
 
+pub fn begin_registration(_vid_config: &mut vid::Config) {
+    sys::set_rg_registered_event();
+    loop {
+        if sys::query_rg_registered_event() == false {
+            break;
+        }
+    }
+}
+
 pub fn begin_registration_internal() -> Result<(), ()> {
     if init().is_err() {
         return Err(());
     }
-    sys::wait_event("rgRegisteredEvent", usize::MAX);
+    sys::wait_rg_registered_event();
     Ok(())
 }
 
@@ -173,17 +184,17 @@ pub fn main_window_handle() -> Option<WindowHandle> {
 }
 
 pub struct RenderGlobals {
-    adapter_native_width: u16,
-    adapter_native_height: u16,
-    adapter_fullscreen_width: u16,
-    adapter_fullscreen_height: u16,
+    adapter_native_width: u32,
+    adapter_native_height: u32,
+    adapter_fullscreen_width: u32,
+    adapter_fullscreen_height: u32,
     resolution_names: HashSet<String>,
     refresh_rate_names: HashSet<String>,
     target_window_index: i32,
-    window: gfx::WindowTarget,
     device: Option<sys::gpu::Device>,
     adapter: Option<sys::gpu::Adapter>,
     instance: Option<sys::gpu::Instance>,
+    windows: Vec<WindowTarget>,
 }
 
 impl RenderGlobals {
@@ -196,10 +207,10 @@ impl RenderGlobals {
             resolution_names: HashSet::new(),
             refresh_rate_names: HashSet::new(),
             target_window_index: 0,
-            window: gfx::WindowTarget::new(),
             device: None,
             adapter: None,
             instance: None,
+            windows: Vec::new(),
         }
     }
 }
@@ -254,21 +265,13 @@ impl PartialOrd for VideoMode {
     }
 }
 
-pub fn get_monitor_dimensions() -> Option<(u32, u32)> {
-    if let Some(info) = monitor_info(primary_monitor()) {
-        Some((info.width, info.height))
-    } else {
-        None
-    }
-}
-
 pub fn set_custom_resolution(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     let custom_mode = dvar::get_string("r_customMode").unwrap();
-    (wnd_parms.display_width, wnd_parms.display_height) = match scanf!(custom_mode, "{}x{}", u16, u16) {
+    (wnd_parms.display_width, wnd_parms.display_height) = match scanf!(custom_mode, "{}x{}", u32, u32) {
         Err(_) => return Err(()),
         Ok((w, h)) => (w, h)
     };
-    if let Some((width, height)) = get_monitor_dimensions() {
+    if let Some((width, height)) = get_monitor_dimensions(wnd_parms.monitor_handle.unwrap()) {
         if width < wnd_parms.display_width as _ || height < wnd_parms.display_height as _ {
             Err(())
         } else {
@@ -281,8 +284,8 @@ pub fn set_custom_resolution(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()>
 
 #[allow(clippy::cast_possible_truncation)]
 fn closest_refresh_rate_for_mode(
-    width: u16,
-    height: u16,
+    width: u32,
+    height: u32,
     hz: f32,
 ) -> Option<f32> {
     let video_modes = WINDOW_GLOBALS
@@ -336,12 +339,12 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
     
     if r_fullscreen && set_custom_resolution(wnd_parms).is_err() {
         let r_mode = dvar::get_enumeration("r_mode").unwrap();
-        (wnd_parms.display_width, wnd_parms.display_height) = scanf!(r_mode, "{}x{}", u16, u16).unwrap();
+        (wnd_parms.display_width, wnd_parms.display_height) = scanf!(r_mode, "{}x{}", u32, u32).unwrap();
     }
 
     let r_mode = dvar::get_enumeration("r_mode").unwrap();
     (wnd_parms.display_width, wnd_parms.display_height) =
-        scanf!(r_mode, "{}x{}", u16, u16).unwrap();
+        scanf!(r_mode, "{}x{}", u32, u32).unwrap();
 
     if !wnd_parms.fullscreen {
         let render_globals = RENDER_GLOBALS.read().unwrap();
@@ -380,6 +383,7 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
     wnd_parms.window_handle = None;
     wnd_parms.aa_samples =
         dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
+    wnd_parms.monitor_handle = Some(primary_monitor());
 }
 
 #[allow(
@@ -406,21 +410,21 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 let (display_width, display_height) =
                     if vid_config.is_fullscreen {
                         (
-                            f32::from(render_globals.adapter_native_width),
-                            f32::from(render_globals.adapter_native_height),
+                            render_globals.adapter_native_width,
+                            render_globals.adapter_native_height
                         )
                     } else {
                         (
-                            f32::from(vid_config.display_width),
-                            f32::from(vid_config.display_height),
+                            vid_config.display_width,
+                            vid_config.display_height,
                         )
                     };
 
-                if (display_width / display_height - 16.0 / 10.0).abs()
+                if (display_width as f32 / display_height as f32 - 16.0 / 10.0).abs()
                     < f32::EPSILON
                 {
                     16.0 / 10.0
-                } else if display_width / display_height > 16.0 / 10.0 {
+                } else if display_width as f32 / display_height as f32 > 16.0 / 10.0 {
                     16.0 / 9.0
                 } else {
                     4.0 / 3.0
@@ -440,18 +444,18 @@ fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         (vid_config.aspect_ratio_window - 4.0 / 3.0).abs() > f32::EPSILON,
     )
     .unwrap();
-    vid_config.aspect_ratio_scene_pixel = (f32::from(vid_config.scene_height)
+    vid_config.aspect_ratio_scene_pixel = (vid_config.scene_height as f32
         * vid_config.aspect_ratio_window)
-        / f32::from(vid_config.scene_width);
+        / vid_config.scene_width as f32;
 
     let render_globals = RENDER_GLOBALS.write().unwrap();
 
     vid_config.aspect_ratio_display_pixel = if !vid_config.is_fullscreen {
         1.0
     } else {
-        (f32::from(render_globals.adapter_fullscreen_height)
+        (render_globals.adapter_fullscreen_height as f32
             * vid_config.aspect_ratio_window)
-            / f32::from(render_globals.adapter_fullscreen_width)
+            / render_globals.adapter_fullscreen_width as f32
     };
 
     vid_config.is_tool_mode = dvar::get_bool("r_reflectionProbeGenerate")
@@ -486,8 +490,9 @@ fn reduce_window_settings() -> Result<(), ()> {
 
 #[allow(clippy::unnecessary_wraps)]
 fn choose_adapter() -> Option<sys::gpu::Adapter> {
-    let instance = sys::gpu::Instance::new();
-    Some(block_on(sys::gpu::Adapter::new(&instance, None)))
+    let rg = RENDER_GLOBALS.write().unwrap();
+    let adapter = block_on(sys::gpu::Adapter::new(rg.instance.as_ref().unwrap(), None));
+    Some(adapter)
 }
 
 fn available_monitors() -> VecDeque<MonitorHandle> {
@@ -514,6 +519,38 @@ fn current_monitor(handle: WindowHandle) -> MonitorHandle {
     MonitorHandle::Win32(hmonitor)
 }
 
+#[repr(C)]
+struct MonitorEnumData {
+    monitor: i32,
+    handle: HMONITOR,
+}
+
+unsafe extern "system" fn monitor_enum_callback(hmonitor: HMONITOR, _hdc: HDC, _rect: *mut RECT, data: LPARAM) -> BOOL {
+    let data = data.0 as *mut MonitorEnumData;
+    (*data).monitor -= 1;
+    if (*data).monitor == 0 {
+        (*data).handle = hmonitor;
+    }
+    BOOL(((*data).monitor != 0) as _)
+}
+
+fn choose_monitor() -> MonitorHandle {
+    let fullscreen = dvar::get_bool("r_fullscreen").unwrap();
+    if fullscreen {
+        let monitor = dvar::get_int("r_monitor").unwrap();
+        let mut data = MonitorEnumData { monitor, handle: HMONITOR(0) };
+        unsafe { EnumDisplayMonitors(None, None, Some(monitor_enum_callback), LPARAM(addr_of_mut!(data) as _)) };
+        if data.handle != HMONITOR(0) {
+            return MonitorHandle::Win32(data.handle);
+        }
+    }
+
+    let xpos = dvar::get_int("vid_xpos").unwrap();
+    let ypos = dvar::get_int("vid_ypos").unwrap();
+    let hmonitor = unsafe { MonitorFromPoint(POINT { x: xpos, y: ypos }, MONITOR_DEFAULTTOPRIMARY) };
+    MonitorHandle::Win32(hmonitor)
+}
+
 struct MonitorInfo {
     name: String,
     width: u32,
@@ -522,11 +559,11 @@ struct MonitorInfo {
     video_modes: Vec<VideoMode>,
 }
 
-fn monitor_info(monitor_handle: MonitorHandle) -> Option<MonitorInfo> {
+fn get_monitor_dimensions(monitor_handle: MonitorHandle) -> Option<(u32, u32)> {
     let mut mi = MONITORINFOEXW::default();
     mi.monitorInfo.cbSize = size_of_val(&mi) as _;
     unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)) };
-    let name = char::decode_utf16(mi.szDevice).flatten().collect::<String>();
+
     let mi_width = (mi.monitorInfo.rcMonitor.right - mi.monitorInfo.rcMonitor.left) as u32;
     let mi_height = (mi.monitorInfo.rcMonitor.bottom - mi.monitorInfo.rcMonitor.top) as u32;
     let width = if mi_width > 0 { 
@@ -550,6 +587,14 @@ fn monitor_info(monitor_handle: MonitorHandle) -> Option<MonitorInfo> {
         }
     };
 
+    Some((width, height))
+}
+
+fn monitor_info(monitor_handle: MonitorHandle) -> Option<MonitorInfo> {
+    let mut mi = MONITORINFOEXW::default();
+    mi.monitorInfo.cbSize = size_of_val(&mi) as _;
+    unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)) };
+    let name = char::decode_utf16(mi.szDevice).flatten().collect::<String>();
 
     let mut mode = DEVMODEW::default();
     mode.dmSize = size_of_val(&mode) as _;
@@ -580,6 +625,8 @@ fn monitor_info(monitor_handle: MonitorHandle) -> Option<MonitorInfo> {
             refresh: mode.dmDisplayFrequency as _,
         });
     }
+
+    let (width, height) = get_monitor_dimensions(monitor_handle)?;
     Some(MonitorInfo { name, width, height, refresh: refresh as _, video_modes: modes.into_iter().collect() })
 
 }
@@ -618,14 +665,7 @@ fn enum_display_modes() {
 fn pre_create_window() -> Result<(), ()> {
     com::println!(8.into(), "Getting Device interface...");
     let instance = sys::gpu::Instance::new();
-    let adapter = block_on(sys::gpu::Adapter::new(&instance, None));
-    RENDER_GLOBALS.write().unwrap().device =
-        if let Some(d) = block_on(sys::gpu::Device::new(&adapter)) {
-            Some(d)
-        } else {
-            com::println!(8.into(), "Device failed to initialize.");
-            return Err(());
-        };
+    RENDER_GLOBALS.write().unwrap().instance = Some(instance);
 
     let adapter = choose_adapter();
     enum_display_modes();
@@ -1196,10 +1236,15 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 }
 */
 
+static HARDWARE_INITED: AtomicBool = AtomicBool::new(false);
+
 #[allow(clippy::unnecessary_wraps)]
 fn init_hardware(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     store_window_settings(wnd_parms).unwrap();
-    com::println!(8.into(), "TODO: render::init_hardware");
+    if HARDWARE_INITED.load(Ordering::Relaxed) == false {
+        finish_attaching_to_window(wnd_parms);
+    }
+    
     Ok(())
 }
 
@@ -1219,21 +1264,15 @@ const fn init_systems() -> Result<(), ()> {
 }
 
 fn init_graphics_api() -> Result<(), ()> {
-    com::println!(
-        8.into(),
-        "{}: render::init_graphics_api()...",
-        std::thread::current().name().unwrap_or("main"),
-    );
-
     if RENDER_GLOBALS.read().unwrap().device.is_none() {
         if pre_create_window().is_err() {
             return Err(());
         }
 
+        let mut wnd_parms: gfx::WindowParms = gfx::WindowParms::new();
         loop {
-            let mut wnd_parms: gfx::WindowParms = gfx::WindowParms::new();
             set_wnd_parms(&mut wnd_parms);
-            if create_window(&mut wnd_parms).is_err() {
+            if create_window(&mut wnd_parms).is_ok() {
                 break;
             }
             if reduce_window_settings().is_err() {
@@ -1245,4 +1284,52 @@ fn init_graphics_api() -> Result<(), ()> {
     } else {
         init_systems()
     }
+}
+
+fn finish_attaching_to_window(wnd_parms: &gfx::WindowParms) {
+    let mut rg = RENDER_GLOBALS.write().unwrap();
+    assert_eq!(rg.windows.len(), 0);
+    // swapchain
+    let window = WindowTarget { 
+        handle: wnd_parms.window_handle, 
+        width: wnd_parms.display_width, 
+        height: wnd_parms.display_height 
+    };
+    rg.windows.push(window);
+    HARDWARE_INITED.store(true, Ordering::Relaxed);
+}
+
+fn create_device_internal(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
+    com::println!(8.into(), "Creating Render device...");
+
+    let mut rg = RENDER_GLOBALS.write().unwrap();
+    rg.device = block_on(Device::new(rg.adapter.as_ref().unwrap()));
+
+    (rg.adapter_native_width, rg.adapter_native_height) = get_monitor_dimensions(wnd_parms.monitor_handle.unwrap()).unwrap();
+    rg.device = block_on(sys::gpu::Device::new(rg.adapter.as_ref().unwrap()));
+    if rg.device.is_none() {
+        return Err(())
+    }
+
+    Ok(())
+}
+
+fn create_device(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
+    {
+        let rg = RENDER_GLOBALS.read().unwrap();
+        assert_ne!(rg.windows.len(), 0);
+        assert_ne!(wnd_parms.window_handle, None);
+        assert!(!rg.device.is_none());
+    }
+
+    // depth stencil 
+
+    if create_device_internal(wnd_parms).is_err() {
+        com::print_errorln!(8.into(), "Couldn't create a Renderer device");
+        return Err(());
+    }
+
+    let rg = RENDER_GLOBALS.read().unwrap();
+    assert!(rg.device.is_some());
+    Ok(())
 }

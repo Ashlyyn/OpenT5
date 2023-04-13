@@ -15,11 +15,10 @@ use windows::Win32::UI::WindowsAndMessaging::{PeekMessageA, MSG, PM_NOREMOVE, Ge
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
-    time::Duration,
 };
 use std::ptr::addr_of;
 use lazy_static::lazy_static;
-use std::{collections::HashMap, ptr::addr_of_mut};
+use std::{ptr::addr_of_mut};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::sync::{RwLock, Mutex};
@@ -611,43 +610,61 @@ pub fn render_fatal_error() -> ! {
 }
 
 lazy_static! {
-    static ref EVENTS: RwLock<HashMap<String, SmpEvent<()>>> =
-        RwLock::new(HashMap::new());
+    static ref QUIT_EVENT: Mutex<SmpEvent> = Mutex::new(SmpEvent::new(false, true));
 }
 
-pub fn create_event(manual_reset: bool, initial_state: bool, name: &str) {
-    EVENTS.write().unwrap().insert(
-        name.to_owned(),
-        SmpEvent::new((), initial_state, manual_reset),
-    );
-    if initial_state {
-        EVENTS
-            .write()
-            .unwrap()
-            .get_mut(&name.to_owned())
-            .unwrap()
-            .send(());
-    }
+
+pub fn set_quit_event() {
+    let mut ev = QUIT_EVENT.lock().unwrap().clone();
+    ev.set();
 }
 
-#[allow(clippy::panic, clippy::as_conversions)]
-fn wait_for_event_timeout(name: &str, timeout: usize) -> bool {
-    let mut events = EVENTS.write().unwrap();
-    events.get_mut(&name.to_owned()).map_or_else(
-        || panic!("sys::wait_for_event_timeout: event not found."),
-        |e| {
-            e.acknowledge_timeout(Duration::from_millis(timeout as _));
-            e.signaled()
-        },
-    )
+lazy_static! {
+    static ref RG_REGISTERED_EVENT: Mutex<SmpEvent> = Mutex::new(SmpEvent::new(false, true));
 }
 
-pub fn query_event(name: &str) -> bool {
-    wait_for_event_timeout(name, 0)
+pub fn clear_rg_registered_event() {
+    let mut ev = RG_REGISTERED_EVENT.lock().unwrap().clone();
+    ev.clear();
 }
 
-pub fn wait_event(name: &str, msec: usize) -> bool {
-    wait_for_event_timeout(name, msec)
+pub fn query_rg_registered_event() -> bool {
+    let mut ev = RG_REGISTERED_EVENT.lock().unwrap().clone();
+    ev.query()
+}
+
+pub fn set_rg_registered_event() {
+    let mut ev = RG_REGISTERED_EVENT.lock().unwrap().clone();
+    ev.set();
+}
+
+pub fn wait_rg_registered_event() {
+    let mut ev = RG_REGISTERED_EVENT.lock().unwrap().clone();
+    ev.wait();
+}
+
+lazy_static! {
+    static ref BACKEND_EVENT: Mutex<SmpEvent> = Mutex::new(SmpEvent::new(false, true));
+}
+
+pub fn clear_backend_event() {
+    let mut ev = BACKEND_EVENT.lock().unwrap().clone();
+    ev.clear();
+}   
+
+pub fn query_backend_event() -> bool {
+    let mut ev = BACKEND_EVENT.lock().unwrap().clone();
+    ev.query()
+}
+
+pub fn set_backend_event() {
+    let mut ev = BACKEND_EVENT.lock().unwrap().clone();
+    ev.set();
+}
+
+pub fn wait_backend_event() {
+    let mut ev = BACKEND_EVENT.lock().unwrap().clone();
+    ev.wait();
 }
 
 pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
@@ -676,23 +693,6 @@ pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
 pub fn spawn_render_thread<F: Fn() -> ! + Send + Sync + 'static>(
     function: F,
 ) -> bool {
-    create_event(false, false, "renderPausedEvent");
-    create_event(true, true, "renderCompletedEvent");
-    create_event(true, false, "resourcesFlushedEvent");
-    create_event(true, false, "resourcesQueuedEvent");
-    create_event(true, true, "rendererRunningEvent");
-    create_event(true, false, "backendEvent");
-    create_event(false, false, "backendEvent1");
-    create_event(true, true, "updateSpotLightEffectEvent");
-    create_event(true, true, "updateEffectsEvent");
-    create_event(true, true, "deviceOKEvent");
-    create_event(true, false, "deviceHardStartEvent");
-    create_event(true, false, "renderShutdownEvent");
-    create_event(true, true, "deviceMessageEvent");
-    create_event(true, false, "osQuitEvent");
-    create_event(true, false, "osScriptDebuggerDrawEvent");
-    create_event(true, false, "rgRegisteredEvent");
-    create_event(true, false, "renderEvent");
     create_thread("Backend", function).map_or(false, |h| {
         h.thread().unpark();
         true
@@ -1383,10 +1383,6 @@ pub const fn default_cd_path() -> &'static str {
 
 pub fn cwd() -> PathBuf {
     std::env::current_dir().unwrap()
-}
-
-pub fn set_quit_event() {
-
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

@@ -14,7 +14,7 @@ use num_derive::FromPrimitive;
 use crate::{
     cg::{self, Angles3, OffhandId, WeaponId},
     common::{StanceState, Vec3f32},
-    util::{Angle, Point, Velocity},
+    util::{Angle, Point, Velocity}, vid, render,
 };
 
 #[derive(Copy, Clone, Default, Debug, FromPrimitive)]
@@ -181,4 +181,26 @@ pub fn get_local_client_globals() -> RwLockReadGuard<'static, Vec<ClientActive>>
 pub fn get_local_client_globals_mut(
 ) -> RwLockWriteGuard<'static, Vec<ClientActive>> {
     CLIENTS.write().unwrap()
+}
+
+#[derive(Copy, Clone, Default)]
+pub struct ClientStatic {
+    vid_config: vid::Config,
+}
+
+impl ClientStatic {
+    pub fn new() -> Self {
+        Self {
+            vid_config: vid::Config::new(),
+        }
+    }
+}
+
+lazy_static! {
+    static ref CLS: RwLock<ClientStatic> = RwLock::new(ClientStatic::new());
+}
+
+
+pub fn init_renderer() {
+    render::begin_registration(&mut CLS.write().unwrap().vid_config);
 }

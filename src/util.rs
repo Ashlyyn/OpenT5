@@ -2,7 +2,6 @@
 
 use core::f32::consts::PI;
 use core::sync::atomic::{AtomicBool, Ordering};
-use core::time::Duration;
 use std::path::Path;
 
 use core::sync::atomic::AtomicIsize;
@@ -34,205 +33,52 @@ cfg_if! {
 }
 
 #[derive(Clone, Debug)]
-struct SmpEventInner<T: Sized + Clone> {
-    signaled: bool,
-    state: T,
-}
-
-impl<T: Sized + Clone> SmpEventInner<T> {
-    const fn new(signaled: bool, state: T) -> Self {
-        Self { signaled, state }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct SmpEvent<T: Sized + Clone> {
+pub struct SmpEvent {
     manual_reset: bool,
-    inner: Arc<(Mutex<SmpEventInner<T>>, Condvar)>,
+    inner: Arc<(Mutex<bool>, Condvar)>,
 }
 
-impl<T: Sized + Clone> SmpEvent<T> {
+impl SmpEvent {
     /// Creates a new [`SmpEvent`]
     ///
     /// # Arguments
-    /// * `state` - The initial internal state for the object.
     /// * `signaled` - Whether or not to initialize
     /// the event in the signaled state.
     /// * `manual_reset` - Whether or not the event has to be manually-reset.
     /// If [`false`], [`Self::acknowledge`] and its variants will clear the
     /// signaled state. If not, this must be done manually.
-    pub fn new(state: T, signaled: bool, manual_reset: bool) -> Self {
+    pub fn new(signaled: bool, manual_reset: bool) -> Self {
         Self {
             manual_reset,
             inner: Arc::new((
-                Mutex::new(SmpEventInner::new(signaled, state)),
+                Mutex::new(signaled),
                 Condvar::new(),
             )),
         }
     }
 
-    pub fn signaled(&self) -> bool {
-        self.inner.0.lock().unwrap().signaled
-    }
-
-    fn set_signaled(&mut self) {
-        self.inner.0.lock().unwrap().signaled = true;
-    }
-
-    fn clear_signaled(&mut self) {
-        self.inner.0.lock().unwrap().signaled = false;
-    }
-
-    pub fn get_state(&self) -> T {
-        self.inner.0.lock().unwrap().state.clone()
-    }
-
-    pub fn try_get_state(&self) -> Result<T, ()> {
-        self.inner
-            .0
-            .try_lock()
-            .map_or_else(|_| Err(()), |g| Ok(g.state.clone()))
-    }
-
-    fn set_state(&mut self, state: T) {
-        self.inner.0.lock().unwrap().state = state;
-    }
-
-    fn try_set_state(&mut self, state: T) -> Result<(), ()> {
-        if let Ok(guard) = &mut self.inner.0.try_lock() {
-            guard.state = state;
-            Ok(())
-        } else {
-            Err(())
+    pub fn wait(&mut self) {
+        if *self.inner.0.lock().unwrap() == true {
+            return;
         }
-    }
-
-    fn wait(&self) {
-        let guard = self.inner.0.lock().unwrap();
-
-        #[allow(unused_must_use, clippy::semicolon_outside_block)]
+        #[allow(unused_must_use)] 
         {
-            self.inner.1.wait(guard).unwrap();
+            self.inner.1.wait(self.inner.0.lock().unwrap());
         }
     }
 
-    #[allow(clippy::semicolon_outside_block, clippy::unwrap_in_result)]
-    fn try_wait(&self) -> Result<(), ()> {
-        let Ok(guard) = self.inner.0.try_lock() else {
-            return Err(())
-        };
-
-        #[allow(unused_must_use)]
-        {
-            self.inner.1.wait(guard).unwrap();
-        }
-        Ok(())
+    pub fn query(&mut self) -> bool {
+        *self.inner.0.lock().unwrap()
     }
 
-    fn wait_timeout(&self, timeout: Duration) {
-        let guard = self.inner.0.lock().unwrap();
-
-        #[allow(unused_must_use, clippy::semicolon_outside_block)]
-        {
-            self.inner.1.wait_timeout(guard, timeout).unwrap();
-        }
+    pub fn clear(&mut self) {
+        *self.inner.0.lock().unwrap() = false;
     }
 
-    #[allow(clippy::map_err_ignore, clippy::semicolon_outside_block)]
-    fn try_wait_timeout(&self, timeout: Duration) -> Result<(), ()> {
-        let Ok(guard) = self.inner.0.try_lock() else { return Err(()) };
-
-        #[allow(unused_must_use)]
-        {
-            self.inner.1.wait_timeout(guard, timeout).map_err(|_| ())?;
-        }
-
-        Ok(())
+    pub fn set(&mut self) {
+        *self.inner.0.lock().unwrap() = true;
+        self.notify_one();
     }
-
-    /*
-    fn wait_while<F: FnMut(&mut (bool, T)) -> bool>(
-        &self,
-        condition: F,
-    ) -> bool {
-        let guard = match self.inner.lock() {
-            Ok(g) => g,
-            Err(_) => return false,
-        };
-
-        #[allow(unused_must_use)]
-        {
-            self.condvar.wait_while(guard, condition).unwrap();
-        }
-        true
-    }
-
-    fn try_wait_while<F: FnMut(&mut (bool, T)) -> bool>(
-        &self,
-        condition: F,
-    ) -> bool {
-        let guard = match self.inner.try_lock() {
-            Ok(g) => g,
-            Err(_) => return false,
-        };
-
-        #[allow(unused_must_use)]
-        {
-            self.condvar.wait_while(guard, condition).unwrap();
-        }
-        true
-    }
-
-    fn wait_timeout_while<F: FnMut(&mut (bool, T)) -> bool>(
-        &self,
-        duration: Duration,
-        condition: F,
-    ) -> bool {
-        let guard = match self.inner.lock() {
-            Ok(g) => g,
-            Err(_) => return false,
-        };
-
-        #[allow(unused_must_use)]
-        {
-            self.condvar
-                .wait_timeout_while(guard, duration, condition)
-                .unwrap();
-        }
-        true
-    }
-
-    fn try_wait_timeout_while<F: FnMut(&mut (bool, T)) -> bool>(
-        &self,
-        duration: Duration,
-        condition: F,
-    ) -> bool {
-        let guard = match self.inner.try_lock() {
-            Ok(g) => g,
-            Err(_) => return false,
-        };
-
-        #[allow(unused_must_use)]
-        {
-            self.condvar
-                .wait_timeout_while(guard, duration, condition)
-                .unwrap();
-        }
-        true
-    }
-
-    fn wait_until_signaled(&self) -> bool {
-        self.wait_while(|(signaled, _)| *signaled != true)
-    }
-
-    fn try_wait_until_signaled(&self) -> bool {
-        self.try_wait_while(|(signaled, _)| *signaled != true)
-    }
-
-    fn try_wait_until_signaled_timeout(&self, timeout: Duration) -> bool {
-        self.try_wait_timeout_while(timeout, |(signaled, _)| *signaled != true)
-    }
-    */
 
     fn notify_one(&self) {
         self.inner.1.notify_one();
@@ -241,97 +87,6 @@ impl<T: Sized + Clone> SmpEvent<T> {
     #[allow(dead_code)]
     fn notify_all(&self) {
         self.inner.1.notify_all();
-    }
-
-    /// Acknowledges the event and retrieves the internal state.
-    pub fn acknowledge(&mut self) -> T {
-        self.wait();
-
-        if !self.manual_reset {
-            self.clear_signaled();
-        }
-
-        self.get_state()
-    }
-
-    /// Tries to acknowledge the event, and retrieves its internal state
-    /// if successful.
-    #[allow(dead_code)]
-    pub fn try_acknowledge(&mut self) -> Option<T> {
-        if self.signaled() == false {
-            return None;
-        }
-
-        if !self.manual_reset {
-            self.clear_signaled();
-        }
-
-        self.try_get_state().map_or_else(|_| None, |s| Some(s))
-    }
-
-    /// Acknowledges the event within [`duration`], and retrieves its
-    /// internal state if successful.
-    pub fn acknowledge_timeout(&mut self, duration: Duration) -> T {
-        self.wait_timeout(duration);
-
-        if !self.manual_reset {
-            self.clear_signaled();
-        }
-
-        self.get_state()
-    }
-
-    /// Tries to acknowledge the event within [`duration`], and retrieves its
-    /// internal state if successful.
-    #[allow(dead_code)]
-    pub fn try_acknowledge_timeout(&mut self, duration: Duration) -> Option<T> {
-        let res = match self.try_wait_timeout(duration) {
-            Ok(_) => self.try_get_state(),
-            Err(_) => Err(()),
-        };
-
-        if !self.manual_reset {
-            self.clear_signaled();
-        }
-
-        res.ok()
-    }
-
-    /// Sets the event's internal state and sets the signaled state.
-    pub fn send(&mut self, state: T) {
-        self.set_state(state);
-        self.set_signaled();
-        self.notify_one();
-    }
-
-    /// Tries to set the event's internal state, and sets the signaled state
-    /// if successful.
-    #[allow(dead_code)]
-    pub fn try_send(&mut self, state: T) {
-        if self.try_set_state(state).is_err() {
-            return;
-        }
-        self.set_signaled();
-        self.notify_one();
-    }
-
-    /// Sets the event's internal state, and clears the signaled state
-    /// if successful.
-    pub fn send_cleared(&mut self, state: T) {
-        self.set_state(state);
-        self.clear_signaled();
-        self.notify_one();
-    }
-
-    /// Tries to set the event's internal state, and clears the signaled state
-    /// if successful.
-    #[allow(dead_code)]
-    pub fn try_send_cleared(&mut self, state: T) {
-        if self.try_set_state(state).is_err() {
-            return;
-        }
-        self.clear_signaled();
-        self.notify_one();
     }
 }
 

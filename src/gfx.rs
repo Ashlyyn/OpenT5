@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::{
-    platform::WindowHandle,
+    platform::{WindowHandle, MonitorHandle},
     render::{MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION},
     *,
 };
@@ -384,14 +384,15 @@ pub struct ListBoxDef {
 #[derive(Default, Clone, Copy, Debug)]
 pub struct WindowParms {
     pub window_handle: Option<WindowHandle>,
+    pub monitor_handle: Option<MonitorHandle>,
     pub hz: f32,
     pub fullscreen: bool,
     pub x: u16,
     pub y: u16,
-    pub scene_width: u16,
-    pub scene_height: u16,
-    pub display_width: u16,
-    pub display_height: u16,
+    pub scene_width: u32,
+    pub scene_height: u32,
+    pub display_width: u32,
+    pub display_height: u32,
     pub aa_samples: u32,
 }
 
@@ -414,8 +415,9 @@ impl WindowParms {
 
 #[derive(Copy, Clone, Debug)]
 pub struct WindowTarget {
-    pub width: u16,
-    pub height: u16,
+    pub width: u32,
+    pub height: u32,
+    pub handle: Option<WindowHandle>,
 }
 
 impl WindowTarget {
@@ -423,6 +425,7 @@ impl WindowTarget {
         Self {
             width: MIN_HORIZONTAL_RESOLUTION,
             height: MIN_VERTICAL_RESOLUTION,
+            handle: None,
         }
     }
 }

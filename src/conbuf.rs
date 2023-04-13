@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+#![allow(unused_variables)]
+#![allow(unused_mut)]
+
 use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(not(target_arch = "wasm32"))] {
