@@ -487,6 +487,15 @@ pub fn frame_time() -> Duration {
     Duration::from_millis(FRAME_TIME.load_relaxed())
 }
 
+pub fn quit_f() -> ! {
+    self::println!(0.into(), "quitting...");
+    if ERROR_ENTERED.load(Ordering::Relaxed) {
+
+    }
+    sys::quit();
+}
+
 pub fn frame() {
 
 }
+

@@ -1,8 +1,13 @@
-use crate::*;
+use crate::{*, sys::WindowEvent};
 
 fn swap_buffers() {
-    while let Some(_ev) = sys::next_window_event() {
-
+    while let Some(ev) = sys::next_window_event() {
+        match ev {
+            WindowEvent::CloseRequested => {
+                sys::set_quit_event();
+            },
+            _ => { },
+        }
     }
 }
 

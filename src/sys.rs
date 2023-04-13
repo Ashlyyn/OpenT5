@@ -293,7 +293,7 @@ const fn get_application_name() -> &'static str {
     "Call of Duty(R) Singleplayer - Ship"
 }
 
-pub fn get_semaphore_file_path() -> Option<PathBuf> {
+pub fn get_semaphore_folder_path() -> Option<PathBuf> {
     let os_folder_path = fs::get_os_folder_path(fs::OsFolder::UserData)?;
     let p: PathBuf = [
         PathBuf::from(os_folder_path),
@@ -338,7 +338,7 @@ const fn is_game_process(_pid: u32) -> bool {
 }
 
 pub fn check_crash_or_rerun() -> bool {
-    let Some(semaphore_folder_path) = get_semaphore_file_path() else {
+    let Some(semaphore_folder_path) = get_semaphore_folder_path() else {
         return true
     };
 
@@ -423,6 +423,12 @@ pub fn get_cmdline() -> String {
 pub fn start_minidump(b: bool) {
     com::println!(0.into(), "Starting minidump with b = {}...", b);
     com::println!(0.into(), "TODO: implement.");
+}
+
+fn normal_exit() {
+    let semaphore_file_path =
+        get_semaphore_folder_path().unwrap().join(get_semaphore_file_name());
+    std::fs::remove_file(semaphore_file_path).unwrap();
 }
 
 // Abstracted out in case a certain platform needs an implementation using
@@ -613,10 +619,14 @@ lazy_static! {
     static ref QUIT_EVENT: Mutex<SmpEvent> = Mutex::new(SmpEvent::new(false, true));
 }
 
-
 pub fn set_quit_event() {
     let mut ev = QUIT_EVENT.lock().unwrap().clone();
     ev.set();
+}
+
+pub fn query_quit_event() -> bool {
+    let mut ev = QUIT_EVENT.lock().unwrap().clone();
+    ev.query()
 }
 
 lazy_static! {
@@ -1602,6 +1612,10 @@ lazy_static! {
 }
 
 pub fn next_window_event() -> Option<WindowEvent> {
+    if query_quit_event() {
+        com::quit_f();
+    }
+
     if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
         let mut msg = MSG::default();
     
@@ -1620,4 +1634,9 @@ pub fn next_window_event() -> Option<WindowEvent> {
     } else {
         MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
     }
+}
+
+pub fn quit() -> ! {
+    normal_exit();
+    std::process::exit(0);
 }

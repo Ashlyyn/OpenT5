@@ -135,11 +135,9 @@ pub fn run() {
         || cmdline.chars().nth(9).unwrap_or(' ') > ' '
     {
         if !cmdline.contains("g_connectpaths 3") {
-            /*
             if sys::check_crash_or_rerun() == false {
                 return;
             }
-            */
         }
     }
 
