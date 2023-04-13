@@ -22,8 +22,9 @@ cfg_if! {
     if #[cfg(target_os = "windows")] {
         use std::os::windows::prelude::OsStrExt;
         use windows::Win32::System::LibraryLoader::{LoadLibraryW, FreeLibrary};
-        use windows::Win32::Foundation::HINSTANCE;
+        use windows::Win32::Foundation::HMODULE;
         use windows::core::PCWSTR;
+        use windows::Win32::Foundation::{WPARAM, LPARAM};
     }
     else if #[cfg(target_family = "unix")] {
         use std::os::unix::prelude::OsStrExt;
@@ -384,7 +385,7 @@ impl Module {
                 // safety, etc., regardless of the pointer passed to it,
                 // but in any event, the pointer we pass is guaranteed to
                 // be valid since it was retrieved via LoadLibraryW.
-                unsafe { FreeLibrary(HINSTANCE(self.ptr as _)); }
+                unsafe { FreeLibrary(HMODULE(self.ptr as _)); }
             }
         } else if #[cfg(target_family = "unix")] {
             /// Loads a library from the supplied path using [`dlopen`].
@@ -546,6 +547,81 @@ impl EasierAtomic for AtomicUsize {
     fn increment(&self) -> Option<usize> {
         self.store_relaxed(self.load_relaxed().checked_add(1)?)
             .into()
+    }
+}
+
+pub trait CharFromUtf16Char {
+    fn try_as_char(self) -> Option<char>;
+}
+
+impl CharFromUtf16Char for u16 {
+    fn try_as_char(self) -> Option<char> {
+        char::decode_utf16([self])
+            .flatten()
+            .collect::<Vec<_>>()
+            .iter()
+            .copied()
+            .nth(0)
+    }
+}
+
+pub trait LowWord {
+    fn low_word(self) -> u16;
+}
+
+pub trait HighWord {
+    fn high_word(self) -> u16;
+}
+
+impl LowWord for u32 {
+    fn low_word(self) -> u16 {
+        (self & 0xFFFF) as _
+    }
+}
+
+impl HighWord for u32 {
+    fn high_word(self) -> u16 {
+        ((self >> 16) & 0xFFFF) as _
+    }
+}
+
+impl LowWord for i32 {
+    fn low_word(self) -> u16 {
+        (self & 0xFFFF) as _
+    }
+}
+
+impl HighWord for i32 {
+    fn high_word(self) -> u16 {
+        ((self >> 16) & 0xFFFF) as _
+    }
+}
+
+cfg_if! {
+    if #[cfg(windows)] {
+        impl LowWord for WPARAM {
+            fn low_word(self) -> u16 {
+                (self.0 as u32).low_word()
+            }
+        }
+        
+        impl HighWord for WPARAM {
+            fn high_word(self) -> u16 {
+                (self.0 as u32).high_word()
+            }
+        }
+        
+        impl LowWord for LPARAM {
+            fn low_word(self) -> u16 {
+                (self.0 as u32).low_word()
+            }
+        }
+        
+        impl HighWord for LPARAM {
+            fn high_word(self) -> u16 {
+                (self.0 as u32).high_word()
+            }
+        }
     }
 }
 

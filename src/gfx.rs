@@ -384,7 +384,7 @@ pub struct ListBoxDef {
 #[derive(Default, Clone, Copy, Debug)]
 pub struct WindowParms {
     pub window_handle: Option<WindowHandle>,
-    pub hz: u16,
+    pub hz: f32,
     pub fullscreen: bool,
     pub x: u16,
     pub y: u16,
@@ -398,7 +398,7 @@ pub struct WindowParms {
 impl WindowParms {
     pub fn new() -> Self {
         Self {
-            hz: 60,
+            hz: 60.0,
             fullscreen: false,
             x: 0,
             y: 0,

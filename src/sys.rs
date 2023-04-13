@@ -2,8 +2,8 @@
 
 extern crate alloc;
 
-use crate::platform::WindowHandle;
-use crate::util::SmpEvent;
+use crate::platform::{WindowHandle, get_platform_vars};
+use crate::util::{SmpEvent};
 use crate::*;
 use num_derive::FromPrimitive;
 
@@ -11,16 +11,18 @@ pub mod gpu;
 
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
+use windows::Win32::UI::WindowsAndMessaging::{PeekMessageA, MSG, PM_NOREMOVE, GetMessageA, TranslateMessage, DispatchMessageA};
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
     time::Duration,
 };
+use std::ptr::addr_of;
 use lazy_static::lazy_static;
-use std::collections::HashMap;
+use std::{collections::HashMap, ptr::addr_of_mut};
 use std::fs::File;
 use std::io::{Read, Write};
-use std::sync::RwLock;
+use std::sync::{RwLock, Mutex};
 use std::thread::JoinHandle;
 use std::{path::PathBuf, time::SystemTime};
 cfg_if! {
@@ -63,6 +65,8 @@ cfg_if! {
         use std::ffi::CString;
     }
 }
+
+use bitflags::bitflags;
 
 fn in_restart_f() {
     input::shutdown();
@@ -1379,4 +1383,245 @@ pub const fn default_cd_path() -> &'static str {
 
 pub fn cwd() -> PathBuf {
     std::env::current_dir().unwrap()
+}
+
+pub fn set_quit_event() {
+
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum KeyboardScancode {
+    Esc,
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
+    PrtScSysRq,
+    ScrLk,
+    PauseBreak,
+
+    Tilde,
+    Key1,
+    Key2,
+    Key3,
+    Key4,
+    Key5,
+    Key6,
+    Key7,
+    Key8,
+    Key9,
+    Key0,
+    Hyphen,
+    Equals,
+    Backspace,
+    Insert,
+    Home,
+    PgUp,
+    NumLk,
+    NumSlash,
+    NumAsterisk,
+    NumHyphen,
+
+    Tab,
+    Q,
+    W,
+    E,
+    R,
+    T,
+    Y,
+    U,
+    I,
+    O,
+    P,
+    OpenBracket,
+    CloseBracket,
+    BackSlash,
+    Del,
+    End,
+    PgDn,
+    Num7,
+    Num8,
+    Num9,
+    NumPlus,
+
+    CapsLk,
+    A,
+    S,
+    D,
+    F,
+    G,
+    H,
+    J,
+    K,
+    L,
+    Semicolon,
+    Apostrophe,
+    Enter,
+    Num4,
+    Num5,
+    Num6,
+
+    LShift,
+    Z,
+    X,
+    C,
+    V,
+    B,
+    N,
+    M,
+    Comma,
+    Period,
+    ForwardSlash,
+    RShift,
+    ArrowUp,
+    Num1,
+    Num2,
+    Num3,
+    NumEnter,
+
+    LCtrl,
+    LSys,
+    LAlt,
+    Space,
+    RAlt,
+    RSys,
+    Fn,
+    RCtrl,
+    ArrowLeft,
+    ArrowDown,
+    ArrowRight,
+    Num0,
+    NumPeriod,
+}
+
+bitflags! {
+    #[non_exhaustive]
+    pub struct Modifiers: u16 {
+        const LCTRL = 0x0001;
+        const LSYS = 0x0002;
+        const LALT = 0x0004;
+        const LSHIFT = 0x0008;
+        const RSHIFT = 0x0010;
+        const RALT = 0x0020;
+        const RSYS = 0x0040;
+        const RCTRL = 0x0080;
+        const CAPSLOCK = 0x0100;
+        const NUMLOCK = 0x0200;
+        const SCRLOCK = 0x0400;
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum MouseScancode {
+    LClick,
+    RClick,
+    MClick,
+    Button4,
+    Button5,
+    ButtonN(u8),
+}
+
+impl KeyboardScancode {
+    pub fn affected_by_num_lock(self) -> bool {
+        match self {
+            KeyboardScancode::Num0 |
+            KeyboardScancode::Num1 |
+            KeyboardScancode::Num2 |
+            KeyboardScancode::Num3 |
+            KeyboardScancode::Num4 |
+            KeyboardScancode::Num5 |
+            KeyboardScancode::Num6 |
+            KeyboardScancode::Num7 |
+            KeyboardScancode::Num8 |
+            KeyboardScancode::Num9 |
+            KeyboardScancode::NumPeriod => true,
+            _ => false 
+            
+        }
+    }
+}
+
+bitflags! {
+    #[non_exhaustive]
+    pub struct MouseButtons: u8 {
+        const LCLICK = 0x01;
+        const RCLICK = 0x02;
+        const MCLICK = 0x04;
+        const BUTTON_4 = 0x08;
+        const BUTTON_5 = 0x10;
+    }
+}
+
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub enum WindowEvent {
+    MouseWheel(u32),
+    Created,
+    Destroyed,
+    Moved { 
+        x: u32, 
+        y : u32 
+    },
+    Activate,
+    Deactivate,
+    SetFocus,
+    KillFocus,
+    CloseRequested,
+    DisplayChange {
+        bit_depth: u32,
+        horz_res: u32,
+        vert_res: u32,
+    },
+    #[non_exhaustive]
+    KeyDown {
+        logical_scancode: KeyboardScancode,
+        physical_scancode: Option<KeyboardScancode>,
+    },
+    #[non_exhaustive]
+    KeyUp {
+        logical_scancode: KeyboardScancode,
+        physical_scancode: Option<KeyboardScancode>,
+    },
+    Character(char),
+    CursorMoved {
+        x: f64,
+        y: f64,
+    },
+    MouseButtonDown(MouseScancode),
+    MouseButtonUp(MouseScancode),
+    MouseWheelScroll(f32),
+    ModifiersChanged(Modifiers),
+}
+
+lazy_static! {
+    pub static ref MAIN_WINDOW_EVENTS: Mutex<VecDeque<WindowEvent>> = Mutex::new(VecDeque::new());
+}
+
+pub fn next_window_event() -> Option<WindowEvent> {
+    if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
+        let mut msg = MSG::default();
+    
+        if unsafe { PeekMessageA(addr_of_mut!(msg), None, 0, 0, PM_NOREMOVE) }.as_bool() {
+            if unsafe { GetMessageA(addr_of_mut!(msg), None, 0, 0) }.0 == 0 {
+                set_quit_event();
+            }
+            let mut pv = get_platform_vars();
+            pv.sys_msg_time = msg.time as _;
+            unsafe { TranslateMessage(addr_of!(msg)) };
+            unsafe { DispatchMessageA(addr_of!(msg)) };
+            msg.try_into().ok()
+        } else {
+            None
+        }
+    } else {
+        MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
+    }
 }

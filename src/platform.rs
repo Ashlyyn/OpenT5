@@ -2,6 +2,7 @@
 
 pub mod arch;
 pub mod os;
+pub mod display_server;
 
 use std::sync::RwLock;
 extern crate alloc;
@@ -11,11 +12,12 @@ use lazy_static::lazy_static;
 
 use raw_window_handle::{
     AppKitWindowHandle, RawWindowHandle, UiKitWindowHandle,
-    WaylandWindowHandle, Win32WindowHandle, XcbWindowHandle, XlibWindowHandle,
+    WaylandWindowHandle, Win32WindowHandle, XcbWindowHandle, XlibWindowHandle, XcbDisplayHandle, WaylandDisplayHandle, UiKitDisplayHandle, AppKitDisplayHandle, HasRawWindowHandle,
 };
+use windows::Win32::Graphics::Gdi::HMONITOR;
 
-#[derive(Copy, Clone, Debug)]
-pub struct WindowHandle(RawWindowHandle);
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct WindowHandle(pub RawWindowHandle);
 
 // SAFETY:
 // Really don't know if this is safe. It hasn't created any problems in
@@ -75,6 +77,74 @@ impl WindowHandle {
             RawWindowHandle::AppKit(handle) => Some(handle),
             _ => None,
         }
+    }
+}
+
+unsafe impl HasRawWindowHandle for WindowHandle {
+    fn raw_window_handle(&self) -> raw_window_handle::RawWindowHandle {
+        self.get()
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum MonitorHandle {
+    Win32(HMONITOR),
+    Xlib(()),
+}
+
+impl PartialOrd for MonitorHandle {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl Ord for MonitorHandle {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match *self {
+            Self::Win32(hmonitor) => hmonitor.0.cmp(&other.get_win32().unwrap_or(HMONITOR(0)).0),
+            Self::Xlib(_) => ().cmp(&())
+        }
+    }
+}
+
+// SAFETY:
+// Really don't know if this is safe. It hasn't created any problems in
+// testing, we'll see if any pop up later.
+unsafe impl Sync for MonitorHandle {}
+// SAFETY:
+// Really don't know if this is safe. It hasn't created any problems in
+// testing, we'll see if any pop up later.
+unsafe impl Send for MonitorHandle {}
+
+impl MonitorHandle {
+    pub const fn get_win32(&self) -> Option<HMONITOR> {
+        match *self {
+            Self::Win32(handle) => Some(handle),
+            _ => None,
+        }
+    }
+
+    pub const fn get_xlib(&self) -> Option<()> {
+        match *self {
+            Self::Xlib(handle) => Some(handle),
+            _ => None,
+        }
+    }
+
+    pub const fn get_xcb(&self) -> Option<XcbDisplayHandle> {
+        None
+    }
+
+    pub const fn get_wayland(&self) -> Option<WaylandDisplayHandle> {
+        None
+    }
+
+    pub const fn get_ui_kit(&self) -> Option<UiKitDisplayHandle> {
+        None
+    }
+
+    pub const fn get_app_kit(&self) -> Option<AppKitDisplayHandle> {
+        None
     }
 }
 

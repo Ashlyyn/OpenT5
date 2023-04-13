@@ -4,10 +4,9 @@ use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(not(target_arch = "wasm32"))] {
         use lazy_static::lazy_static;
-        use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+        use raw_window_handle::{RawWindowHandle};
         use crate::{
             platform::{FontHandle, WindowHandle},
-            util::EasierWindowHandle,
         };
         use std::sync::RwLock;
         extern crate alloc;
@@ -78,11 +77,11 @@ cfg_if! {
         #[allow(clippy::partial_pub_fields)]
         #[derive(Debug)]
         pub struct ConsoleData {
-            pub window: Option<winit::window::Window>,
-            pub buffer_window: Option<winit::window::Window>,
-            pub cod_logo_window: Option<winit::window::Window>,
+            pub window: Option<WindowHandle>,
+            pub buffer_window: Option<WindowHandle>,
+            pub cod_logo_window: Option<WindowHandle>,
             pub buffer_font: Option<FontHandle>,
-            pub input_line_window: Option<winit::window::Window>,
+            pub input_line_window: Option<WindowHandle>,
             pub error_string: String,
             console_text: ArrayString<512>,
             returned_text: ArrayString<512>,
@@ -112,17 +111,17 @@ cfg_if! {
                 RwLock::new(ConsoleData::default());
         }
 
-        pub fn s_wcd_set_window(window: winit::window::Window) {
+        pub fn s_wcd_set_window(window: WindowHandle) {
             let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.window = Some(window);
         }
 
-        pub fn s_wcd_set_buffer_window(window: winit::window::Window) {
+        pub fn s_wcd_set_buffer_window(window: WindowHandle) {
             let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.buffer_window = Some(window);
         }
 
-        pub fn s_wcd_set_input_line_window(window: winit::window::Window) {
+        pub fn s_wcd_set_input_line_window(window: WindowHandle) {
             let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.input_line_window = Some(window);
         }
@@ -132,7 +131,7 @@ cfg_if! {
             s_wcd.input_line_window = None;
         }
 
-        pub fn s_wcd_set_cod_logo_window(window: winit::window::Window) {
+        pub fn s_wcd_set_cod_logo_window(window: WindowHandle) {
             let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.cod_logo_window = Some(window);
         }
@@ -149,12 +148,12 @@ cfg_if! {
 
         pub fn s_wcd_window_set_visible(visible: bool) {
             let mut s_wcd = S_WCD.write().unwrap();
-            s_wcd.window.as_mut().unwrap().set_visible(visible);
+            //s_wcd.window.as_mut().unwrap().set_visible(visible);
         }
 
         pub fn s_wcd_buffer_window_handle() -> WindowHandle {
             let s_wcd = S_WCD.read().unwrap();
-            s_wcd.buffer_window.as_ref().unwrap().window_handle()
+            *s_wcd.buffer_window.as_ref().unwrap()
         }
 
         pub fn s_wcd_buffer_is_none() -> bool {
@@ -179,7 +178,7 @@ cfg_if! {
 
         pub fn s_wcd_window_handle() -> RawWindowHandle {
             let s_wcd = S_WCD.read().unwrap();
-            s_wcd.window.as_ref().unwrap().raw_window_handle()
+            s_wcd.window.as_ref().unwrap().get()
         }
     }
 }

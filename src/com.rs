@@ -137,12 +137,13 @@ pub fn _print_internal(
 /// ```
 /// com::print!("Hello to com!");
 /// ```
+#[macro_export]
 macro_rules! __print {
     ($channel:expr, $($arg:tt)*) => {{
         $crate::com::_print_internal($channel, $crate::com::MessageType::Print, core::format_args!($($arg)*));
     }};
 }
-pub(crate) use __print as print;
+pub use __print as print;
 
 /// Prints text with a newline.
 ///
@@ -158,6 +159,7 @@ pub(crate) use __print as print;
 /// ```
 /// com::println!("Hello to com!");
 /// ```
+#[macro_export]
 macro_rules! __println {
     ($channel:expr) => {
         $crate::com::print!($channel, "\n")
@@ -166,7 +168,7 @@ macro_rules! __println {
         $crate::com::print!($channel, "{}\n", core::format_args!($($arg)*));
     }};
 }
-pub(crate) use __println as println;
+pub use __println as println;
 
 cfg_if! {
     if #[cfg(debug_assertions)] {
@@ -197,13 +199,14 @@ cfg_if! {
 /// ```
 /// com::dprint!("Hello to com from debug mode!");
 /// ```
+#[macro_export]
 macro_rules! __dprint {
     ($channel:expr, $($arg:tt)*) => {{
         $crate::com::_dprint($channel, core::format_args!($($arg)*));
     }};
 }
 #[allow(unused_imports)]
-pub(crate) use __dprint as dprint;
+pub use __dprint as dprint;
 
 /// Prints text with a newline appended if the executable is compiled
 /// in debug mode.
@@ -222,6 +225,7 @@ pub(crate) use __dprint as dprint;
 /// ```
 /// com::dprintln!("Hello to com from debug mode!");
 /// ```
+#[macro_export]
 macro_rules! __dprintln {
     ($channel:expr) => {
         $crate::com::dprint!($channel, "\n")
@@ -230,7 +234,7 @@ macro_rules! __dprintln {
         $crate::com::dprint!($channel, "{}\n", core::format_args!($($arg)*));
     }};
 }
-pub(crate) use __dprintln as dprintln;
+pub use __dprintln as dprintln;
 
 #[doc(hidden)]
 #[allow(clippy::needless_pass_by_value)]
@@ -432,6 +436,14 @@ fn init_dvars() {
         Some("True if the game video is running in 16x9 aspect, false if 4x3."),
     )
     .unwrap();
+
+    dvar::register_bool(
+        "onlinegame",
+        true,
+        dvar::DvarFlags::READ_ONLY,
+        Some("Current game is an online game with stats, custom classes, unlocks"),
+    )
+    .unwrap();
 }
 
 fn init_try_block_function() {
@@ -446,7 +458,7 @@ pub fn touch_memory() {
 }
 
 // TODO - implement
-pub const fn get_icon_rgba() -> Option<winit::window::Icon> {
+pub const fn get_icon_rgba() -> Option<Vec<u8>> {
     None
 }
 
@@ -471,4 +483,8 @@ static FRAME_TIME: AtomicU64 = AtomicU64::new(0);
 
 pub fn frame_time() -> Duration {
     Duration::from_millis(FRAME_TIME.load_relaxed())
+}
+
+pub fn frame() {
+
 }

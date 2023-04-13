@@ -1,3 +1,6 @@
+
+#![allow(dead_code)]
+
 use std::sync::RwLock;
 
 use crate::*;
@@ -12,7 +15,7 @@ pub struct Config {
     pub display_height: u16,
     pub output_display_width: u16,
     pub output_display_height: u16,
-    pub display_frequency: u16,
+    pub display_frequency: f32,
     pub is_tool_mode: bool,
     pub is_fullscreen: bool,
     pub aspect_ratio_window: f32,

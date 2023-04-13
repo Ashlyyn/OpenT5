@@ -6,6 +6,8 @@ use num_derive::FromPrimitive;
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 
+use crate::platform::WindowHandle;
+
 pub fn init() {
     env_logger::init();
 }
@@ -83,7 +85,7 @@ pub struct Surface {
 }
 
 impl Surface {
-    pub fn new(instance: &Instance, window: &winit::window::Window) -> Self {
+    pub fn new(instance: &Instance, window: WindowHandle) -> Self {
         if render_api_implemented_by_wgpu!() {
             Self {
                 // SAFETY:
