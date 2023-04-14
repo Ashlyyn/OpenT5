@@ -59,11 +59,18 @@ impl SmpEvent {
 
     pub fn wait(&mut self) {
         if *self.inner.0.lock().unwrap() == true {
+            if !self.manual_reset {
+                *self.inner.0.lock().unwrap() = false;
+            }
             return;
         }
+
         #[allow(unused_must_use)] 
         {
             self.inner.1.wait(self.inner.0.lock().unwrap());
+        }
+        if !self.manual_reset {
+            *self.inner.0.lock().unwrap() = false;
         }
     }
 
