@@ -3,7 +3,7 @@
 use std::sync::RwLock;
 
 use crate::{
-    platform::{WindowHandle, MonitorHandle},
+    platform::{MonitorHandle, WindowHandle},
     render::{MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION},
     *,
 };

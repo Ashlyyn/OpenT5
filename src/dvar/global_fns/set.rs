@@ -1415,7 +1415,7 @@ pub fn set_enumeration_prev(name: &str) -> Result<(), ()> {
                 if i == 0 {
                     return Err(());
                 }
-                
+
                 let value =
                     domain.strings.iter().nth(i - 1).unwrap_or_else(|| {
                         domain.strings.iter().next().unwrap()

@@ -50,10 +50,7 @@ impl SmpEvent {
     pub fn new(signaled: bool, manual_reset: bool) -> Self {
         Self {
             manual_reset,
-            inner: Arc::new((
-                Mutex::new(signaled),
-                Condvar::new(),
-            )),
+            inner: Arc::new((Mutex::new(signaled), Condvar::new())),
         }
     }
 
@@ -65,7 +62,7 @@ impl SmpEvent {
             return;
         }
 
-        #[allow(unused_must_use)] 
+        #[allow(unused_must_use)]
         {
             self.inner.1.wait(self.inner.0.lock().unwrap());
         }
@@ -224,12 +221,6 @@ pub trait EasierWindowHandle: HasRawWindowHandle {
     fn window_handle(&self) -> WindowHandle;
 }
 
-impl<T: HasRawWindowHandle> EasierWindowHandle for T {
-    fn window_handle(&self) -> WindowHandle {
-        WindowHandle::new(self.raw_window_handle())
-    }
-}
-
 // Made this because I got tired of importing core::sync::atomic::Ordering
 // and passing the exact same Ordering (Ordering::Relaxed) 99% of the time.
 // Purely a convenience thing, absolutely meaningless in terms of
@@ -371,19 +362,19 @@ cfg_if! {
                 (self.0 as u32).low_word()
             }
         }
-        
+
         impl HighWord for WPARAM {
             fn high_word(self) -> u16 {
                 (self.0 as u32).high_word()
             }
         }
-        
+
         impl LowWord for LPARAM {
             fn low_word(self) -> u16 {
                 (self.0 as u32).low_word()
             }
         }
-        
+
         impl HighWord for LPARAM {
             fn high_word(self) -> u16 {
                 (self.0 as u32).high_word()

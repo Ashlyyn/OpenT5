@@ -58,8 +58,8 @@
 
 use cfg_if::cfg_if;
 use core::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 use lazy_static::lazy_static;
+use std::time::Duration;
 extern crate alloc;
 use alloc::sync::Arc;
 

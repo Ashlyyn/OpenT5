@@ -14,7 +14,9 @@ use num_derive::FromPrimitive;
 use crate::{
     cg::{self, Angles3, OffhandId, WeaponId},
     common::{StanceState, Vec3f32},
-    util::{Angle, Point, Velocity}, vid, render,
+    render,
+    util::{Angle, Point, Velocity},
+    vid,
 };
 
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq, FromPrimitive)]
@@ -203,7 +205,6 @@ impl ClientStatic {
 lazy_static! {
     static ref CLS: RwLock<ClientStatic> = RwLock::new(ClientStatic::new());
 }
-
 
 pub fn init_renderer() {
     render::begin_registration(&mut CLS.write().unwrap().vid_config);

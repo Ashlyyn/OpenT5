@@ -2,19 +2,26 @@
 
 pub mod arch;
 pub mod os;
-pub mod display_server;
+//pub mod display_server;
 
 use std::sync::RwLock;
 extern crate alloc;
 use alloc::sync::Arc;
+use cfg_if::cfg_if;
 
 use lazy_static::lazy_static;
 
+use libc::c_void;
 use raw_window_handle::{
-    AppKitWindowHandle, RawWindowHandle, UiKitWindowHandle,
-    WaylandWindowHandle, Win32WindowHandle, XcbWindowHandle, XlibWindowHandle, XcbDisplayHandle, WaylandDisplayHandle, UiKitDisplayHandle, AppKitDisplayHandle, HasRawWindowHandle,
+    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
+    XlibDisplayHandle, XlibWindowHandle,
 };
-use windows::Win32::Graphics::Gdi::HMONITOR;
+
+cfg_if! {
+    if #[cfg(windows)] {
+        use windows::Win32::Graphics::Gdi::HMONITOR;
+    }
+}
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct WindowHandle(pub RawWindowHandle);
@@ -37,72 +44,96 @@ impl WindowHandle {
         self.0
     }
 
-    pub const fn get_win32(&self) -> Option<Win32WindowHandle> {
-        match self.get() {
-            RawWindowHandle::Win32(handle) => Some(handle),
-            _ => None,
+    cfg_if! {
+        if #[cfg(windows)] {
+            pub const fn get_win32(&self) -> Option<Win32WindowHandle> {
+                match self.get() {
+                    RawWindowHandle::Win32(handle) => Some(handle),
+                    _ => None,
+                }
+            }
+        } else if #[cfg(unix)] {
+            pub const fn get_xlib(&self) -> Option<XlibWindowHandle> {
+                match self.get() {
+                    RawWindowHandle::Xlib(handle) => Some(handle),
+                    _ => None,
+                }
+            }
         }
     }
 
-    pub const fn get_xlib(&self) -> Option<XlibWindowHandle> {
-        match self.get() {
-            RawWindowHandle::Xlib(handle) => Some(handle),
-            _ => None,
-        }
-    }
+    cfg_if! {
+        if #[cfg(target_os = "unix")] {
+            pub const fn get_wayland(&self) -> Option<WaylandWindowHandle> {
+                match self.get() {
+                    RawWindowHandle::Wayland(handle) => Some(handle),
+                    _ => None,
+                }
+            }
+        } else if #[cfg(any(target_os = "macos", target_os = "ios"))] {
+            pub const fn get_ui_kit(&self) -> Option<UiKitWindowHandle> {
+                match self.get() {
+                    RawWindowHandle::UiKit(handle) => Some(handle),
+                    _ => None,
+                }
+            }
 
-    pub const fn get_xcb(&self) -> Option<XcbWindowHandle> {
-        match self.get() {
-            RawWindowHandle::Xcb(handle) => Some(handle),
-            _ => None,
-        }
-    }
-
-    pub const fn get_wayland(&self) -> Option<WaylandWindowHandle> {
-        match self.get() {
-            RawWindowHandle::Wayland(handle) => Some(handle),
-            _ => None,
-        }
-    }
-
-    pub const fn get_ui_kit(&self) -> Option<UiKitWindowHandle> {
-        match self.get() {
-            RawWindowHandle::UiKit(handle) => Some(handle),
-            _ => None,
-        }
-    }
-
-    pub const fn get_app_kit(&self) -> Option<AppKitWindowHandle> {
-        match self.get() {
-            RawWindowHandle::AppKit(handle) => Some(handle),
-            _ => None,
+            pub const fn get_app_kit(&self) -> Option<AppKitWindowHandle> {
+                match self.get() {
+                    RawWindowHandle::AppKit(handle) => Some(handle),
+                    _ => None,
+                }
+            }
         }
     }
 }
 
 unsafe impl HasRawWindowHandle for WindowHandle {
-    fn raw_window_handle(&self) -> raw_window_handle::RawWindowHandle {
+    fn raw_window_handle(&self) -> RawWindowHandle {
         self.get()
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum MonitorHandle {
-    Win32(HMONITOR),
-    Xlib(()),
-}
-
-impl PartialOrd for MonitorHandle {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other))
+unsafe impl HasRawDisplayHandle for WindowHandle {
+    cfg_if! {
+        if #[cfg(windows)] {
+            fn raw_display_handle(&self) -> RawDisplayHandle {
+                RawDisplayHandle::Windows(self.1.get_win32())
+            }
+        } else if #[cfg(unix)] {
+            fn raw_display_handle(&self) -> RawDisplayHandle {
+                let mut handle = XlibDisplayHandle::empty();
+                //handle.display = self.get_xlib().unwrap();
+                //handle.screen = self.get_xlib().unwrap();
+                RawDisplayHandle::Xlib(handle)
+            }
+        }
     }
 }
 
-impl Ord for MonitorHandle {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match *self {
-            Self::Win32(hmonitor) => hmonitor.0.cmp(&other.get_win32().unwrap_or(HMONITOR(0)).0),
-            Self::Xlib(_) => ().cmp(&())
+cfg_if! {
+    if #[cfg(windows)] {
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
+        pub enum MonitorHandle {
+            Win32(HMONITOR),
+        }
+    } else if #[cfg(target_os = "linux")] {
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
+        pub enum MonitorHandle {
+            Xlib { display: *mut c_void, screen: i32 },
+            Wayland(()),
+        }
+    } else if #[cfg(target_os = "macos")] {
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
+        pub enum MonitorHandle {
+            Xlib { display: *mut c_void, screen: i32 },
+            AppKit(()),
+            UiKit(()),
+        }
+    } else if #[cfg(unix)] {
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
+        pub enum MonitorHandle {
+            Xlib { display: *mut c_void, screen: i32 },
         }
     }
 }
@@ -116,35 +147,62 @@ unsafe impl Sync for MonitorHandle {}
 // testing, we'll see if any pop up later.
 unsafe impl Send for MonitorHandle {}
 
+// Win32 => Win32
+// Linux => Xlib, Wayland
+// macOS => Xlib, AppKit, UiKit
+// Other Unix => Xlib
 impl MonitorHandle {
-    pub const fn get_win32(&self) -> Option<HMONITOR> {
-        match *self {
-            Self::Win32(handle) => Some(handle),
-            _ => None,
+    cfg_if! {
+        if #[cfg(windows)] {
+            pub const fn get_win32(&self) -> Option<HMONITOR> {
+                match *self {
+                    Self::Win32(handle) => Some(handle),
+                    _ => None,
+                }
+            }
+        } else if #[cfg(target_os = "linux")] {
+            pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
+                match *self {
+                    Self::Xlib { display, screen }=> Some((display, screen)),
+                    _ => None,
+                }
+            }
+
+            pub const fn get_wayland(&self) -> Option<()> {
+                match *self {
+                    Self::Wayland(_) => Some(()),
+                    _ => None,
+                }
+            }
+        } else if #[cfg(target_os = "macos")] {
+            pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
+                match *self {
+                    Self::Xlib { display, screen }=> Some((display, screen)),
+                    _ => None,
+                }
+            }
+
+            pub const fn get_app_kit(&self) -> Option<()> {
+                match *self {
+                    Self::AppKit(_) => Some(()),
+                    _ => None,
+                }
+            }
+
+            pub const fn get_ui_kit(&self) -> Option<()> {
+                match *self {
+                    Self::UiKit(_) => Some(()),
+                    _ => None,
+                }
+            }
+        } else if #[cfg(unix)] {
+            pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
+                match *self {
+                    Self::Xlib { display, screen }=> Some((display, screen)),
+                    _ => None,
+                }
+            }
         }
-    }
-
-    pub const fn get_xlib(&self) -> Option<()> {
-        match *self {
-            Self::Xlib(handle) => Some(handle),
-            _ => None,
-        }
-    }
-
-    pub const fn get_xcb(&self) -> Option<XcbDisplayHandle> {
-        None
-    }
-
-    pub const fn get_wayland(&self) -> Option<WaylandDisplayHandle> {
-        None
-    }
-
-    pub const fn get_ui_kit(&self) -> Option<UiKitDisplayHandle> {
-        None
-    }
-
-    pub const fn get_app_kit(&self) -> Option<AppKitDisplayHandle> {
-        None
     }
 }
 
