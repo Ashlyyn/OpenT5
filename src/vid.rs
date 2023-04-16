@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 
 use std::sync::RwLock;
@@ -29,7 +28,7 @@ pub struct Config {
 impl Config {
     pub fn new() -> Self {
         Self::default()
-    }   
+    }
 }
 
 lazy_static! {

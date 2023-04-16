@@ -2,27 +2,66 @@
 // should be done before the rest of main() executes
 
 #![allow(non_snake_case)]
-use std::{mem::size_of_val, ptr::addr_of, collections::VecDeque};
+use std::{collections::VecDeque, mem::size_of_val, ptr::addr_of};
 
-use raw_window_handle::{HasRawDisplayHandle, RawDisplayHandle, WindowsDisplayHandle, RawWindowHandle, Win32WindowHandle};
+use raw_window_handle::{
+    HasRawDisplayHandle, RawDisplayHandle, RawWindowHandle, Win32WindowHandle,
+    WindowsDisplayHandle,
+};
 use windows::{
+    core::PCSTR,
+    s,
     Win32::{
-        Foundation::{WPARAM, HWND, LPARAM, LRESULT, COLORREF, HMODULE, RECT, BOOL},
+        Foundation::{
+            BOOL, COLORREF, HMODULE, HWND, LPARAM, LRESULT, RECT, WPARAM,
+        },
+        Graphics::Gdi::{CreateSolidBrush, HDC, HMONITOR},
         System::{
             Diagnostics::Debug::{SetErrorMode, SEM_FAILCRITICALERRORS},
             Environment::GetCommandLineA,
             LibraryLoader::GetModuleHandleA,
             Threading::{GetStartupInfoW, STARTUPINFOW},
         },
-        UI::{WindowsAndMessaging::{
-            GetSystemMetrics, MessageBoxA, MB_OK, SM_REMOTESESSION, WNDCLASSEXA, LoadIconA, LoadCursorA, IDC_ARROW, RegisterClassExA, MSG, DefWindowProcA, WA_INACTIVE, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN, WM_MBUTTONUP, WM_MBUTTONDOWN, WM_RBUTTONUP, WM_RBUTTONDOWN, WM_LBUTTONUP, WM_LBUTTONDOWN, WM_DISPLAYCHANGE, WM_KILLFOCUS, WM_SETFOCUS, WM_ACTIVATE, WM_MOVE, WM_CLOSE, WM_DESTROY, WM_CREATE, WM_XBUTTONUP, WM_CHAR, PostQuitMessage, DestroyWindow,
-        }, Input::KeyboardAndMouse::{VIRTUAL_KEY, MapVirtualKeyW, VK_SHIFT, VK_MENU, VK_CONTROL, VK_LSHIFT, VK_RSHIFT, VK_LMENU, VK_RMENU, VK_LCONTROL, VK_RCONTROL, VK_LWIN, VK_RWIN, VK_CAPITAL, VK_NUMLOCK, VK_LBUTTON, VK_RBUTTON, VK_MBUTTON, VK_XBUTTON1, VK_XBUTTON2, VK_BACK, VK_TAB, VK_RETURN, VK_PAUSE, VK_ESCAPE, VK_SPACE, VK_PRIOR, VK_NEXT, VK_END, VK_HOME, VK_LEFT, VK_UP, VK_DOWN, VK_RIGHT, VK_SNAPSHOT, VK_INSERT, VK_DELETE, VK_NUMPAD0, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD3, VK_NUMPAD4, VK_NUMPAD5, VK_NUMPAD6, VK_NUMPAD7, VK_NUMPAD8, VK_NUMPAD9, VK_MULTIPLY, VK_ADD, VK_SEPARATOR, VK_SUBTRACT, VK_DECIMAL, VK_DIVIDE, VK_F1, VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_F7, VK_F8, VK_F9, VK_F10, VK_F11, VK_F12, VK_OEM_1, VK_OEM_PLUS, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, MAPVK_VSC_TO_VK_EX}}, Graphics::Gdi::{CreateSolidBrush, HMONITOR, HDC},
-    }, core::{PCSTR}, s,
+        UI::{
+            Input::KeyboardAndMouse::{
+                MapVirtualKeyW, MAPVK_VSC_TO_VK_EX, VIRTUAL_KEY, VK_ADD,
+                VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DECIMAL, VK_DELETE,
+                VK_DIVIDE, VK_DOWN, VK_END, VK_ESCAPE, VK_F1, VK_F10, VK_F11,
+                VK_F12, VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_F7, VK_F8, VK_F9,
+                VK_HOME, VK_INSERT, VK_LBUTTON, VK_LCONTROL, VK_LEFT, VK_LMENU,
+                VK_LSHIFT, VK_LWIN, VK_MBUTTON, VK_MENU, VK_MULTIPLY, VK_NEXT,
+                VK_NUMLOCK, VK_NUMPAD0, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD3,
+                VK_NUMPAD4, VK_NUMPAD5, VK_NUMPAD6, VK_NUMPAD7, VK_NUMPAD8,
+                VK_NUMPAD9, VK_OEM_1, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5,
+                VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD,
+                VK_OEM_PLUS, VK_PAUSE, VK_PRIOR, VK_RBUTTON, VK_RCONTROL,
+                VK_RETURN, VK_RIGHT, VK_RMENU, VK_RSHIFT, VK_RWIN,
+                VK_SEPARATOR, VK_SHIFT, VK_SNAPSHOT, VK_SPACE, VK_SUBTRACT,
+                VK_TAB, VK_UP, VK_XBUTTON1, VK_XBUTTON2,
+            },
+            WindowsAndMessaging::{
+                DefWindowProcA, DestroyWindow, GetSystemMetrics, LoadCursorA,
+                LoadIconA, MessageBoxA, PostQuitMessage, RegisterClassExA,
+                IDC_ARROW, MB_OK, MSG, SM_REMOTESESSION, WA_INACTIVE,
+                WM_ACTIVATE, WM_CHAR, WM_CLOSE, WM_CREATE, WM_DESTROY,
+                WM_DISPLAYCHANGE, WM_KEYDOWN, WM_KEYUP, WM_KILLFOCUS,
+                WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
+                WM_MOVE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETFOCUS,
+                WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
+                WNDCLASSEXA,
+            },
+        },
+    },
 };
 
 use libc::c_int;
 
-use crate::{com::{self, ErrorParm}, sys::{self, WindowEvent, MouseScancode, KeyboardScancode, Modifiers}, util::{LowWord, HighWord, CharFromUtf16Char}, platform::WindowHandle};
+use crate::{
+    com::{self, ErrorParm},
+    platform::WindowHandle,
+    sys::{self, KeyboardScancode, Modifiers, MouseScancode, WindowEvent},
+    util::{CharFromUtf16Char, HighWord, LowWord},
+};
 
 // Get info for WinMain (Rust doesn't do this automatically), then call it
 #[allow(
@@ -76,7 +115,12 @@ pub fn main() {
     WinMain(hInstance, None, pCmdLine, nCmdShow);
 }
 
-unsafe extern "system" fn main_wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+unsafe extern "system" fn main_wnd_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
     let mut mesg = MSG::default();
     mesg.hwnd = hwnd;
     mesg.message = msg;
@@ -84,11 +128,17 @@ unsafe extern "system" fn main_wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lp
     mesg.lParam = lparam;
 
     if msg == WM_DESTROY {
-        sys::MAIN_WINDOW_EVENTS.lock().unwrap().push_back(WindowEvent::Destroyed);
+        sys::MAIN_WINDOW_EVENTS
+            .lock()
+            .unwrap()
+            .push_back(WindowEvent::Destroyed);
         PostQuitMessage(0);
         LRESULT(0)
     } else if msg == WM_CLOSE {
-        sys::MAIN_WINDOW_EVENTS.lock().unwrap().push_back(WindowEvent::CloseRequested);
+        sys::MAIN_WINDOW_EVENTS
+            .lock()
+            .unwrap()
+            .push_back(WindowEvent::CloseRequested);
         DestroyWindow(hwnd);
         LRESULT(0)
     } else if let Ok(ev) = mesg.try_into() {
@@ -104,14 +154,17 @@ fn register_class(hinstance: HMODULE) {
     wnd_class.cbSize = size_of_val(&wnd_class) as _;
     wnd_class.lpfnWndProc = Some(main_wnd_proc);
     wnd_class.hInstance = hinstance;
-    wnd_class.hIcon = unsafe { LoadIconA(hinstance, PCSTR(0x00000001 as _)) }.unwrap_or_default();
-    wnd_class.hCursor = unsafe { LoadCursorA(hinstance, PCSTR(IDC_ARROW.0 as _)) }.unwrap_or_default();
+    wnd_class.hIcon = unsafe { LoadIconA(hinstance, PCSTR(0x00000001 as _)) }
+        .unwrap_or_default();
+    wnd_class.hCursor =
+        unsafe { LoadCursorA(hinstance, PCSTR(IDC_ARROW.0 as _)) }
+            .unwrap_or_default();
     wnd_class.hbrBackground = unsafe { CreateSolidBrush(COLORREF(0)) };
     wnd_class.lpszClassName = s!("CoDBlackOps");
     if unsafe { RegisterClassExA(addr_of!(wnd_class)) } == 0 {
         com::error(ErrorParm::FATAL, "EXE_ERR_COULDNT_REGISTER_WINDOW");
     }
-}   
+}
 
 impl TryFrom<MSG> for WindowEvent {
     type Error = ();
@@ -120,23 +173,28 @@ impl TryFrom<MSG> for WindowEvent {
             WM_CREATE => {
                 let mut handle = Win32WindowHandle::empty();
                 handle.hwnd = value.hwnd.0 as _;
-                handle.hinstance = unsafe { GetModuleHandleA(None) }.unwrap_or(HMODULE(0)).0 as _;
+                handle.hinstance = unsafe { GetModuleHandleA(None) }
+                    .unwrap_or(HMODULE(0))
+                    .0 as _;
                 Ok(Self::Created(WindowHandle(RawWindowHandle::Win32(handle))))
-            },
+            }
             WM_DESTROY => Ok(Self::Destroyed),
             WM_CLOSE => Ok(Self::CloseRequested),
-            WM_MOVE => Ok(Self::Moved { x: value.lParam.low_word() as _, y: value.lParam.high_word() as _ }),
+            WM_MOVE => Ok(Self::Moved {
+                x: value.lParam.low_word() as _,
+                y: value.lParam.high_word() as _,
+            }),
             WM_ACTIVATE => {
                 if value.wParam.0 == WA_INACTIVE as usize {
                     Ok(Self::Deactivate)
                 } else {
                     Ok(Self::Activate)
                 }
-            }, 
+            }
             WM_SETFOCUS => Ok(Self::SetFocus),
             WM_KILLFOCUS => Ok(Self::KillFocus),
-            WM_DISPLAYCHANGE => Ok(Self::DisplayChange { 
-                bit_depth: value.wParam.0 as _, 
+            WM_DISPLAYCHANGE => Ok(Self::DisplayChange {
+                bit_depth: value.wParam.0 as _,
                 horz_res: value.lParam.low_word() as _,
                 vert_res: value.lParam.high_word() as _,
             }),
@@ -146,18 +204,23 @@ impl TryFrom<MSG> for WindowEvent {
             WM_RBUTTONUP => Ok(Self::MouseButtonUp(MouseScancode::RClick)),
             WM_MBUTTONDOWN => Ok(Self::MouseButtonDown(MouseScancode::MClick)),
             WM_MBUTTONUP => Ok(Self::MouseButtonUp(MouseScancode::MClick)),
-            WM_XBUTTONDOWN => if value.wParam.high_word() == 0x01 { 
-                Ok(Self::MouseButtonDown(MouseScancode::Button4)) 
-            } else {
-                Ok(Self::MouseButtonDown(MouseScancode::Button5))
-            },
-            WM_XBUTTONUP => if value.wParam.high_word() == 0x01 { 
-                Ok(Self::MouseButtonUp(MouseScancode::Button4)) 
-            } else {
-                Ok(Self::MouseButtonUp(MouseScancode::Button5))
-            },
+            WM_XBUTTONDOWN => {
+                if value.wParam.high_word() == 0x01 {
+                    Ok(Self::MouseButtonDown(MouseScancode::Button4))
+                } else {
+                    Ok(Self::MouseButtonDown(MouseScancode::Button5))
+                }
+            }
+            WM_XBUTTONUP => {
+                if value.wParam.high_word() == 0x01 {
+                    Ok(Self::MouseButtonUp(MouseScancode::Button4))
+                } else {
+                    Ok(Self::MouseButtonUp(MouseScancode::Button5))
+                }
+            }
             WM_KEYDOWN | WM_KEYUP | WM_SYSKEYDOWN | WM_SYSKEYUP => {
-                let down = value.message == WM_KEYDOWN || value.message == WM_SYSKEYDOWN;
+                let down = value.message == WM_KEYDOWN
+                    || value.message == WM_SYSKEYDOWN;
                 let kpi = KeyPressInfo::from_lparam(value.lParam);
                 let vk = VIRTUAL_KEY(value.wParam.0 as _);
                 let physical_scancode: Option<KeyboardScancode> =
@@ -165,7 +228,10 @@ impl TryFrom<MSG> for WindowEvent {
 
                 if let Ok(k) = TryInto::<KeyboardScancode>::try_into(vk) {
                     if !down {
-                        return Ok(Self::KeyUp { logical_scancode: k, physical_scancode });
+                        return Ok(Self::KeyUp {
+                            logical_scancode: k,
+                            physical_scancode,
+                        });
                     }
 
                     return Ok(Self::KeyDown {
@@ -196,9 +262,9 @@ impl TryFrom<MSG> for WindowEvent {
                 } else {
                     Err(())
                 }
-            },
-            _ => Err(())
-        }   
+            }
+            _ => Err(()),
+        }
     }
 }
 
@@ -392,7 +458,9 @@ trait ModifiersExt {
 impl ModifiersExt for Modifiers {
     fn try_from_vk(vk: VIRTUAL_KEY, scancode: u16) -> Option<Self> {
         let vk = if vk == VK_SHIFT || vk == VK_MENU || vk == VK_CONTROL {
-            VIRTUAL_KEY(unsafe { MapVirtualKeyW(scancode as _, MAPVK_VSC_TO_VK_EX) } as _)
+            VIRTUAL_KEY(unsafe {
+                MapVirtualKeyW(scancode as _, MAPVK_VSC_TO_VK_EX)
+            } as _)
         } else {
             vk
         };
