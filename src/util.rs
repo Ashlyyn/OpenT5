@@ -193,10 +193,10 @@ impl Module {
             fn unload(&mut self) {
                 // SAFETY:
                 // dlclose is an FFI function, requiring use of unsafe.
-                // dlclose itself should never create UB, violate memory
-                // safety, etc., regardless of the pointer passed to it,
-                // but in any event, the pointer we pass is guaranteed to
-                // be valid since it was retrieved via dlopen.
+                // dlclose itself may corrupt the program if it's passed a
+                // library currently use by the program, but this function is
+                // only ever called when the [`Module`] is dropped, so it
+                // shouldn't corrupt anything.
                 unsafe { dlclose(self.ptr.cast()); }
             }
         } else {
