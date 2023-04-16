@@ -77,7 +77,7 @@ pub fn begin_remote_screen_update() {
             R_GLOB.write().unwrap().remote_screen_update_nesting += 1;
             sys::notify_renderer();
         } else {
-            R_GLOB.write().unwrap().remote_screen_update_nesting += 1;
+            R_GLOB.write().unwrap().remote_screen_update_nesting = 1;
         }
     }
 }
