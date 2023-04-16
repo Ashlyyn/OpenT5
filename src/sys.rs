@@ -2,8 +2,8 @@
 
 extern crate alloc;
 
-use crate::platform::{WindowHandle};
-use crate::util::{SmpEvent};
+use crate::platform::WindowHandle;
+use crate::util::SmpEvent;
 use crate::*;
 use num_derive::FromPrimitive;
 
@@ -11,17 +11,14 @@ pub mod gpu;
 
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
-use windows::Win32::UI::WindowsAndMessaging::{PeekMessageA, MSG, PM_NOREMOVE, GetMessageA, TranslateMessage, DispatchMessageA};
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
 };
-use std::ptr::addr_of;
 use lazy_static::lazy_static;
-use std::{ptr::addr_of_mut};
 use std::fs::File;
 use std::io::{Read, Write};
-use std::sync::{RwLock, Mutex};
+use std::sync::{Mutex, RwLock};
 use std::thread::{JoinHandle, ThreadId};
 use std::{path::PathBuf, time::SystemTime};
 cfg_if! {
@@ -34,6 +31,7 @@ cfg_if! {
         use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_HIDDEN;
         use windows::core::PCSTR;
         use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
+        use windows::Win32::UI::WindowsAndMessaging::{PeekMessageA, MSG, PM_NOREMOVE, GetMessageA, TranslateMessage, DispatchMessageA};
     }
 }
 
@@ -426,8 +424,9 @@ pub fn start_minidump(b: bool) {
 }
 
 fn normal_exit() {
-    let semaphore_file_path =
-        get_semaphore_folder_path().unwrap().join(get_semaphore_file_name());
+    let semaphore_file_path = get_semaphore_folder_path()
+        .unwrap()
+        .join(get_semaphore_file_name());
     std::fs::remove_file(semaphore_file_path).unwrap();
 }
 
@@ -617,7 +616,8 @@ pub fn render_fatal_error() -> ! {
 }
 
 lazy_static! {
-    static ref QUIT_EVENT: Mutex<SmpEvent> = Mutex::new(SmpEvent::new(false, true));
+    static ref QUIT_EVENT: Mutex<SmpEvent> =
+        Mutex::new(SmpEvent::new(false, true));
 }
 
 pub fn set_quit_event() {
@@ -631,7 +631,8 @@ pub fn query_quit_event() -> bool {
 }
 
 lazy_static! {
-    static ref RG_REGISTERED_EVENT: Mutex<SmpEvent> = Mutex::new(SmpEvent::new(false, true));
+    static ref RG_REGISTERED_EVENT: Mutex<SmpEvent> =
+        Mutex::new(SmpEvent::new(false, true));
 }
 
 pub fn clear_rg_registered_event() {
@@ -655,7 +656,8 @@ pub fn wait_rg_registered_event() {
 }
 
 lazy_static! {
-    static ref BACKEND_EVENT: Mutex<SmpEvent> = Mutex::new(SmpEvent::new(false, true));
+    static ref BACKEND_EVENT: Mutex<SmpEvent> =
+        Mutex::new(SmpEvent::new(false, true));
 }
 
 pub fn query_backend_event() -> bool {
@@ -1218,8 +1220,11 @@ cfg_if! {
         }
 
         thread_local! {
-            static GTK_RESPONSE_EVENT: RefCell<SmpEvent<gtk4::ResponseType>>
-                = RefCell::new(SmpEvent::new(gtk4::ResponseType::Other(0xFFFF), false, false));
+            static GTK_RESPONSE_EVENT: RefCell<SmpEvent>
+                = RefCell::new(SmpEvent::new(false, false));
+
+            static GTK_RESPONSE_EVENT_VALUE: RefCell<Option<gtk4::ResponseType>>
+                = RefCell::new(None);
         }
 
         #[allow(clippy::unnecessary_wraps)]
@@ -1263,13 +1268,19 @@ cfg_if! {
                 GTK_RESPONSE_EVENT.with(|event| {
                     #[allow(unused_must_use)]
                     {
-                        event.borrow_mut().send(answer);
+                        GTK_RESPONSE_EVENT_VALUE.with(|value| {
+                            *value.borrow_mut() = Some(answer);
+                        });
+                        event.borrow_mut().set();
                     }
                 });
             });
 
             let response = GTK_RESPONSE_EVENT.with(|event| {
-                event.borrow_mut().acknowledge()
+                event.borrow_mut().wait();
+                GTK_RESPONSE_EVENT_VALUE.with(|value| {
+                    value.borrow().unwrap()
+                })
             });
 
             Some(response.into())
@@ -1536,7 +1547,7 @@ impl TryFrom<Modifiers> for KeyboardScancode {
             Modifiers::RSHIFT => Ok(Self::RShift),
             Modifiers::RSYS => Ok(Self::RSys),
             Modifiers::SCRLOCK => Ok(Self::ScrLk),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -1554,19 +1565,18 @@ pub enum MouseScancode {
 impl KeyboardScancode {
     pub fn affected_by_num_lock(self) -> bool {
         match self {
-            KeyboardScancode::Num0 |
-            KeyboardScancode::Num1 |
-            KeyboardScancode::Num2 |
-            KeyboardScancode::Num3 |
-            KeyboardScancode::Num4 |
-            KeyboardScancode::Num5 |
-            KeyboardScancode::Num6 |
-            KeyboardScancode::Num7 |
-            KeyboardScancode::Num8 |
-            KeyboardScancode::Num9 |
-            KeyboardScancode::NumPeriod => true,
-            _ => false 
-            
+            KeyboardScancode::Num0
+            | KeyboardScancode::Num1
+            | KeyboardScancode::Num2
+            | KeyboardScancode::Num3
+            | KeyboardScancode::Num4
+            | KeyboardScancode::Num5
+            | KeyboardScancode::Num6
+            | KeyboardScancode::Num7
+            | KeyboardScancode::Num8
+            | KeyboardScancode::Num9
+            | KeyboardScancode::NumPeriod => true,
+            _ => false,
         }
     }
 }
@@ -1588,12 +1598,12 @@ pub enum WindowEvent {
     MouseWheel(u32),
     Created(WindowHandle),
     Destroyed,
-    Moved { 
-        x: u32, 
-        y: u32 
+    Moved {
+        x: u32,
+        y: u32,
     },
     Resized {
-        width: u32, 
+        width: u32,
         height: u32,
     },
     Activate,
@@ -1624,32 +1634,44 @@ pub enum WindowEvent {
     MouseButtonDown(MouseScancode),
     MouseButtonUp(MouseScancode),
     MouseWheelScroll(f32),
-    ModifiersChanged { modifier: Modifiers, down: bool },
+    ModifiersChanged {
+        modifier: Modifiers,
+        down: bool,
+    },
 }
 
 lazy_static! {
-    pub static ref MAIN_WINDOW_EVENTS: Mutex<VecDeque<WindowEvent>> = Mutex::new(VecDeque::new());
+    pub static ref MAIN_WINDOW_EVENTS: Mutex<VecDeque<WindowEvent>> =
+        Mutex::new(VecDeque::new());
 }
 
-pub fn next_window_event() -> Option<WindowEvent> {
-    if query_quit_event() {
-        com::quit_f();
-    }
-
-    if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
-        let mut msg = MSG::default();
-    
-        if unsafe { PeekMessageA(addr_of_mut!(msg), None, 0, 0, PM_NOREMOVE) }.as_bool() {
-            if unsafe { GetMessageA(addr_of_mut!(msg), None, 0, 0) }.0 == 0 {
-                set_quit_event();
+cfg_if! {
+    if #[cfg(windows)] {
+        pub fn next_window_event() -> Option<WindowEvent> {
+            if query_quit_event() {
+                com::quit_f();
             }
-            platform::set_msg_time(msg.time as _);
-            unsafe { TranslateMessage(addr_of!(msg)) };
-            unsafe { DispatchMessageA(addr_of!(msg)) };
+
+            if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
+                let mut msg = MSG::default();
+
+                if unsafe { PeekMessageA(addr_of_mut!(msg), None, 0, 0, PM_NOREMOVE) }.as_bool() {
+                    if unsafe { GetMessageA(addr_of_mut!(msg), None, 0, 0) }.0 == 0 {
+                        set_quit_event();
+                    }
+                    platform::set_msg_time(msg.time as _);
+                    unsafe { TranslateMessage(addr_of!(msg)) };
+                    unsafe { DispatchMessageA(addr_of!(msg)) };
+                }
+                None
+            } else {
+                MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
+            }
         }
-        None
-    } else {
-        MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
+    } else if #[cfg(unix)] {
+        pub fn next_window_event() -> Option<WindowEvent> {
+            None
+        }
     }
 }
 
