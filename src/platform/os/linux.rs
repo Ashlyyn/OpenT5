@@ -1,5 +1,4 @@
-use libc::c_void;
-use raw_window_handle::{RawWindowHandle, WaylandWindowHandle, XlibWindowHandle};
+use raw_window_handle::{RawWindowHandle, WaylandWindowHandle, XlibWindowHandle, XlibDisplayHandle, RawDisplayHandle};
 use cfg_if::cfg_if;
 
 use crate::platform::WindowHandle;
@@ -32,10 +31,25 @@ impl WindowHandle {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MonitorHandle {
-    Xlib { display: *mut c_void, screen: i32 },
+    Xlib(XlibDisplayHandle),
     Wayland(()),
+}
+
+impl Ord for MonitorHandle {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match *self {
+            Self::Xlib(handle) => handle.display.cmp(&other.get_xlib().unwrap().display).then(handle.screen.cmp(&other.get_xlib().unwrap().screen)),
+            Self::Wayland(()) => ().cmp(&()),
+        }
+    }
+}
+
+impl PartialOrd for MonitorHandle {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 // Win32 => Win32
@@ -43,9 +57,27 @@ pub enum MonitorHandle {
 // macOS => Xlib, AppKit, UiKit
 // Other Unix => Xlib
 impl MonitorHandle {
-    pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
+    cfg_if! {
+        if #[cfg(feature = "linux_use_wayland")] {
+            pub const fn get(&self) -> RawDisplayHandle {
+                match *self {
+                    Self::Wayland(handle) => RawDisplayHandle::Wayland(handle),
+                    _ => panic!()
+                }  
+            }
+        } else {
+            pub const fn get(&self) -> RawDisplayHandle {
+                match *self {
+                    Self::Xlib(handle) => RawDisplayHandle::Xlib(handle),
+                    _ => panic!()
+                }  
+            }
+        }
+    }
+
+    pub const fn get_xlib(&self) -> Option<XlibDisplayHandle> {
         match *self {
-            Self::Xlib { display, screen }=> Some((display, screen)),
+            Self::Xlib(handle) => Some(handle),
             _ => None,
         }
     }
@@ -60,13 +92,13 @@ impl MonitorHandle {
 
 cfg_if! {
     if #[cfg(feature = "linux_use_wayland")] {
-        fn show_window(handle: WindowHandle) {
-            let handle = handle.as_wayland().unwrap();
+        pub fn show_window(handle: WindowHandle) {
+            let _handle = handle.get_wayland().unwrap();
             todo!()
         }
     } else {
-        fn show_window(handle: WindowHandle) {
-            let handle = handle.as_xlib().unwrap();
+        pub fn show_window(handle: WindowHandle) {
+            let _handle = handle.get_xlib().unwrap();
             todo!()
         }
     }

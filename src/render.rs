@@ -5,7 +5,7 @@ use crate::platform::os::target::{MonitorHandle, show_window};
 use crate::sys::gpu::Device;
 use crate::{platform::WindowHandle, *};
 use pollster::block_on;
-use raw_window_handle::{Win32WindowHandle, RawWindowHandle, WindowsDisplayHandle};
+//use raw_window_handle::{RawWindowHandle};
 use sscanf::scanf;
 extern crate alloc;
 use std::collections::{HashSet};
@@ -29,6 +29,8 @@ cfg_if! {
         use std::mem::size_of_val;
         use alloc::collections::BTreeSet;
         use std::ffi::CString;
+        use raw_window_handle::Win32WindowHandle;
+        use raw_window_handle::WindowsDisplayHandle;
     } else if #[cfg(unix)] {
         use x11::xlib::{XOpenDisplay};
         use x11rb::connection::Connection;
@@ -38,6 +40,7 @@ cfg_if! {
         use x11rb::COPY_DEPTH_FROM_PARENT;
         use raw_window_handle::XlibWindowHandle;
         use std::time::{SystemTime, UNIX_EPOCH};
+        use raw_window_handle::XlibDisplayHandle;
     }
 }
 
@@ -722,7 +725,12 @@ cfg_if! {
             // Fix this as soon as possible.
             let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
             let (conn, _) = x11rb::connect(None).unwrap();
-            conn.setup().roots.iter().map(|screen| MonitorHandle::Xlib { display: display as _, screen: screen.root as _ }).collect()
+            conn.setup().roots.iter().map(|screen| {
+                let mut handle = XlibDisplayHandle::empty();
+                handle.display = display as _;
+                handle.screen = screen.root as _;
+                MonitorHandle::Xlib(handle)
+            }).collect()
         }
 
         fn primary_monitor() -> Option<MonitorHandle> {
@@ -732,7 +740,10 @@ cfg_if! {
         fn current_monitor(_: WindowHandle) -> Option<MonitorHandle> {
             let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
             let (_, screen_num) = x11rb::connect(None).unwrap();
-            Some(MonitorHandle::Xlib { display: display as _, screen: screen_num as _ })
+            let mut handle = XlibDisplayHandle::empty();
+            handle.display = display as _;
+            handle.screen = screen_num as _;
+            Some(MonitorHandle::Xlib(handle))
         }
 
         fn choose_monitor() -> MonitorHandle {
@@ -744,14 +755,20 @@ cfg_if! {
                 //if data.handle != HMONITOR(0) {
                 //    return MonitorHandle::Win32(data.handle);
                 //}
-                return MonitorHandle::Xlib { display: core::ptr::null_mut(), screen: 0 }
+                let mut handle = XlibDisplayHandle::empty();
+                //handle.display = display as _;
+                //handle.screen = screen.root as _;
+                return MonitorHandle::Xlib(handle)
             }
 
             let xpos = dvar::get_int("vid_xpos").unwrap();
             let ypos = dvar::get_int("vid_ypos").unwrap();
             //let hmonitor = unsafe { MonitorFromPoint(POINT { x: xpos, y: ypos }, MONITOR_DEFAULTTOPRIMARY) };
             //MonitorHandle::Win32(hmonitor)
-            MonitorHandle::Xlib { display: core::ptr::null_mut(), screen: 0 }
+            let mut handle = XlibDisplayHandle::empty();
+            //handle.display = display as _;
+            //handle.screen = screen.root as _;
+            MonitorHandle::Xlib(handle)
         }
 
         fn get_monitor_dimensions(monitor_handle: MonitorHandle) -> Option<(u32, u32)> {
