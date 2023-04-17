@@ -5,12 +5,10 @@ use crate::platform::os::target::MonitorHandle;
 use crate::sys::gpu::Device;
 use crate::{platform::WindowHandle, *};
 use pollster::block_on;
-use raw_window_handle::{Win32WindowHandle, RawWindowHandle};
 use sscanf::scanf;
 extern crate alloc;
-use std::collections::{HashSet, BTreeSet};
+use std::collections::{HashSet};
 use std::collections::VecDeque;
-use std::ffi::CString;
 use std::sync::RwLock;
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
@@ -28,11 +26,13 @@ cfg_if! {
         use crate::platform::os::target::monitor_enum_proc;
         use core::ptr::addr_of_mut;
         use std::mem::size_of_val;
+        use alloc::collections::BTreeSet;
+        use std::ffi::CString;
     } else if #[cfg(unix)] {
-        use x11::xlib::{InputFocus, XOpenDisplay};
+        use x11::xlib::{XOpenDisplay};
         use x11rb::connection::Connection;
         use x11rb::protocol::xproto::{
-            ConfigureWindowAux, ConnectionExt, CreateWindowAux, InputFocus, WindowClass,
+            ConnectionExt, CreateWindowAux, InputFocus, WindowClass,
         };
         use x11rb::COPY_DEPTH_FROM_PARENT;
         use raw_window_handle::XlibWindowHandle;

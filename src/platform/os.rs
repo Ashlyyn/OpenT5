@@ -3,9 +3,6 @@
 
 #![allow(clippy::pub_use)]
 
-mod linux;
-mod macos;
-
 use cfg_if::cfg_if;
 
 cfg_if! {

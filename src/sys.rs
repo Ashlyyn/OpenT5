@@ -16,7 +16,7 @@ use core::{
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
 };
 use lazy_static::lazy_static;
-use std::{fs::File, ptr::{addr_of_mut, addr_of}};
+use std::{fs::File};
 use std::io::{Read, Write};
 use std::sync::{Mutex, RwLock};
 use std::thread::{JoinHandle, ThreadId};
@@ -24,6 +24,7 @@ use std::{path::PathBuf, time::SystemTime};
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         use core::ffi::{CStr};
+        use core::ptr::{addr_of_mut, addr_of};
         use std::fs::OpenOptions;
         use std::os::windows::prelude::*;
         use windows::Win32::Foundation::MAX_PATH;

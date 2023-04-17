@@ -7,20 +7,11 @@ pub mod os;
 use std::sync::RwLock;
 extern crate alloc;
 use alloc::sync::Arc;
-use cfg_if::cfg_if;
 
 use lazy_static::lazy_static;
 use raw_window_handle::{
     HasRawWindowHandle,  RawWindowHandle,
 };
-
-cfg_if! {
-    if #[cfg(windows)] {
-    } else if #[cfg(unix)] {
-        use libc::c_void;
-        use raw_window_handle::{XlibDisplayHandle, RawDisplayHandle, HasRawDisplayHandle};
-    }
-}
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct WindowHandle(pub RawWindowHandle);
