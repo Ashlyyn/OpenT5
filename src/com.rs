@@ -452,6 +452,7 @@ fn init_try_block_function() {
     cl::init_once_for_all_clients();
     render::init_threads();
     cl::init_renderer();
+    render::begin_remote_screen_update();
     self::println!(16.into(), "--- Common Initialization Complete ---");
 }
 
@@ -490,8 +491,13 @@ pub fn frame_time() -> Duration {
 
 pub fn quit_f() -> ! {
     self::println!(0.into(), "quitting...");
-    if ERROR_ENTERED.load(Ordering::Relaxed) {}
+    if ERROR_ENTERED.load(Ordering::Relaxed) {
+
+    }
     sys::quit();
 }
 
-pub fn frame() {}
+pub fn frame() {
+
+}
+

@@ -10,16 +10,15 @@ use alloc::sync::Arc;
 use cfg_if::cfg_if;
 
 use lazy_static::lazy_static;
-
-use libc::c_void;
 use raw_window_handle::{
-    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
-    XlibDisplayHandle, XlibWindowHandle,
+    HasRawWindowHandle,  RawWindowHandle,
 };
 
 cfg_if! {
     if #[cfg(windows)] {
-        use windows::Win32::Graphics::Gdi::HMONITOR;
+    } else if #[cfg(unix)] {
+        use libc::c_void;
+        use raw_window_handle::{XlibDisplayHandle, RawDisplayHandle, HasRawDisplayHandle};
     }
 }
 
@@ -35,174 +34,9 @@ unsafe impl Sync for WindowHandle {}
 // testing, we'll see if any pop up later.
 unsafe impl Send for WindowHandle {}
 
-impl WindowHandle {
-    pub const fn new(handle: RawWindowHandle) -> Self {
-        Self(handle)
-    }
-
-    pub const fn get(&self) -> RawWindowHandle {
-        self.0
-    }
-
-    cfg_if! {
-        if #[cfg(windows)] {
-            pub const fn get_win32(&self) -> Option<Win32WindowHandle> {
-                match self.get() {
-                    RawWindowHandle::Win32(handle) => Some(handle),
-                    _ => None,
-                }
-            }
-        } else if #[cfg(unix)] {
-            pub const fn get_xlib(&self) -> Option<XlibWindowHandle> {
-                match self.get() {
-                    RawWindowHandle::Xlib(handle) => Some(handle),
-                    _ => None,
-                }
-            }
-        }
-    }
-
-    cfg_if! {
-        if #[cfg(target_os = "unix")] {
-            pub const fn get_wayland(&self) -> Option<WaylandWindowHandle> {
-                match self.get() {
-                    RawWindowHandle::Wayland(handle) => Some(handle),
-                    _ => None,
-                }
-            }
-        } else if #[cfg(any(target_os = "macos", target_os = "ios"))] {
-            pub const fn get_ui_kit(&self) -> Option<UiKitWindowHandle> {
-                match self.get() {
-                    RawWindowHandle::UiKit(handle) => Some(handle),
-                    _ => None,
-                }
-            }
-
-            pub const fn get_app_kit(&self) -> Option<AppKitWindowHandle> {
-                match self.get() {
-                    RawWindowHandle::AppKit(handle) => Some(handle),
-                    _ => None,
-                }
-            }
-        }
-    }
-}
-
 unsafe impl HasRawWindowHandle for WindowHandle {
     fn raw_window_handle(&self) -> RawWindowHandle {
         self.get()
-    }
-}
-
-unsafe impl HasRawDisplayHandle for WindowHandle {
-    cfg_if! {
-        if #[cfg(windows)] {
-            fn raw_display_handle(&self) -> RawDisplayHandle {
-                RawDisplayHandle::Windows(self.1.get_win32())
-            }
-        } else if #[cfg(unix)] {
-            fn raw_display_handle(&self) -> RawDisplayHandle {
-                let mut handle = XlibDisplayHandle::empty();
-                //handle.display = self.get_xlib().unwrap();
-                //handle.screen = self.get_xlib().unwrap();
-                RawDisplayHandle::Xlib(handle)
-            }
-        }
-    }
-}
-
-cfg_if! {
-    if #[cfg(windows)] {
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
-        pub enum MonitorHandle {
-            Win32(HMONITOR),
-        }
-    } else if #[cfg(target_os = "linux")] {
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
-        pub enum MonitorHandle {
-            Xlib { display: *mut c_void, screen: i32 },
-            Wayland(()),
-        }
-    } else if #[cfg(target_os = "macos")] {
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
-        pub enum MonitorHandle {
-            Xlib { display: *mut c_void, screen: i32 },
-            AppKit(()),
-            UiKit(()),
-        }
-    } else if #[cfg(unix)] {
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
-        pub enum MonitorHandle {
-            Xlib { display: *mut c_void, screen: i32 },
-        }
-    }
-}
-
-// SAFETY:
-// Really don't know if this is safe. It hasn't created any problems in
-// testing, we'll see if any pop up later.
-unsafe impl Sync for MonitorHandle {}
-// SAFETY:
-// Really don't know if this is safe. It hasn't created any problems in
-// testing, we'll see if any pop up later.
-unsafe impl Send for MonitorHandle {}
-
-// Win32 => Win32
-// Linux => Xlib, Wayland
-// macOS => Xlib, AppKit, UiKit
-// Other Unix => Xlib
-impl MonitorHandle {
-    cfg_if! {
-        if #[cfg(windows)] {
-            pub const fn get_win32(&self) -> Option<HMONITOR> {
-                match *self {
-                    Self::Win32(handle) => Some(handle),
-                    _ => None,
-                }
-            }
-        } else if #[cfg(target_os = "linux")] {
-            pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
-                match *self {
-                    Self::Xlib { display, screen }=> Some((display, screen)),
-                    _ => None,
-                }
-            }
-
-            pub const fn get_wayland(&self) -> Option<()> {
-                match *self {
-                    Self::Wayland(_) => Some(()),
-                    _ => None,
-                }
-            }
-        } else if #[cfg(target_os = "macos")] {
-            pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
-                match *self {
-                    Self::Xlib { display, screen }=> Some((display, screen)),
-                    _ => None,
-                }
-            }
-
-            pub const fn get_app_kit(&self) -> Option<()> {
-                match *self {
-                    Self::AppKit(_) => Some(()),
-                    _ => None,
-                }
-            }
-
-            pub const fn get_ui_kit(&self) -> Option<()> {
-                match *self {
-                    Self::UiKit(_) => Some(()),
-                    _ => None,
-                }
-            }
-        } else if #[cfg(unix)] {
-            pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
-                match *self {
-                    Self::Xlib { display, screen }=> Some((display, screen)),
-                    _ => None,
-                }
-            }
-        }
     }
 }
 

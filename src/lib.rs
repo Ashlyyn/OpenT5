@@ -58,8 +58,8 @@
 
 use cfg_if::cfg_if;
 use core::sync::atomic::{AtomicBool, Ordering};
-use lazy_static::lazy_static;
 use std::time::Duration;
+use lazy_static::lazy_static;
 extern crate alloc;
 use alloc::sync::Arc;
 
@@ -122,6 +122,8 @@ pub fn run() {
             // Windows top-level exception handler bullshit
         }
     }
+
+    sys::init_main_thread();
 
     cfg_if! {
         if #[cfg(not(target_arch = "wasm32"))] {

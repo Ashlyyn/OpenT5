@@ -595,9 +595,52 @@ pub unsafe extern "system" fn monitor_enum_proc(
     true.into() // continue enumeration
 }
 
+impl WindowHandle {
+    pub const fn new(handle: RawWindowHandle) -> Self {
+        Self(handle)
+    }
+
+    pub const fn get(&self) -> RawWindowHandle {
+        self.0
+    }
+
+    pub const fn get_win32(&self) -> Option<Win32WindowHandle> {
+        match self.get() {
+            RawWindowHandle::Win32(handle) => Some(handle),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
+pub enum MonitorHandle {
+    Win32(isize),
+}
+
 unsafe impl HasRawDisplayHandle for WindowHandle {
     fn raw_display_handle(&self) -> RawDisplayHandle {
         RawDisplayHandle::Windows(WindowsDisplayHandle::empty())
+    }
+}
+
+// SAFETY:
+// Really don't know if this is safe. It hasn't created any problems in
+// testing, we'll see if any pop up later.
+unsafe impl Sync for MonitorHandle {}
+// SAFETY:
+// Really don't know if this is safe. It hasn't created any problems in
+// testing, we'll see if any pop up later.
+unsafe impl Send for MonitorHandle {}
+
+// Win32 => Win32
+// Linux => Xlib, Wayland
+// macOS => Xlib, AppKit, UiKit
+// Other Unix => Xlib
+impl MonitorHandle {
+    pub const fn get_win32(&self) -> Option<HMONITOR> {
+        match *self {
+            Self::Win32(handle) => Some(HMONITOR(handle)),
+        }
     }
 }
 
