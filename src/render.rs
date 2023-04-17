@@ -5,7 +5,6 @@ use crate::platform::os::target::{MonitorHandle, show_window};
 use crate::sys::gpu::Device;
 use crate::{platform::WindowHandle, *};
 use pollster::block_on;
-//use raw_window_handle::{RawWindowHandle};
 use sscanf::scanf;
 extern crate alloc;
 use std::collections::{HashSet};
@@ -30,7 +29,7 @@ cfg_if! {
         use alloc::collections::BTreeSet;
         use std::ffi::CString;
         use raw_window_handle::Win32WindowHandle;
-        use raw_window_handle::WindowsDisplayHandle;
+        use raw_window_handle::{RawWindowHandle};
     } else if #[cfg(unix)] {
         use x11::xlib::{XOpenDisplay};
         use x11rb::connection::Connection;
@@ -556,12 +555,12 @@ cfg_if! {
         fn primary_monitor() -> Option<MonitorHandle> {
             const ORIGIN: POINT = POINT { x: 0, y: 0 };
             let hmonitor = unsafe { MonitorFromPoint(ORIGIN, MONITOR_DEFAULTTOPRIMARY) };
-            Some(MonitorHandle::Win32(WindowsDisplayHandle::empty(), hmonitor.0))
+            Some(MonitorHandle::Win32(hmonitor.0))
         }
 
         fn current_monitor(handle: WindowHandle) -> Option<MonitorHandle> {
             let hmonitor = unsafe { MonitorFromWindow(HWND(handle.get_win32().unwrap().hwnd as _), MONITOR_DEFAULTTONEAREST) };
-            Some(MonitorHandle::Win32(WindowsDisplayHandle::empty(), hmonitor.0))
+            Some(MonitorHandle::Win32(hmonitor.0))
         }
 
         #[repr(C)]
@@ -586,20 +585,20 @@ cfg_if! {
                 let mut data = MonitorEnumData { monitor, handle: HMONITOR(0) };
                 unsafe { EnumDisplayMonitors(None, None, Some(monitor_enum_callback), LPARAM(addr_of_mut!(data) as _)) };
                 if data.handle != HMONITOR(0) {
-                    return MonitorHandle::Win32(WindowsDisplayHandle::empty(), data.handle.0);
+                    return MonitorHandle::Win32(data.handle.0);
                 }
             }
 
             let xpos = dvar::get_int("vid_xpos").unwrap();
             let ypos = dvar::get_int("vid_ypos").unwrap();
             let hmonitor = unsafe { MonitorFromPoint(POINT { x: xpos, y: ypos }, MONITOR_DEFAULTTOPRIMARY) };
-            MonitorHandle::Win32(WindowsDisplayHandle::empty(), hmonitor.0)
+            MonitorHandle::Win32(hmonitor.0)
         }
 
         fn get_monitor_dimensions(monitor_handle: MonitorHandle) -> Option<(u32, u32)> {
             let mut mi = MONITORINFOEXW::default();
             mi.monitorInfo.cbSize = size_of_val(&mi) as _;
-            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap().1, addr_of_mut!(mi.monitorInfo)) };
+            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)) };
 
             let mi_width = (mi.monitorInfo.rcMonitor.right - mi.monitorInfo.rcMonitor.left) as u32;
             let mi_height = (mi.monitorInfo.rcMonitor.bottom - mi.monitorInfo.rcMonitor.top) as u32;
@@ -630,7 +629,7 @@ cfg_if! {
         fn monitor_info(monitor_handle: MonitorHandle) -> Option<MonitorInfo> {
             let mut mi = MONITORINFOEXW::default();
             mi.monitorInfo.cbSize = size_of_val(&mi) as _;
-            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap().1, addr_of_mut!(mi.monitorInfo)) };
+            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)) };
             let name = char::decode_utf16(mi.szDevice).flatten().collect::<String>();
 
             let mut mode = DEVMODEW::default();

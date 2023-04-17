@@ -614,12 +614,12 @@ impl WindowHandle {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MonitorHandle {
-    Win32(WindowsDisplayHandle, isize),
+    Win32(isize),
 }
 
 impl Ord for MonitorHandle {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.get_win32().unwrap().1.0.cmp(&other.get_win32().unwrap().1.0)
+        self.get_win32().unwrap().0.cmp(&other.get_win32().unwrap().0)
     }
 }
 
@@ -649,15 +649,15 @@ unsafe impl Send for MonitorHandle {}
 // macOS => Xlib, AppKit, UiKit
 // Other Unix => Xlib
 impl MonitorHandle {
-    pub const fn get(&self) -> RawDisplayHandle {
+    pub fn get(&self) -> RawDisplayHandle {
         match *self {
-            Self::Win32(handle, _) => RawDisplayHandle::Windows(handle)
+            Self::Win32(_) => RawDisplayHandle::Windows(WindowsDisplayHandle::empty())
         }
     }
 
-    pub const fn get_win32(&self) -> Option<(WindowsDisplayHandle, HMONITOR)> {
+    pub const fn get_win32(&self) -> Option<HMONITOR> {
         match *self {
-            Self::Win32(handle, hmonitor) => Some((handle, HMONITOR(hmonitor))),
+            Self::Win32(hmonitor) => Some(HMONITOR(hmonitor)),
         }
     }
 }
