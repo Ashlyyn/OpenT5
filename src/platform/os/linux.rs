@@ -1,5 +1,6 @@
 use libc::c_void;
 use raw_window_handle::{RawWindowHandle, WaylandWindowHandle, XlibWindowHandle};
+use cfg_if::cfg_if;
 
 use crate::platform::WindowHandle;
 
@@ -53,6 +54,20 @@ impl MonitorHandle {
         match *self {
             Self::Wayland(_) => Some(()),
             _ => None,
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(feature = "linux_use_wayland")] {
+        fn show_window(handle: WindowHandle) {
+            let handle = handle.as_wayland().unwrap();
+            todo!()
+        }
+    } else {
+        fn show_window(handle: WindowHandle) {
+            let handle = handle.as_xlib().unwrap();
+            todo!()
         }
     }
 }

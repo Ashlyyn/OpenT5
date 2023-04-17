@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 
 use crate::gfx::{WindowTarget, R_GLOB};
-use crate::platform::os::target::MonitorHandle;
+use crate::platform::os::target::{MonitorHandle, show_window};
 use crate::sys::gpu::Device;
 use crate::{platform::WindowHandle, *};
 use pollster::block_on;
+use raw_window_handle::{Win32WindowHandle, RawWindowHandle};
 use sscanf::scanf;
 extern crate alloc;
 use std::collections::{HashSet};
@@ -20,7 +21,7 @@ cfg_if! {
         use windows::Win32::Graphics::Gdi::{DEVMODEW, EnumDisplayMonitors, MONITOR_DEFAULTTOPRIMARY, MONITOR_DEFAULTTONEAREST, MonitorFromPoint, MonitorFromWindow, GetMonitorInfoW, MONITORINFOEXW, EnumDisplaySettingsExW, ENUM_CURRENT_SETTINGS, ENUM_DISPLAY_SETTINGS_FLAGS, ENUM_DISPLAY_SETTINGS_MODE, DEVMODE_FIELD_FLAGS, DM_BITSPERPEL, DM_PELSWIDTH, DM_PELSHEIGHT, DM_DISPLAYFREQUENCY, HMONITOR, HDC};
         use windows::Win32::System::LibraryLoader::GetModuleHandleA;
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
-        use windows::Win32::UI::WindowsAndMessaging::{WS_EX_LEFT, WS_SYSMENU, WS_CAPTION, WS_VISIBLE, WS_EX_TOPMOST, WS_POPUP, AdjustWindowRectEx, CreateWindowExA, SetWindowPos, HWND_NOTOPMOST, SWP_NOSIZE, SWP_NOMOVE, wShowWindow, SW_SHOW, GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
+        use windows::Win32::UI::WindowsAndMessaging::{WS_EX_LEFT, WS_SYSMENU, WS_CAPTION, WS_VISIBLE, WS_EX_TOPMOST, WS_POPUP, AdjustWindowRectEx, CreateWindowExA, SetWindowPos, HWND_NOTOPMOST, SWP_NOSIZE, SWP_NOMOVE, GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
         use windows::core::{PCSTR, PCWSTR};
         use windows::s;
         use crate::platform::os::target::monitor_enum_proc;
@@ -1220,7 +1221,7 @@ pub fn create_window(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     create_window_2(wnd_parms)?;
     init_hardware(wnd_parms)?;
     RENDER_GLOBALS.write().unwrap().target_window_index = 0;
-    //unsafe { ShowWindow(HWND(wnd_parms.window_handle.unwrap().get_win32().unwrap().hwnd as _), SW_SHOW) };
+    show_window(wnd_parms.window_handle.unwrap());
     Ok(())
 }
 

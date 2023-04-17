@@ -9,13 +9,6 @@ impl WindowHandle {
         self.0
     }
 
-    pub const fn get_ui_kit(&self) -> Option<UiKitWindowHandle> {
-        match self.get() {
-            RawWindowHandle::UiKit(handle) => Some(handle),
-            _ => None,
-        }
-    }
-
     pub const fn get_app_kit(&self) -> Option<AppKitWindowHandle> {
         match self.get() {
             RawWindowHandle::AppKit(handle) => Some(handle),
@@ -35,5 +28,18 @@ impl WindowHandle {
 pub enum MonitorHandle {
     Xlib { display: *mut c_void, screen: i32 },
     AppKit(()),
-    UiKit(()),
+}
+
+cfg_if! {
+    if #[cfg(feature = "macos_use_appkit")] {
+        fn show_window(handle: WindowHandle) {
+            let handle = handle.as_app_kit().unwrap();
+            todo!()
+        }
+    } else {
+        fn show_window(handle: WindowHandle) {
+            let handle = handle.as_xlib().unwrap();
+            todo!()
+        }
+    }
 }

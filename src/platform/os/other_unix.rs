@@ -29,7 +29,7 @@ pub enum MonitorHandle {
 
 // Win32 => Win32
 // Linux => Xlib, Wayland
-// macOS => Xlib, AppKit, UiKit
+// macOS => Xlib, AppKit
 // Other Unix => Xlib
 impl MonitorHandle {
     pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
@@ -38,4 +38,9 @@ impl MonitorHandle {
             _ => None,
         }
     }
+}
+
+fn show_window(handle: WindowHandle) {
+    let handle = handle.as_xlib().unwrap();
+    todo!()
 }

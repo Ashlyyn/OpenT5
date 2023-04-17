@@ -48,7 +48,7 @@ use windows::{
                 WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
                 WM_MOVE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETFOCUS,
                 WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
-                WNDCLASSEXA,
+                WNDCLASSEXA, ShowWindow, SW_SHOW,
             },
         },
     },
@@ -642,6 +642,10 @@ impl MonitorHandle {
             Self::Win32(handle) => Some(HMONITOR(handle)),
         }
     }
+}
+
+pub fn show_window(handle: WindowHandle) {
+    unsafe { ShowWindow(HWND(handle.get_win32().unwrap().hwnd as _), SW_SHOW) };
 }
 
 #[allow(unused_variables, clippy::semicolon_outside_block)]
