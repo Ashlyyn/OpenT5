@@ -11,9 +11,10 @@ extern crate alloc;
 use alloc::sync::Arc;
 use std::sync::{Condvar, Mutex};
 
-use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, HasRawDisplayHandle, RawDisplayHandle};
 
 use crate::platform::WindowHandle;
+use crate::platform::os::target::MonitorHandle;
 
 use cfg_if::cfg_if;
 
@@ -385,6 +386,24 @@ cfg_if! {
 
 const UNITS_TO_METERS: f64 = 0.0254;
 const METERS_TO_UNITS: f64 = 1.0 / 0.0254;
+
+#[derive(Clone, Debug)]
+pub struct WgpuSurface {
+    pub window_handle: WindowHandle,
+    pub monitor_handle: MonitorHandle,
+}
+
+unsafe impl HasRawWindowHandle for WgpuSurface {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        self.window_handle.get()
+    }
+}
+
+unsafe impl HasRawDisplayHandle for WgpuSurface {
+    fn raw_display_handle(&self) -> RawDisplayHandle {
+        self.monitor_handle.get()
+    }
+}
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct Units(pub f64);

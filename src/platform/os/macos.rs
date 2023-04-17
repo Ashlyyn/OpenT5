@@ -33,12 +33,12 @@ pub enum MonitorHandle {
 cfg_if! {
     if #[cfg(feature = "macos_use_appkit")] {
         fn show_window(handle: WindowHandle) {
-            let handle = handle.as_app_kit().unwrap();
+            let handle = handle.get_app_kit().unwrap();
             todo!()
         }
     } else {
         fn show_window(handle: WindowHandle) {
-            let handle = handle.as_xlib().unwrap();
+            let handle = handle.get_xlib().unwrap();
             todo!()
         }
     }
