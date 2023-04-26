@@ -49,7 +49,6 @@ windows =  { version = "0.48.0", features = [
 [target.'cfg(unix)'.dependencies]
 nix = "0.26.1"
 x11 = "2.21.0"
-x11rb = { version = "0.11.1", features = [ "randr" ] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.6"
