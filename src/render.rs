@@ -8,7 +8,6 @@ use pollster::block_on;
 use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
 extern crate alloc;
-use core::slice;
 use std::collections::{HashSet};
 use std::collections::VecDeque;
 use std::ptr::addr_of_mut;
@@ -27,12 +26,12 @@ cfg_if! {
         use windows::core::{PCSTR, PCWSTR};
         use windows::s;
         use crate::platform::os::target::monitor_enum_proc;
-        use core::ptr::addr_of_mut;
         use std::mem::size_of_val;
         use alloc::collections::BTreeSet;
         use std::ffi::CString;
         use raw_window_handle::Win32WindowHandle;
     } else if #[cfg(unix)] {
+        use core::slice;
         use x11::xlib::{XOpenDisplay};
         use raw_window_handle::XlibWindowHandle;
         use raw_window_handle::XlibDisplayHandle;
@@ -422,7 +421,7 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
     wnd_parms.window_handle = None;
     wnd_parms.aa_samples =
         dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
-    wnd_parms.monitor_handle = Some(primary_monitor().unwrap_or(current_monitor().unwrap_or(available_monitors()[0])));
+    wnd_parms.monitor_handle = Some(primary_monitor().unwrap_or(current_monitor(None).unwrap_or(primary_monitor().unwrap_or(available_monitors()[0]))));
 }
 
 #[allow(
@@ -556,9 +555,13 @@ cfg_if! {
             Some(MonitorHandle::Win32(hmonitor.0))
         }
 
-        fn current_monitor(handle: WindowHandle) -> Option<MonitorHandle> {
-            let hmonitor = unsafe { MonitorFromWindow(HWND(handle.get_win32().unwrap().hwnd as _), MONITOR_DEFAULTTONEAREST) };
-            Some(MonitorHandle::Win32(hmonitor.0))
+        fn current_monitor(handle: Option<WindowHandle>) -> Option<MonitorHandle> {
+            if let Some(handle) = handle {
+                let hmonitor = unsafe { MonitorFromWindow(HWND(handle.get_win32().unwrap().hwnd as _), MONITOR_DEFAULTTONEAREST) };
+                Some(MonitorHandle::Win32(hmonitor.0))
+            } else {
+                None
+            }            
         }
 
         #[repr(C)]
@@ -593,7 +596,7 @@ cfg_if! {
             MonitorHandle::Win32(hmonitor.0)
         }
 
-        fn get_monitor_dimensions(monitor_handle: MonitorHandle, _: WindowHandle) -> Option<(u32, u32)> {
+        fn get_monitor_dimensions(monitor_handle: MonitorHandle) -> Option<(u32, u32)> {
             let mut mi = MONITORINFOEXW::default();
             mi.monitorInfo.cbSize = size_of_val(&mi) as _;
             unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)) };
@@ -751,7 +754,7 @@ cfg_if! {
             primary_monitor
         }
 
-        fn current_monitor() -> Option<MonitorHandle> {
+        fn current_monitor(_: Option<WindowHandle>) -> Option<MonitorHandle> {
             let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
             let screen = unsafe { XDefaultScreen(display) };
             let mut handle = XlibDisplayHandle::empty();
