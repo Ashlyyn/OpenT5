@@ -444,6 +444,20 @@ fn init_dvars() {
         Some("Current game is an online game with stats, custom classes, unlocks"),
     )
     .unwrap();
+
+    dvar::register_bool(
+        "useFastFile", 
+        true, 
+        dvar::DvarFlags::WRITE_PROTECTED, 
+        Some("Enables loading data from fast files.")
+    ).unwrap();
+
+    dvar::register_bool(
+        "sys_smp_allowed", 
+        1 < sys::get_logical_cpu_count(), 
+        dvar::DvarFlags::WRITE_PROTECTED, 
+        Some("Allow multi-threading")
+    ).unwrap();
 }
 
 fn init_try_block_function() {
