@@ -5,10 +5,13 @@ use crate::platform::os::target::{MonitorHandle, show_window};
 use crate::sys::gpu::Device;
 use crate::{platform::WindowHandle, *};
 use pollster::block_on;
+use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
 extern crate alloc;
+use core::slice;
 use std::collections::{HashSet};
 use std::collections::VecDeque;
+use std::ptr::addr_of_mut;
 use std::sync::RwLock;
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
@@ -29,17 +32,12 @@ cfg_if! {
         use alloc::collections::BTreeSet;
         use std::ffi::CString;
         use raw_window_handle::Win32WindowHandle;
-        use raw_window_handle::{RawWindowHandle};
     } else if #[cfg(unix)] {
         use x11::xlib::{XOpenDisplay};
-        use x11rb::connection::Connection;
-        use x11rb::protocol::xproto::{
-            ConnectionExt, CreateWindowAux, InputFocus, WindowClass,
-        };
-        use x11rb::COPY_DEPTH_FROM_PARENT;
         use raw_window_handle::XlibWindowHandle;
-        use std::time::{SystemTime, UNIX_EPOCH};
         use raw_window_handle::XlibDisplayHandle;
+        use x11::xlib::{XDefaultScreen, XCreateSimpleWindow, XDefaultVisual, XScreenCount, XRootWindow, XScreenOfDisplay, XWhitePixel, XWidthOfScreen, XHeightOfScreen, XDestroyWindow, XDefaultDepth, XSetInputFocus, RevertToParent, CurrentTime, XVisualIDFromVisual};
+        use x11::xrandr::{XRRGetMonitors, XRRFreeMonitors, XRRConfigCurrentRate, XRRGetScreenInfo, XRRFreeScreenConfigInfo, XRRConfigSizes, XRRConfigRates};
     }
 }
 
@@ -424,7 +422,7 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
     wnd_parms.window_handle = None;
     wnd_parms.aa_samples =
         dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
-    wnd_parms.monitor_handle = primary_monitor();
+    wnd_parms.monitor_handle = Some(primary_monitor().unwrap_or(current_monitor().unwrap_or(available_monitors()[0])));
 }
 
 #[allow(
@@ -595,7 +593,7 @@ cfg_if! {
             MonitorHandle::Win32(hmonitor.0)
         }
 
-        fn get_monitor_dimensions(monitor_handle: MonitorHandle) -> Option<(u32, u32)> {
+        fn get_monitor_dimensions(monitor_handle: MonitorHandle, _: WindowHandle) -> Option<(u32, u32)> {
             let mut mi = MONITORINFOEXW::default();
             mi.monitorInfo.cbSize = size_of_val(&mi) as _;
             unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)) };
@@ -723,97 +721,148 @@ cfg_if! {
             // so we're pulling in the x11 crate for now.
             // Fix this as soon as possible.
             let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
-            let (conn, _) = x11rb::connect(None).unwrap();
-            conn.setup().roots.iter().map(|screen| {
+            let num_screens = unsafe { XScreenCount(display) };
+            let mut monitors = VecDeque::new();
+            for i in 0..num_screens {
                 let mut handle = XlibDisplayHandle::empty();
                 handle.display = display as _;
-                handle.screen = screen.root as _;
-                MonitorHandle::Xlib(handle)
-            }).collect()
+                handle.screen = i as _;
+                monitors.push_back(MonitorHandle::Xlib(handle));
+            }
+            monitors
         }
 
         fn primary_monitor() -> Option<MonitorHandle> {
-            None
+            let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
+            let screen = unsafe { XDefaultScreen(display) };
+            let white_pixel = unsafe { XWhitePixel(display, screen) };
+            let window = unsafe { XCreateSimpleWindow(display, XRootWindow(display, screen), 0, 0, 1, 1, 1, white_pixel, white_pixel) }; 
+            let mut nmonitors = 0;
+            let monitors_ptr = unsafe { XRRGetMonitors(display, window, x11::xlib::True, addr_of_mut!(nmonitors)) };
+            let monitors = unsafe { slice::from_raw_parts(monitors_ptr, nmonitors as _) };
+            let primary_monitor = monitors.iter().enumerate().find(|(_, m)| m.primary != 0).map(|(i, _)| {
+                let mut handle = XlibDisplayHandle::empty();
+                handle.display = display as _;
+                handle.screen = i as _;
+                MonitorHandle::Xlib(handle)
+            });
+            unsafe { XRRFreeMonitors(monitors_ptr) };
+            unsafe { XDestroyWindow(display, window) };
+            primary_monitor
         }
 
-        fn current_monitor(_: WindowHandle) -> Option<MonitorHandle> {
+        fn current_monitor() -> Option<MonitorHandle> {
             let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
-            let (_, screen_num) = x11rb::connect(None).unwrap();
+            let screen = unsafe { XDefaultScreen(display) };
             let mut handle = XlibDisplayHandle::empty();
             handle.display = display as _;
-            handle.screen = screen_num as _;
+            handle.screen = screen as _;
             Some(MonitorHandle::Xlib(handle))
         }
 
         fn choose_monitor() -> MonitorHandle {
-            let fullscreen = dvar::get_bool("r_fullscreen").unwrap();
-            if fullscreen {
-                let monitor = dvar::get_int("r_monitor").unwrap();
-                //let mut data = MonitorEnumData { monitor, handle: HMONITOR(0) };
-                //unsafe { EnumDisplayMonitors(None, None, Some(monitor_enum_callback), LPARAM(addr_of_mut!(data) as _)) };
-                //if data.handle != HMONITOR(0) {
-                //    return MonitorHandle::Win32(data.handle);
-                //}
-                let mut handle = XlibDisplayHandle::empty();
-                //handle.display = display as _;
-                //handle.screen = screen.root as _;
-                return MonitorHandle::Xlib(handle)
-            }
+            let monitor = dvar::get_int("r_monitor").unwrap();
+            let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
 
-            let xpos = dvar::get_int("vid_xpos").unwrap();
-            let ypos = dvar::get_int("vid_ypos").unwrap();
-            //let hmonitor = unsafe { MonitorFromPoint(POINT { x: xpos, y: ypos }, MONITOR_DEFAULTTOPRIMARY) };
-            //MonitorHandle::Win32(hmonitor)
             let mut handle = XlibDisplayHandle::empty();
-            //handle.display = display as _;
-            //handle.screen = screen.root as _;
+            handle.display = display as _;
+
+            let screen = unsafe { XScreenOfDisplay(display, monitor) };
+            handle.screen = if screen.is_null() {
+                unsafe { XDefaultScreen(display) as _ } 
+            } else {
+                monitor as _
+            };
+
             MonitorHandle::Xlib(handle)
         }
 
-        fn get_monitor_dimensions(monitor_handle: MonitorHandle) -> Option<(u32, u32)> {
-            None
+        fn get_monitor_dimensions(monitor: MonitorHandle) -> Option<(u32, u32)> {
+            monitor_info(monitor).map(|mi| (mi.width, mi.height))
         }
 
-        fn monitor_info(monitor_handle: MonitorHandle) -> Option<MonitorInfo> {
-            None
+        fn monitor_info(monitor: MonitorHandle) -> Option<MonitorInfo> {
+            let display = monitor.get_xlib().unwrap().display as *mut x11::xlib::Display;
+            let screen_num = monitor.get_xlib().unwrap().screen;
+            let screen = unsafe { XScreenOfDisplay(display, screen_num) };
+
+            let white_pixel = unsafe { XWhitePixel(display, screen_num) };
+            let window = unsafe { XCreateSimpleWindow(display, XRootWindow(display, screen_num), 0, 0, 1, 1, 1, white_pixel, white_pixel) }; 
+            let screen_info = unsafe { XRRGetScreenInfo(display, window) };
+
+            let width = unsafe { XWidthOfScreen(screen) };
+            let height = unsafe { XHeightOfScreen(screen) };
+
+            let refresh = unsafe { XRRConfigCurrentRate(screen_info) };
+
+            let mut nsizes = 0;
+            let sizes_ptr = unsafe { XRRConfigSizes(screen_info, addr_of_mut!(nsizes)) };
+            let sizes = unsafe { slice::from_raw_parts(sizes_ptr, nsizes as _) };
+
+            let mut video_modes = Vec::new();
+            for (i, m) in sizes.iter().enumerate() {
+                let mut nrates = 0;
+                let rates_ptr = unsafe { XRRConfigRates(screen_info, i as _, addr_of_mut!(nrates)) };
+                let rates = unsafe { slice::from_raw_parts(rates_ptr, nrates as _) };
+                
+                for rate in rates {
+                    video_modes.push(VideoMode {
+                        width: m.width as _,
+                        height: m.height as _,
+                        bit_depth: unsafe { XDefaultDepth(display, screen_num) as _ },
+                        refresh: *rate as _,
+                    });
+                }
+            }
+
+            unsafe { XRRFreeScreenConfigInfo(screen_info) };
+            unsafe { XDestroyWindow(display, window) };
+
+            Some(MonitorInfo {
+                name: String::new(),
+                width: width as _,
+                height: height as _,
+                refresh: refresh as _,
+                video_modes,
+            })
         }
 
         pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             assert!(wnd_parms.window_handle.is_none());
 
-            let (conn, screen_num) = x11rb::connect(None).unwrap();
-            let screen = &conn.setup().roots[screen_num];
-            let win_id = conn.generate_id().unwrap();
-            let r = if let Err(e) = conn.create_window(
-                COPY_DEPTH_FROM_PARENT,
-                win_id,
-                screen.root,
-                wnd_parms.x as _,
-                wnd_parms.y as _,
-                wnd_parms.display_width as _,
-                wnd_parms.display_height as _,
-                0,
-                WindowClass::INPUT_OUTPUT,
-                0,
-                &CreateWindowAux::new().background_pixel(screen.white_pixel),
-            ) {
+            let display = unsafe { XOpenDisplay(core::ptr::null()) };
+            let screen = unsafe { XDefaultScreen(display) };
+            let white_pixel = unsafe { XWhitePixel(display, screen) };
+            let window = unsafe { XCreateSimpleWindow(
+                display, 
+                XRootWindow(display, screen), 
+                wnd_parms.x as _, 
+                wnd_parms.y as _, 
+                wnd_parms.display_width, 
+                wnd_parms.display_height, 
+                0, 
+                white_pixel, 
+                white_pixel,
+            ) };
+
+            if window == 0 {
                 com::println!(8.into(), "Couldn't create a window.");
                 wnd_parms.window_handle = None;
                 Err(())
             } else {
                 let mut handle = XlibWindowHandle::empty();
-                handle.window = win_id as _;
-                handle.visual_id = 0;
-                //wnd_parms.window_handle = Some(WindowHandle(RawWindowHandle::Xlib(handle)));
+                handle.window = window as _;
+
+                let visual = unsafe { XDefaultVisual(display, screen) };
+                handle.visual_id = unsafe { XVisualIDFromVisual(visual) };
+                wnd_parms.window_handle = Some(WindowHandle(RawWindowHandle::Xlib(handle)));
 
                 if wnd_parms.fullscreen == false {
-                    conn.set_input_focus(InputFocus::PARENT, win_id, SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u32).unwrap();
+                    unsafe { XSetInputFocus(display, window, RevertToParent, CurrentTime) };
                 }
                 com::println!(8.into(), "Game window successfully created.");
                 Ok(())
-            };
-
-            r
+            }
         }
     }
 }
@@ -822,7 +871,7 @@ struct MonitorInfo {
     name: String,
     width: u32,
     height: u32,
-    refresh: u32,
+    refresh: f32,
     video_modes: Vec<VideoMode>,
 }
 
@@ -887,338 +936,6 @@ fn pre_create_window() -> Result<(), ()> {
 
     Ok(())
 }
-
-/*
-#[allow(
-    clippy::as_conversions,
-    clippy::items_after_statements,
-    clippy::pattern_type_mismatch,
-    clippy::if_then_some_else_none,
-    clippy::semicolon_outside_block,
-    clippy::indexing_slicing,
-    clippy::std_instead_of_core,
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    clippy::cast_possible_wrap,
-    clippy::integer_division,
-    clippy::too_many_lines,
-    clippy::expect_used,
-    clippy::significant_drop_tightening,
-    clippy::panic_in_result_fn
-)]
-pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
-    WINDOW_AWAITING_INIT.lock().unwrap().send_cleared(());
-    WINDOW_INITIALIZING.lock().unwrap().send(());
-
-    if wnd_parms.fullscreen {
-        com::println!(
-            8.into(),
-            "Attempting {} x {} fullscreen with 32 bpp at {} hz",
-            wnd_parms.display_width,
-            wnd_parms.display_height,
-            wnd_parms.hz,
-        );
-    } else {
-        com::println!(
-            8.into(),
-            "Attempting {} x {} window at ({}, {})",
-            wnd_parms.display_width,
-            wnd_parms.display_height,
-            wnd_parms.x,
-            wnd_parms.y,
-        );
-    }
-
-    let window_name = com::get_official_build_name_r();
-
-    // ========================================================================
-    // The following code is done in the original engine's WM_CREATE handler,
-    // but winit has no equivalent message for WM_CREATE. Do them here after
-    // the window has been created instead
-
-    //platform::set_window_handle(
-    //    platform::WindowHandle::new(window.raw_window_handle()));
-
-    // ========================================================================
-
-    let mut modifiers = winit::event::ModifiersState::empty();
-    let fullscreen = wnd_parms.fullscreen;
-    let width = wnd_parms.scene_width;
-    let height = wnd_parms.scene_height;
-    let x = wnd_parms.x;
-    let y = wnd_parms.y;
-
-    let event_loop = EventLoop::new();
-    let main_window = match WindowBuilder::new()
-        .with_title(window_name)
-        .with_position(PhysicalPosition::<i32>::new(i32::from(x), i32::from(y)))
-        .with_inner_size(PhysicalSize::new(width, height))
-        .with_resizable(true)
-        .with_visible(false)
-        .with_decorations(!fullscreen)
-        .with_window_icon(com::get_icon_rgba())
-        .build(&event_loop)
-    {
-        Ok(w) => w,
-        Err(e) => {
-            com::println!(8.into(), "Couldn't create a window.");
-            com::dprintln!(8.into(), "{}", e);
-            WINDOW_INITIALIZING.lock().unwrap().clone().send_cleared(());
-            WINDOW_INITIALIZED.lock().unwrap().clone().send(false);
-            return Err(());
-        }
-    };
-
-    main_window.set_visible(true);
-
-    if fullscreen == false {
-        main_window.focus_window();
-    }
-
-    {
-        let lock = WINIT_GLOBALS.clone();
-        let mut wg = lock.write().unwrap();
-        wg.window_handle = Some(main_window.window_handle());
-    }
-
-    cfg_if! {
-        if #[cfg(target_arch = "wasm32")] {
-            // Winit prevents sizing with CSS, so we have to set
-            // the size manually when on web.
-            use winit::dpi::PhysicalSize;
-            main_window.set_inner_size(PhysicalSize::new(MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION));
-
-            use winit::platform::web::WindowExtWebSys;
-            web_sys::window()
-                .and_then(|win| win.document())
-                .and_then(|doc| {
-                    let dst = doc.get_element_by_id("open_t5")?;
-                    let canvas = web_sys::Element::from(main_window.canvas());
-                    dst.append_child(&canvas).ok()?;
-                 Some(())
-                })
-                .expect("Couldn't append canvas to document body."
-            );
-        }
-    }
-
-    com::println!(8.into(), "Game window successfully created.");
-
-    // ========================================================================
-    cfg_if! {
-        if #[cfg(not(target_arch = "wasm32"))] {
-            // This part is supposed to be done in sys::create_console, but
-            // you can't bind windows to an event loop after calling
-            // event_loop::run, so instead we create them here, set them to
-            // invisible, and then set them to visible in sys::create_console
-            // instead of creating them there.
-            //
-            // I'm not entirely sure how we're going to implement the console
-            // for other platforms, so this logic might end up being handled
-            // with, e.g., GTK, instead, but for now we're just going to keep
-            // things simple. If we have to move things around later, we can.
-
-            let console_title = com::get_build_display_name();
-            let monitor = main_window
-                .current_monitor()
-                .or_else(|| main_window.available_monitors().nth(0))
-                .unwrap();
-            let horzres = (monitor.size().width - 450) / 2;
-            assert_ne!(horzres, 0, "Horizontal resolution should never be zero. It's a logic error, and it'll cause invalid calcultations.");
-            let vertres = (monitor.size().height - 600) / 2;
-            assert_ne!(vertres, 0, "Vertical resolution should never be zero. It's a logic error, and it'll cause invalid calcultations.");
-            let console_width = conbuf::s_wcd_window_width();
-            assert_ne!(console_width, 0, "Console window width should not be zero. It's a logic error, and it causes a runtime panic with X.");
-            let console_height = conbuf::s_wcd_window_height();
-            assert_ne!(console_height, 0, "Console window height should not be zero. It's a logic error, and it causes a runtime panic with X.");
-            let console_window = winit::window::WindowBuilder::new()
-                .with_title(console_title)
-                .with_position(Position::Physical(PhysicalPosition::new(
-                    horzres.clamp(0, u32::MAX) as _,
-                    vertres.clamp(0, u32::MAX) as _,
-                )))
-                .with_inner_size(PhysicalSize::new(console_width, console_height))
-                .with_visible(false)
-                .build(&event_loop)
-                .unwrap();
-
-            conbuf::s_wcd_set_window(console_window);
-
-            const CODLOGO_POS_X: i32 = 5;
-            const CODLOGO_POS_Y: i32 = 5;
-            const INPUT_LINE_POS_X: i32 = 6;
-            const INPUT_LINE_POS_Y: i32 = 400;
-            const INPUT_LINE_SIZE_W: i32 = 608;
-            const INPUT_LINE_SIZE_H: i32 = 20;
-            const BUFFER_POS_X: i32 = 6;
-            const BUFFER_POS_Y: i32 = 70;
-            const BUFFER_SIZE_W: i32 = 606;
-            const BUFFER_SIZE_H: i32 = 324;
-
-            let parent = Some(conbuf::s_wcd_window_handle());
-            // SAFETY:
-            // Assuming the state of the program is otherwise valid,
-            // the parent window being passed will be valid.
-            let cod_logo_window = unsafe {
-                winit::window::WindowBuilder::new()
-                    .with_parent_window(parent)
-                    .with_position(PhysicalPosition::new(CODLOGO_POS_X, CODLOGO_POS_Y))
-                    .with_decorations(false)
-                    .with_visible(false)
-                    .build(&event_loop)
-                    .unwrap()
-            };
-
-            // SAFETY:
-            // Assuming the state of the program is otherwise valid,
-            // the parent window being passed will be valid.
-            let input_line_window = unsafe {
-                winit::window::WindowBuilder::new()
-                    .with_parent_window(parent)
-                    .with_position(PhysicalPosition::new(
-                        INPUT_LINE_POS_X,
-                        INPUT_LINE_POS_Y,
-                    ))
-                    .with_inner_size(PhysicalSize::new(
-                        INPUT_LINE_SIZE_H,
-                        INPUT_LINE_SIZE_W,
-                    ))
-                    .with_visible(false)
-                    .build(&event_loop)
-                    .unwrap()
-            };
-
-            // SAFETY:
-            // Assuming the state of the program is otherwise valid,
-            // the parent window being passed will be valid.
-            let buffer_window = unsafe {
-                winit::window::WindowBuilder::new()
-                    .with_parent_window(parent)
-                    .with_position(PhysicalPosition::new(BUFFER_POS_X, BUFFER_POS_Y))
-                    .with_inner_size(PhysicalSize::new(BUFFER_SIZE_H, BUFFER_SIZE_W))
-                    .with_visible(false)
-                    .build(&event_loop)
-                    .unwrap()
-            };
-
-            conbuf::s_wcd_set_cod_logo_window(cod_logo_window);
-            conbuf::s_wcd_set_input_line_window(input_line_window);
-            conbuf::s_wcd_set_buffer_window(buffer_window);
-        }
-    }
-    // ========================================================================
-
-    event_loop.run(move |event, _, control_flow| match event {
-        Event::WindowEvent {
-            ref event,
-            window_id,
-        } if window_id == main_window.id() => match event {
-            WindowEvent::MouseWheel {
-                delta,
-                ..
-            } => {
-                #[allow(clippy::panic)]
-                let lines = match delta {
-                    MouseScrollDelta::LineDelta(f, _) => *f,
-                    MouseScrollDelta::PixelDelta(_) =>
-                        panic!("render::create_window: unable to handle PixelDelta variant of MouseScrollDelta for MouseWheel event")
-                };
-                if lines < 0.0 {
-                    sys::enqueue_event(
-                        sys::Event::new(Some(platform::get_msg_time()),
-                        sys::EventType::Mouse(
-                            input::mouse::Scancode::MWheelDown,
-                            true
-                        ),
-                        None));
-                    sys::enqueue_event(
-                        sys::Event::new(Some(platform::get_msg_time()),
-                        sys::EventType::Mouse(
-                            input::mouse::Scancode::MWheelDown,
-                            false),
-                        None));
-                } else {
-                    sys::enqueue_event(
-                        sys::Event::new(Some(platform::get_msg_time()),
-                        sys::EventType::Mouse(
-                            input::mouse::Scancode::MWheelUp,
-                            true),
-                        None));
-                    sys::enqueue_event(
-                        sys::Event::new(Some(platform::get_msg_time()),
-                        sys::EventType::Mouse(
-                            input::mouse::Scancode::MWheelUp,
-                            false),
-                        None));
-                }
-            },
-                WindowEvent::KeyboardInput {
-                input,
-                ..
-            } => {
-                #[allow(clippy::as_conversions, clippy::cast_possible_truncation)]
-                let scancode: input::keyboard::KeyScancode =
-                    num::FromPrimitive::from_u8(input.scancode as u8)
-                    .unwrap();
-                let alt = modifiers.alt();
-                #[allow(clippy::collapsible_if)]
-                if !alt {
-                    sys::enqueue_event(
-                        sys::Event::new(Some(platform::get_msg_time()),
-                        sys::EventType::Key(scancode, false),
-                        None));
-                        // toggle fullscreen on Alt+Enter
-                } else if scancode == input::keyboard::KeyScancode::Enter {
-                    if // (_DAT_02910164 != 8) &&
-                    dvar::exists("r_fullscreen") &&
-                        dvar::get_int("developer").unwrap() != 0
-                    {
-                        // FUN_005a5360()
-                        dvar::set_bool_internal(
-                            "r_fullscreen",
-                            !dvar::get_bool("r_fullscreen")
-                                .unwrap()).unwrap();
-                            cbuf::add_textln(0, "vid_restart");
-                    }
-                        // FUN_0053f880()
-                } else {
-
-                }
-            },
-            WindowEvent::Resized(size) => {
-                dvar::make_latched_value_current("r_aspectRatio").unwrap();
-                dvar::make_latched_value_current("r_aaSamples").unwrap();
-                dvar::make_latched_value_current("r_vsync").unwrap();
-                dvar::make_latched_value_current("r_fullscreen").unwrap();
-                dvar::make_latched_value_current("r_displayRefresh").unwrap();
-                let mut wnd_parms = gfx::WindowParms::new();
-                let width = size.width;
-                let height = size.height;
-                let old_mode = dvar::get_enumeration("r_mode").unwrap();
-                let new_mode = format!("{}x{}", width, height);
-                dvar::add_to_enumeration_domain("r_mode", &new_mode).unwrap();
-                dvar::set_enumeration_internal("r_mode", &new_mode).unwrap();
-                dvar::remove_from_enumeration_domain("r_mode", &old_mode).unwrap();
-                set_wnd_parms(&mut wnd_parms);
-                store_window_settings(&mut wnd_parms).unwrap();
-                set_wnd_parms(&mut wnd_parms);
-                {
-                    let mut render_globals = RENDER_GLOBALS.write().unwrap();
-                    render_globals.window.width = wnd_parms.display_width;
-                    render_globals.window.height = wnd_parms.display_height;
-                }
-                if !wnd_parms.fullscreen {
-                    com::println!(8.into(), "Resizing {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y);
-                } else {
-                    com::println!(8.into(), "Resizing {} x {} fullscreen at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y);
-                }
-            },
-            _ => {}
-        },
-        _ => {}
-    });
-}
-*/
 
 static HARDWARE_INITED: AtomicBool = AtomicBool::new(false);
 
