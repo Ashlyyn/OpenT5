@@ -325,7 +325,7 @@ pub fn no_free_files_error() -> ! {
     let msg_box_icon = MessageBoxIcon::Stop;
     let title = locale::localize_ref("WIN_DISK_FULL_TITLE");
     let text = locale::localize_ref("WIN_DISK_FULL_BODY");
-    let handle = render::main_window_handle();
+    let handle = None;
     message_box(handle, &title, &text, msg_box_type, Some(msg_box_icon));
     // DoSetEvent_UNK();
     std::process::exit(-1);
@@ -366,7 +366,7 @@ pub fn check_crash_or_rerun() -> bool {
                 let msg_box_icon = MessageBoxIcon::Stop;
                 let title = locale::localize_ref("WIN_IMPROPER_QUIT_TITLE");
                 let text = locale::localize_ref("WIN_IMPROPER_QUIT_BODY");
-                let handle = render::main_window_handle();
+                let handle = None;
                 match message_box(
                     handle,
                     &title,
@@ -610,7 +610,7 @@ pub fn render_fatal_error() -> ! {
     let msg_box_icon = MessageBoxIcon::Stop;
     let title = locale::localize_ref("WIN_RENDER_INIT_TITLE");
     let text = locale::localize_ref("WIN_RENDER_INIT_BODY");
-    let handle = render::main_window_handle();
+    let handle = None;
     message_box(handle, &title, &text, msg_box_type, Some(msg_box_icon));
     //DoSetEvent_UNK();
     std::process::exit(-1);
@@ -921,9 +921,9 @@ fn should_update_for_info_change() -> bool {
     let msg_box_icon = MessageBoxIcon::Information;
     let title = locale::localize_ref("WIN_CONFIGURE_UPDATED_TITLE");
     let text = locale::localize_ref("WIN_CONFIGURE_UPDATED_BODY");
-    let handle = render::main_window_handle();
+    let handle = None;
     matches!(
-        message_box(handle, &title, &text, msg_box_type, Some(msg_box_icon),),
+        message_box(handle, &title, &text, msg_box_type, Some(msg_box_icon)),
         Some(MessageBoxResult::Yes)
     )
 }
@@ -1093,7 +1093,8 @@ cfg_if! {
     if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
         pub fn message_box(
             handle: Option<WindowHandle>,
-            title: &str, text: &str,
+            title: &str, 
+            text: &str,
             msg_box_type: MessageBoxType,
             msg_box_icon: Option<MessageBoxIcon>
         ) -> Option<MessageBoxResult> {
@@ -1120,90 +1121,6 @@ cfg_if! {
                     ctype
                 ) }.0).unwrap_or(MessageBoxResult::Unknown);
             Some(res)
-        }
-    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
-        use eframe::egui;
-
-        struct MessageBoxApp {
-            text: String,
-            buttons: Vec<&'static str>,
-            result: Arc<RefCell<Option<MessageBoxResult>>>,
-        }
-
-        impl eframe::App for MessageBoxApp {
-            fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-                let longest = self.text.lines().max_by_key(|l| l.len()).unwrap_or_default();
-                frame.set_window_size(egui::Vec2 { x: 200.0 + longest.len() as f32 * 2.5, y: 150.0 + 6.0 * self.text.lines().count() as f32 });
-
-                egui::TopBottomPanel::new(egui::panel::TopBottomSide::Bottom, egui::Id::new("test")).default_height(39.0).show(ctx, |ui| {
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        for button in self.buttons.clone() {
-                            let result = match button {
-                                "Yes" => MessageBoxResult::Yes,
-                                "No" => MessageBoxResult::No,
-                                "Cancel" => MessageBoxResult::Cancel,
-                                "Ok" => MessageBoxResult::Ok,
-                                _ => MessageBoxResult::Unknown,
-                            };
-
-                            if ui.add(egui::Button::new(button).min_size(egui::vec2(80.0, 22.0))).clicked() {
-                                *self.result.clone().borrow_mut() = Some(result);
-                                frame.close();
-                            }
-                        }
-                    })
-                });
-
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.with_layout(egui::Layout::centered_and_justified(egui::Direction::LeftToRight), |ui| {
-                        ui.add(egui::Label::new(egui::RichText::new(self.text.clone()).size(12.0)).wrap(true));
-                    })
-                });
-            }
-        }
-
-        #[allow(unused)]
-        pub fn message_box(
-            handle: Option<WindowHandle>,
-            title: &str, text: &str,
-            msg_box_type: MessageBoxType,
-            msg_box_icon: Option<MessageBoxIcon>
-        ) -> Option<MessageBoxResult> {
-            let options = eframe::NativeOptions {
-                initial_window_size: Some(egui::vec2(200.0, 150.0)),
-                resizable: true,
-                follow_system_theme: false,
-                default_theme: eframe::Theme::Light,
-                always_on_top: false,
-                decorated: true,
-                drag_and_drop_support: false,
-                run_and_return: true,
-                ..Default::default()
-            };
-
-            let buttons = match msg_box_type {
-                MessageBoxType::Ok => vec!["Ok"],
-                MessageBoxType::YesNo => vec!["No", "Yes"],
-                MessageBoxType::YesNoCancel => vec!["Cancel", "No", "Yes"],
-            };
-
-            let result = Arc::new(RefCell::new(None));
-
-            let app = MessageBoxApp { text: text.to_owned(), buttons, result: result.clone() };
-
-            eframe::run_native(
-                title,
-                options,
-                Box::new(|_cc| Box::new(app)),
-            ).unwrap();
-
-            match *result.clone().borrow_mut() {
-                None => None,
-                Some(r) => match r {
-                    MessageBoxResult::Unknown => None,
-                    _ => Some(r)
-                }
-            }
         }
     } else if #[cfg(target_os = "linux")] {
         // The non-Windows implementations of message_box() will use GTK
@@ -1289,14 +1206,14 @@ cfg_if! {
     } else {
         #[allow(clippy::print_stdout, clippy::use_debug)]
         pub fn message_box(
-            handle: Option<WindowHandle>,
+            _handle: Option<WindowHandle>,
             text: &str,
             title: &str,
             msg_box_type: MessageBoxType,
             msg_icon_type: Option<MessageBoxIcon>
         ) -> Option<MessageBoxResult> {
             println!(
-                "message_box: handle={:?}, text={}, title={}, type={:?}, icon={:?}",
+                "message_box: handle={:?} text={}, title={}, type={:?}, icon={:?}",
                 handle,
                 text,
                 title,
@@ -1358,7 +1275,7 @@ cfg_if! {
 
             // DestroyWindow(s_wcd.hwndInputLine);
 
-            let handle = render::main_window_handle();
+            let handle = None;
             message_box(
                 handle,
                 "Error",

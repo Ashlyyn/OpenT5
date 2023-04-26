@@ -191,33 +191,12 @@ fn init() -> Result<(), ()> {
     Ok(())
 }
 
-#[derive(Default)]
-struct WindowGlobals {
-    //current_monitor_handle: Option<winit::monitor::MonitorHandle>,
-    //best_monitor_handle: Option<winit::monitor::MonitorHandle>,
-    video_modes: Vec<VideoMode>,
-    window_handle: Option<WindowHandle>,
-}
-
-lazy_static! {
-    static ref WINDOW_GLOBALS: Arc<RwLock<WindowGlobals>> =
-        Arc::new(RwLock::new(WindowGlobals {
-            //current_monitor_handle: None,
-           // best_monitor_handle: None,
-            window_handle: None,
-            video_modes: Vec::new(),
-        }));
-}
-
-pub fn main_window_handle() -> Option<WindowHandle> {
-    WINDOW_GLOBALS.read().unwrap().window_handle
-}
-
 pub struct RenderGlobals {
     adapter_native_width: u32,
     adapter_native_height: u32,
     adapter_fullscreen_width: u32,
     adapter_fullscreen_height: u32,
+    video_modes: Vec<VideoMode>,
     resolution_names: HashSet<String>,
     refresh_rate_names: HashSet<String>,
     target_window_index: i32,
@@ -234,6 +213,7 @@ impl RenderGlobals {
             adapter_native_height: MIN_VERTICAL_RESOLUTION,
             adapter_fullscreen_width: MIN_HORIZONTAL_RESOLUTION,
             adapter_fullscreen_height: MIN_VERTICAL_RESOLUTION,
+            video_modes: Vec::new(),
             resolution_names: HashSet::new(),
             refresh_rate_names: HashSet::new(),
             target_window_index: 0,
@@ -333,7 +313,7 @@ fn closest_refresh_rate_for_mode(
     hz: f32,
 ) -> Option<f32> {
     let video_modes =
-        WINDOW_GLOBALS.clone().read().unwrap().video_modes.clone();
+        RENDER_GLOBALS.read().unwrap().video_modes.clone();
     if video_modes.is_empty() {
         return None;
     }
@@ -720,9 +700,6 @@ cfg_if! {
         }
     } else if #[cfg(unix)] {
         fn available_monitors() -> VecDeque<MonitorHandle> {
-            // I can't figure out how to get the display pointer from x11rb,
-            // so we're pulling in the x11 crate for now.
-            // Fix this as soon as possible.
             let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
             let num_screens = unsafe { XScreenCount(display) };
             let mut monitors = VecDeque::new();
@@ -925,6 +902,8 @@ fn enum_display_modes() {
         "Refresh rate".into(),
     )
     .unwrap();
+
+    RENDER_GLOBALS.write().unwrap().video_modes = valid_modes.iter().cloned().cloned().collect();
 }
 
 #[allow(clippy::significant_drop_tightening)]
