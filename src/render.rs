@@ -7,7 +7,6 @@ use crate::{platform::WindowHandle, *};
 use pollster::block_on;
 use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
-use x11::xlib::XStoreName;
 extern crate alloc;
 use std::collections::{HashSet};
 use std::collections::VecDeque;
@@ -33,6 +32,7 @@ cfg_if! {
         use raw_window_handle::Win32WindowHandle;
     } else if #[cfg(unix)] {
         use core::slice;
+        use x11::xlib::XStoreName;
         use x11::xlib::{XOpenDisplay};
         use raw_window_handle::XlibWindowHandle;
         use raw_window_handle::XlibDisplayHandle;
@@ -727,6 +727,7 @@ cfg_if! {
                 handle.screen = i as _;
                 MonitorHandle::Xlib(handle)
             });
+
             unsafe { XRRFreeMonitors(monitors_ptr) };
             unsafe { XDestroyWindow(display, window) };
             primary_monitor
@@ -759,31 +760,64 @@ cfg_if! {
         }
 
         fn get_monitor_dimensions(monitor: MonitorHandle) -> Option<(u32, u32)> {
-            monitor_info(monitor).map(|mi| (mi.width, mi.height))
+            let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
+            let screen_num = monitor.get_xlib().unwrap().screen;
+            let screen = unsafe { XScreenOfDisplay(display, screen_num) };
+            if screen.is_null() {
+                return None;
+            }
+
+            let width = unsafe { XWidthOfScreen(screen) };
+            let height = unsafe { XHeightOfScreen(screen) };
+            if width <= 0 || height <= 0 {
+                return None;
+            }
+
+            Some((width as _, height as _))
         }
 
         fn monitor_info(monitor: MonitorHandle) -> Option<MonitorInfo> {
             let display = monitor.get_xlib().unwrap().display as *mut x11::xlib::Display;
             let screen_num = monitor.get_xlib().unwrap().screen;
             let screen = unsafe { XScreenOfDisplay(display, screen_num) };
+            if screen.is_null() {
+                return None;
+            }
 
             let white_pixel = unsafe { XWhitePixel(display, screen_num) };
             let window = unsafe { XCreateSimpleWindow(display, XRootWindow(display, screen_num), 0, 0, 1, 1, 1, white_pixel, white_pixel) }; 
             let screen_info = unsafe { XRRGetScreenInfo(display, window) };
+            if screen_info.is_null() {
+                return None;
+            }
 
             let width = unsafe { XWidthOfScreen(screen) };
             let height = unsafe { XHeightOfScreen(screen) };
+            if width <= 0 || height <= 0 {
+                return None;
+            }
 
             let refresh = unsafe { XRRConfigCurrentRate(screen_info) };
+            if refresh <= 0 {
+                return None;
+            }
 
             let mut nsizes = 0;
             let sizes_ptr = unsafe { XRRConfigSizes(screen_info, addr_of_mut!(nsizes)) };
-            let sizes = unsafe { slice::from_raw_parts(sizes_ptr, nsizes as _) };
+            if sizes_ptr.is_null() {
+                return None;
+            }
+
+            let sizes = unsafe { core::slice::from_raw_parts(sizes_ptr, nsizes as _) };
 
             let mut video_modes = Vec::new();
             for (i, m) in sizes.iter().enumerate() {
                 let mut nrates = 0;
                 let rates_ptr = unsafe { XRRConfigRates(screen_info, i as _, addr_of_mut!(nrates)) };
+                if rates_ptr.is_null() {
+                    return None;
+                }
+
                 let rates = unsafe { slice::from_raw_parts(rates_ptr, nrates as _) };
                 
                 for rate in rates {
@@ -800,7 +834,7 @@ cfg_if! {
             unsafe { XDestroyWindow(display, window) };
 
             Some(MonitorInfo {
-                name: String::new(),
+                name: String::new(), // TODO - get name
                 width: width as _,
                 height: height as _,
                 refresh: refresh as _,
