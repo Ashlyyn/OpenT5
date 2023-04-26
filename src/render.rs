@@ -7,9 +7,11 @@ use crate::{platform::WindowHandle, *};
 use pollster::block_on;
 use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
+use x11::xlib::XStoreName;
 extern crate alloc;
 use std::collections::{HashSet};
 use std::collections::VecDeque;
+use std::ffi::CString;
 use std::ptr::addr_of_mut;
 use std::sync::RwLock;
 
@@ -28,7 +30,6 @@ cfg_if! {
         use crate::platform::os::target::monitor_enum_proc;
         use std::mem::size_of_val;
         use alloc::collections::BTreeSet;
-        use std::ffi::CString;
         use raw_window_handle::Win32WindowHandle;
     } else if #[cfg(unix)] {
         use core::slice;
@@ -830,6 +831,9 @@ cfg_if! {
                 wnd_parms.window_handle = None;
                 Err(())
             } else {
+                let window_name = CString::new(com::get_official_build_name_r()).unwrap();
+                unsafe { XStoreName(display, window, window_name.as_ptr()) };
+
                 let mut handle = XlibWindowHandle::empty();
                 handle.window = window as _;
 
