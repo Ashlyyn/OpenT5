@@ -1,6 +1,6 @@
 use raw_window_handle::{RawWindowHandle, WaylandWindowHandle, XlibWindowHandle, XlibDisplayHandle, RawDisplayHandle};
 use cfg_if::cfg_if;
-use x11::xlib::{XMapWindow, XOpenDisplay};
+use x11::xlib::{XMapWindow, XOpenDisplay, XSetInputFocus, RevertToParent, CurrentTime};
 
 use crate::platform::WindowHandle;
 
@@ -97,11 +97,22 @@ cfg_if! {
             let _handle = handle.get_wayland().unwrap();
             todo!()
         }
+
+        pub fn focus_window(handle: WindowHandle) {
+            let _handle = handle.get_wayland().unwrap();
+            todo!()
+        }
     } else {
         pub fn show_window(handle: WindowHandle) {
             let handle = handle.get_xlib().unwrap();
             let display = unsafe { XOpenDisplay(core::ptr::null()) };
             unsafe { XMapWindow(display, handle.window) };
+        }
+
+        pub fn focus_window(handle: WindowHandle) {
+            let handle = handle.get_xlib().unwrap();
+            let display = unsafe { XOpenDisplay(core::ptr::null()) };
+            unsafe { XSetInputFocus(display, handle.window, RevertToParent, CurrentTime) };
         }
     }
 }
