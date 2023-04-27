@@ -37,7 +37,7 @@ use windows::{
                 VK_OEM_PLUS, VK_PAUSE, VK_PRIOR, VK_RBUTTON, VK_RCONTROL,
                 VK_RETURN, VK_RIGHT, VK_RMENU, VK_RSHIFT, VK_RWIN,
                 VK_SEPARATOR, VK_SHIFT, VK_SNAPSHOT, VK_SPACE, VK_SUBTRACT,
-                VK_TAB, VK_UP, VK_XBUTTON1, VK_XBUTTON2,
+                VK_TAB, VK_UP, VK_XBUTTON1, VK_XBUTTON2, SetFocus,
             },
             WindowsAndMessaging::{
                 DefWindowProcA, DestroyWindow, GetSystemMetrics, LoadCursorA,
@@ -664,6 +664,10 @@ impl MonitorHandle {
 
 pub fn show_window(handle: WindowHandle) {
     unsafe { ShowWindow(HWND(handle.get_win32().unwrap().hwnd as _), SW_SHOW) };
+}
+
+pub fn focus_window(handle: WindowHandle) {
+    unsafe { SetFocus(HWND(handle.get_win32().unwrap().hwnd as _)) };
 }
 
 #[allow(unused_variables, clippy::semicolon_outside_block)]

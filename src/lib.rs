@@ -63,6 +63,8 @@ use lazy_static::lazy_static;
 extern crate alloc;
 use alloc::sync::Arc;
 
+use crate::platform::os::target::focus_window;
+
 cfg_if! {
     if #[cfg(target_arch="wasm32")] {
         use wasm_bindgen::prelude::*;
@@ -164,7 +166,7 @@ pub fn run() {
 
     com::init();
     com::println!(16.into(), "Working directory: {}", sys::cwd().as_os_str().to_string_lossy());
-    // SetFocus
+    focus_window(platform::get_window_handle().unwrap());
     loop {
         if platform::get_minimized() {
             std::thread::sleep(Duration::from_millis(5));
