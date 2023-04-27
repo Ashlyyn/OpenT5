@@ -4,7 +4,7 @@ use crate::{
     cl::Connstate,
     gfx::R_GLOB,
     sys::{KeyboardScancode, Modifiers, WindowEvent},
-    *,
+    *, util::SignalState,
 };
 
 static MODIFIERS: RwLock<Modifiers> = RwLock::new(Modifiers::empty());
@@ -117,8 +117,8 @@ fn swap_buffers() {
 pub fn render_thread() -> ! {
     loop {
         loop {
-            if !sys::query_backend_event() {
-                if !sys::query_rg_registered_event() {
+            if sys::query_backend_event() == SignalState::Cleared {
+                if sys::query_rg_registered_event() == SignalState::Cleared {
                     swap_buffers();
                 } else {
                     render::begin_registration_internal().unwrap();

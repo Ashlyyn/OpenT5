@@ -33,7 +33,13 @@ cfg_if! {
 #[derive(Clone, Debug)]
 pub struct SmpEvent {
     manual_reset: bool,
-    inner: Arc<(Mutex<bool>, Condvar)>,
+    inner: Arc<(Mutex<SignalState>, Condvar)>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+pub enum SignalState {
+    Signaled,
+    Cleared,
 }
 
 impl SmpEvent {
@@ -45,17 +51,17 @@ impl SmpEvent {
     /// * `manual_reset` - Whether or not the event has to be manually-reset.
     /// If [`false`], [`Self::acknowledge`] and its variants will clear the
     /// signaled state. If not, this must be done manually.
-    pub fn new(signaled: bool, manual_reset: bool) -> Self {
+    pub fn new(initial_state: SignalState, manual_reset: bool) -> Self {
         Self {
             manual_reset,
-            inner: Arc::new((Mutex::new(signaled), Condvar::new())),
+            inner: Arc::new((Mutex::new(initial_state), Condvar::new())),
         }
     }
 
     pub fn wait(&mut self) {
-        if *self.inner.0.lock().unwrap() == true {
+        if *self.inner.0.lock().unwrap() == SignalState::Signaled {
             if !self.manual_reset {
-                *self.inner.0.lock().unwrap() = false;
+                *self.inner.0.lock().unwrap() = SignalState::Cleared;
             }
             return;
         }
@@ -65,20 +71,20 @@ impl SmpEvent {
             self.inner.1.wait(self.inner.0.lock().unwrap());
         }
         if !self.manual_reset {
-            *self.inner.0.lock().unwrap() = false;
+            *self.inner.0.lock().unwrap() = SignalState::Cleared;
         }
     }
 
-    pub fn query(&mut self) -> bool {
-        *self.inner.0.lock().unwrap()
+    pub fn query(&mut self) -> SignalState {
+        *self.inner.0.lock().unwrap() 
     }
 
     pub fn clear(&mut self) {
-        *self.inner.0.lock().unwrap() = false;
+        *self.inner.0.lock().unwrap() = SignalState::Cleared;
     }
 
     pub fn set(&mut self) {
-        *self.inner.0.lock().unwrap() = true;
+        *self.inner.0.lock().unwrap() = SignalState::Signaled;
 
         if self.manual_reset {
             self.notify_all();
