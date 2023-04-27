@@ -1,4 +1,5 @@
 use core::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 static NETWORKING_ENABLED: AtomicBool = AtomicBool::new(false);
 
@@ -13,4 +14,8 @@ fn config(_enabled: bool) {
 
 pub fn restart() {
     config(networking_enabled());
+}
+
+pub fn sleep(duration: Duration) {
+    std::thread::sleep(duration);
 }
