@@ -249,65 +249,47 @@ pub trait EasierAtomic {
     fn load_relaxed(&self) -> Self::ValueType;
     fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType;
     fn increment(&self) -> Option<Self::ValueType>;
+    fn decrement(&self) -> Option<Self::ValueType>;
     fn increment_wrapping(&self) -> Self::ValueType {
         self.increment()
             .unwrap_or_else(|| self.store_relaxed(num::zero()))
     }
-}
-
-#[allow(clippy::missing_trait_methods)]
-impl EasierAtomic for AtomicU64 {
-    type ValueType = u64;
-    fn load_relaxed(&self) -> Self::ValueType {
-        self.load(Ordering::Relaxed)
-    }
-
-    fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType {
-        self.store(value, Ordering::Relaxed);
-        value
-    }
-
-    fn increment(&self) -> Option<u64> {
-        self.store_relaxed(self.load_relaxed().checked_add(1)?)
-            .into()
+    fn decrement_wrapping(&self) -> Self::ValueType {
+        self.decrement()
+            .unwrap_or_else(|| self.store_relaxed(num::zero()))
     }
 }
 
-#[allow(clippy::missing_trait_methods)]
-impl EasierAtomic for AtomicIsize {
-    type ValueType = isize;
-    fn load_relaxed(&self) -> Self::ValueType {
-        self.load(Ordering::Relaxed)
-    }
+macro_rules! easier_atomic_impl {
+    ($t:ty, $vt:ty) => {
+        #[allow(clippy::missing_trait_methods)]
+        impl EasierAtomic for $t {
+            type ValueType = $vt;
+            fn load_relaxed(&self) -> Self::ValueType {
+                self.load(Ordering::Relaxed)
+            }
 
-    fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType {
-        self.store(value, Ordering::Relaxed);
-        value
-    }
+            fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType {
+                self.store(value, Ordering::Relaxed);
+                value
+            }
 
-    fn increment(&self) -> Option<isize> {
-        self.store_relaxed(self.load_relaxed().checked_add(1)?)
-            .into()
-    }
+            fn increment(&self) -> Option<Self::ValueType> {
+                self.store_relaxed(self.load_relaxed().checked_add(1)?)
+                    .into()
+            }
+
+            fn decrement(&self) -> Option<Self::ValueType> {
+                self.store_relaxed(self.load_relaxed().checked_sub(1)?)
+                    .into()
+            }
+        }
+    };
 }
 
-#[allow(clippy::missing_trait_methods)]
-impl EasierAtomic for AtomicUsize {
-    type ValueType = usize;
-    fn load_relaxed(&self) -> Self::ValueType {
-        self.load(Ordering::Relaxed)
-    }
-
-    fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType {
-        self.store(value, Ordering::Relaxed);
-        value
-    }
-
-    fn increment(&self) -> Option<usize> {
-        self.store_relaxed(self.load_relaxed().checked_add(1)?)
-            .into()
-    }
-}
+easier_atomic_impl!(AtomicU64, u64);
+easier_atomic_impl!(AtomicIsize, isize);
+easier_atomic_impl!(AtomicUsize, usize);
 
 pub trait CharFromUtf16Char {
     fn try_as_char(self) -> Option<char>;
