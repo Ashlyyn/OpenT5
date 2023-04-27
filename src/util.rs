@@ -46,11 +46,11 @@ impl SmpEvent {
     /// Creates a new [`SmpEvent`]
     ///
     /// # Arguments
-    /// * `signaled` - Whether or not to initialize
-    /// the event in the signaled state.
+    /// * `initial_state` - The initial [`SignalState`] for the event (cleared
+    /// or signaled).
     /// * `manual_reset` - Whether or not the event has to be manually-reset.
-    /// If [`false`], [`Self::acknowledge`] and its variants will clear the
-    /// signaled state. If not, this must be done manually.
+    /// If [`false`], [`SmpEvent::wait`] will clear the event. If [`true`], the
+    /// event will have to be reset manually with [`SmpEvent::clear`].
     pub fn new(initial_state: SignalState, manual_reset: bool) -> Self {
         Self {
             manual_reset,
