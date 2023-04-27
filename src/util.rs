@@ -1,12 +1,9 @@
 #![allow(dead_code)]
 
 use core::f32::consts::PI;
-use core::sync::atomic::{AtomicBool, Ordering};
 use std::path::Path;
 
-use core::sync::atomic::AtomicIsize;
-use core::sync::atomic::AtomicU64;
-use core::sync::atomic::AtomicUsize;
+use core::sync::atomic::{Ordering, AtomicBool, AtomicI8, AtomicU8, AtomicI16, AtomicU16, AtomicI32, AtomicU32, AtomicI64, AtomicU64, AtomicIsize, AtomicUsize};
 extern crate alloc;
 use alloc::sync::Arc;
 use std::sync::{Condvar, Mutex};
@@ -287,6 +284,13 @@ macro_rules! easier_atomic_impl {
     };
 }
 
+easier_atomic_impl!(AtomicI8, i8);
+easier_atomic_impl!(AtomicU8, u8);
+easier_atomic_impl!(AtomicI16, i16);
+easier_atomic_impl!(AtomicU16, u16);
+easier_atomic_impl!(AtomicI32, i32);
+easier_atomic_impl!(AtomicU32, u32);
+easier_atomic_impl!(AtomicI64, i64);
 easier_atomic_impl!(AtomicU64, u64);
 easier_atomic_impl!(AtomicIsize, isize);
 easier_atomic_impl!(AtomicUsize, usize);
