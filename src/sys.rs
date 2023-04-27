@@ -1159,7 +1159,7 @@ cfg_if! {
 
         thread_local! {
             static GTK_RESPONSE_EVENT: RefCell<SmpEvent>
-                = RefCell::new(SmpEvent::new(false, false));
+                = RefCell::new(SmpEvent::new(SignalState::Cleared, false));
 
             static GTK_RESPONSE_EVENT_VALUE: RefCell<Option<gtk4::ResponseType>>
                 = RefCell::new(None);
