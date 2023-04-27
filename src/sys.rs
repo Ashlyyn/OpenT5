@@ -2,8 +2,8 @@
 
 extern crate alloc;
 
-use crate::platform::WindowHandle;
-use crate::util::SmpEvent;
+use crate::{platform::WindowHandle, util::EasierAtomicBool};
+use crate::util::{SmpEvent, SignalState};
 use crate::*;
 use num_derive::FromPrimitive;
 
@@ -618,7 +618,7 @@ pub fn render_fatal_error() -> ! {
 
 lazy_static! {
     static ref QUIT_EVENT: Mutex<SmpEvent> =
-        Mutex::new(SmpEvent::new(false, true));
+        Mutex::new(SmpEvent::new(SignalState::Cleared, true));
 }
 
 pub fn set_quit_event() {
@@ -626,14 +626,14 @@ pub fn set_quit_event() {
     ev.set();
 }
 
-pub fn query_quit_event() -> bool {
+pub fn query_quit_event() -> SignalState {
     let mut ev = QUIT_EVENT.lock().unwrap().clone();
     ev.query()
 }
 
 lazy_static! {
     static ref RG_REGISTERED_EVENT: Mutex<SmpEvent> =
-        Mutex::new(SmpEvent::new(false, true));
+        Mutex::new(SmpEvent::new(SignalState::Cleared, true));
 }
 
 pub fn clear_rg_registered_event() {
@@ -641,7 +641,7 @@ pub fn clear_rg_registered_event() {
     ev.clear();
 }
 
-pub fn query_rg_registered_event() -> bool {
+pub fn query_rg_registered_event() -> SignalState {
     let mut ev = RG_REGISTERED_EVENT.lock().unwrap().clone();
     ev.query()
 }
@@ -658,10 +658,10 @@ pub fn wait_rg_registered_event() {
 
 lazy_static! {
     static ref BACKEND_EVENT: Mutex<SmpEvent> =
-        Mutex::new(SmpEvent::new(false, true));
+        Mutex::new(SmpEvent::new(SignalState::Cleared, true));
 }
 
-pub fn query_backend_event() -> bool {
+pub fn query_backend_event() -> SignalState {
     let mut ev = BACKEND_EVENT.lock().unwrap().clone();
     ev.query()
 }
@@ -674,6 +674,26 @@ pub fn set_backend_event() {
 pub fn wait_backend_event() {
     let mut ev = BACKEND_EVENT.lock().unwrap().clone();
     ev.wait();
+}
+
+lazy_static! {
+    static ref RENDER_DEVICE_OK_EVENT: Mutex<SmpEvent> =
+        Mutex::new(SmpEvent::new(SignalState::Signaled, true));
+}
+
+pub fn query_render_device_ok_event() -> SignalState {
+    let mut ev = RENDER_DEVICE_OK_EVENT.lock().unwrap().clone();
+    ev.query()
+}
+
+lazy_static! {
+    static ref RENDER_COMPLETED_EVENT: Mutex<SmpEvent> =
+        Mutex::new(SmpEvent::new(SignalState::Signaled, true));
+}
+
+pub fn query_render_completed_event() -> SignalState {
+    let mut ev = RENDER_COMPLETED_EVENT.lock().unwrap().clone();
+    ev.query()
 }
 
 pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
@@ -1566,7 +1586,7 @@ lazy_static! {
 cfg_if! {
     if #[cfg(windows)] {
         pub fn next_window_event() -> Option<WindowEvent> {
-            if query_quit_event() {
+            if query_quit_event() == SignalState::Signaled {
                 com::quit_f();
             }
 
@@ -1614,4 +1634,20 @@ pub fn notify_renderer() {
 pub fn quit() -> ! {
     normal_exit();
     std::process::exit(0);
+}
+
+pub fn wait_renderer() {
+    // TODO - TLS shit, maybe?
+    if !is_main_thread() || query_render_device_ok_event() == SignalState::Signaled {
+        return;
+    }
+
+    while query_render_completed_event() == SignalState::Cleared {
+        if com::ERROR_ENTERED.load_relaxed() == true {
+            std::thread::sleep(Duration::from_millis(100));
+            return;
+        } else if query_render_device_ok_event() == SignalState::Cleared {
+            return;
+        }
+    }
 }
