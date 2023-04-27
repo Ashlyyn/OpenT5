@@ -467,6 +467,7 @@ fn init_try_block_function() {
     render::init_threads();
     cl::init_renderer();
     render::begin_remote_screen_update();
+    render::end_remote_screen_update();
     self::println!(16.into(), "--- Common Initialization Complete ---");
 }
 
