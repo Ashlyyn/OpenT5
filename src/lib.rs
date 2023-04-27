@@ -163,7 +163,7 @@ pub fn run() {
     }
 
     com::init();
-    // PrintWorkingDir
+    com::println!(16.into(), "Working directory: {}", sys::cwd().as_os_str().to_string_lossy());
     // SetFocus
     loop {
         if platform::get_minimized() {
