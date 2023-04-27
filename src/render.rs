@@ -3,6 +3,7 @@
 use crate::gfx::{WindowTarget, R_GLOB};
 use crate::platform::os::target::{MonitorHandle, show_window};
 use crate::sys::gpu::Device;
+use crate::util::{EasierAtomic, SignalState};
 use crate::{platform::WindowHandle, *};
 use pollster::block_on;
 use raw_window_handle::RawWindowHandle;
@@ -13,6 +14,7 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::ptr::addr_of_mut;
 use std::sync::RwLock;
+use std::sync::atomic::AtomicUsize;
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u32 = 480;
@@ -65,7 +67,7 @@ pub fn init_threads() {
 pub fn begin_registration(_vid_config: &mut vid::Config) {
     sys::set_rg_registered_event();
     loop {
-        if sys::query_rg_registered_event() == false {
+        if sys::query_rg_registered_event() == SignalState::Cleared {
             break;
         }
     }
@@ -96,6 +98,57 @@ pub fn begin_remote_screen_update() {
             R_GLOB.write().unwrap().remote_screen_update_nesting = 1;
         }
     }
+}
+
+static G_MAIN_THREAD_BLOCKED: AtomicUsize = AtomicUsize::new(0);
+
+pub fn end_remote_screen_update() {
+    end_remote_screen_update_with(|| {})
+}
+ 
+pub fn end_remote_screen_update_with(f: impl Fn()) {
+    if dvar::get_bool("useFastFile").unwrap() == false 
+        || !sys::is_main_thread()
+        || dvar::get_bool("sys_smp_allowed").unwrap() == false 
+    {
+        return;
+    }
+
+    assert!(R_GLOB.read().unwrap().remote_screen_update_nesting >= 0);
+
+    if R_GLOB.read().unwrap().started_render_thread == false {
+        assert_eq!(R_GLOB.read().unwrap().remote_screen_update_nesting, 0);
+        return;
+    } 
+
+    if cl::local_client_is_in_game(0) && R_GLOB.read().unwrap().remote_screen_update_in_game == 0 {
+        assert_eq!(R_GLOB.read().unwrap().remote_screen_update_nesting, 0);
+        return;
+    }
+
+    assert!(R_GLOB.read().unwrap().remote_screen_update_nesting > 0);
+
+    if R_GLOB.read().unwrap().remote_screen_update_nesting != 1 {
+        R_GLOB.write().unwrap().remote_screen_update_nesting -= 1;
+        return;
+    }
+
+    while R_GLOB.read().unwrap().screen_update_notify == false {
+        net::sleep(Duration::from_millis(1));
+        f();
+        sys::wait_renderer();
+    }
+    R_GLOB.write().unwrap().screen_update_notify = false;
+    assert!(R_GLOB.read().unwrap().remote_screen_update_nesting > 0);
+    R_GLOB.write().unwrap().remote_screen_update_nesting -= 1;
+    while R_GLOB.read().unwrap().screen_update_notify == false {
+        G_MAIN_THREAD_BLOCKED.increment_wrapping();
+        net::sleep(Duration::from_millis(1));
+        f();
+        sys::wait_renderer();
+        G_MAIN_THREAD_BLOCKED.decrement_wrapping();
+    }
+    R_GLOB.write().unwrap().screen_update_notify = false;
 }
 
 fn register() {
