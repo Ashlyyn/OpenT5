@@ -658,8 +658,8 @@ cfg_if! {
         }
 
         #[allow(
-            clippy::undocumented_unsafe_blocks, 
-            clippy::cast_sign_loss, 
+            clippy::undocumented_unsafe_blocks,
+            clippy::cast_sign_loss,
             clippy::cast_possible_truncation
         )]
         fn get_monitor_dimensions(monitor_handle: MonitorHandle) -> Option<(u32, u32)> {
@@ -675,7 +675,7 @@ cfg_if! {
                 let width = unsafe { GetSystemMetrics(SM_CXSCREEN) };
                 if width == 0 {
                     return None;
-                } 
+                }
                 width as _
             };
             let height = if mi_width > 0 {
@@ -692,8 +692,8 @@ cfg_if! {
         }
 
         #[allow(
-            clippy::undocumented_unsafe_blocks, 
-            clippy::cast_precision_loss, 
+            clippy::undocumented_unsafe_blocks,
+            clippy::cast_precision_loss,
             clippy::items_after_statements,
             clippy::cast_possible_truncation,
         )]
@@ -739,8 +739,8 @@ cfg_if! {
         }
 
         #[allow(
-            clippy::undocumented_unsafe_blocks, 
-            clippy::cast_lossless, 
+            clippy::undocumented_unsafe_blocks,
+            clippy::cast_lossless,
             clippy::cast_possible_wrap
         )]
         pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {

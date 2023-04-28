@@ -55,7 +55,7 @@
     clippy::question_mark_used,
     clippy::missing_assert_message,
     clippy::significant_drop_tightening,
-    clippy::impl_trait_in_params,
+    clippy::impl_trait_in_params
 )]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 

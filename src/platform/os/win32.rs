@@ -5,7 +5,7 @@
 
 use core::{mem::size_of_val, ptr::addr_of};
 extern crate alloc;
-use alloc::{collections::VecDeque};
+use alloc::collections::VecDeque;
 
 use raw_window_handle::{
     HasRawDisplayHandle, RawDisplayHandle, RawWindowHandle, Win32WindowHandle,
@@ -156,7 +156,7 @@ unsafe extern "system" fn main_wnd_proc(
 #[allow(
     clippy::undocumented_unsafe_blocks,
     clippy::cast_possible_truncation,
-    clippy::unreadable_literal,
+    clippy::unreadable_literal
 )]
 fn register_class(hinstance: HMODULE) {
     let mut wnd_class = WNDCLASSEXA::default();
@@ -178,7 +178,7 @@ fn register_class(hinstance: HMODULE) {
 impl TryFrom<MSG> for WindowEvent {
     type Error = ();
     #[allow(
-        clippy::cast_possible_truncation, 
+        clippy::cast_possible_truncation,
         clippy::undocumented_unsafe_blocks
     )]
     fn try_from(value: MSG) -> Result<Self, Self::Error> {
@@ -304,9 +304,9 @@ impl KeyPressInfo {
     }
 
     #[allow(
-        clippy::cast_sign_loss, 
-        clippy::cast_possible_truncation, 
-        clippy::unreadable_literal,
+        clippy::cast_sign_loss,
+        clippy::cast_possible_truncation,
+        clippy::unreadable_literal
     )]
     const fn from_isize(i: isize) -> Self {
         let repeat_count = (i & 0x0000FFFF) as u16;
@@ -471,8 +471,8 @@ trait ModifiersExt {
 
 impl ModifiersExt for Modifiers {
     #[allow(
-        clippy::cast_lossless, 
-        clippy::undocumented_unsafe_blocks, 
+        clippy::cast_lossless,
+        clippy::undocumented_unsafe_blocks,
         clippy::cast_possible_truncation
     )]
     fn try_from_vk(vk: VIRTUAL_KEY, scancode: u16) -> Option<Self> {
