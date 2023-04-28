@@ -1,6 +1,6 @@
 use raw_window_handle::{RawWindowHandle, WaylandWindowHandle, XlibWindowHandle, XlibDisplayHandle, RawDisplayHandle};
 use cfg_if::cfg_if;
-use x11::xlib::{XMapWindow, XOpenDisplay};
+use x11::xlib::{XMapWindow, XOpenDisplay, XSetInputFocus, RevertToParent, CurrentTime};
 
 use crate::platform::WindowHandle;
 
