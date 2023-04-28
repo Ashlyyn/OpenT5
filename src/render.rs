@@ -10,11 +10,11 @@ use pollster::block_on;
 use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
 extern crate alloc;
-use std::collections::HashSet;
 use alloc::collections::VecDeque;
 use alloc::ffi::CString;
 use core::ptr::addr_of_mut;
 use core::sync::atomic::AtomicUsize;
+use std::collections::HashSet;
 use std::sync::RwLock;
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
@@ -345,9 +345,9 @@ impl PartialOrd for VideoMode {
 }
 
 #[allow(
-    clippy::std_instead_of_core, 
-    clippy::indexing_slicing, 
-    clippy::manual_let_else,
+    clippy::std_instead_of_core,
+    clippy::indexing_slicing,
+    clippy::manual_let_else
 )]
 pub fn set_custom_resolution(
     wnd_parms: &mut gfx::WindowParms,
@@ -393,14 +393,16 @@ fn closest_refresh_rate_for_mode(
         return Some(m.refresh / 1000.0);
     }
 
-    let mode = video_modes.iter().find(|&m| (m.refresh - hz).abs() < f32::EPSILON);
+    let mode = video_modes
+        .iter()
+        .find(|&m| (m.refresh - hz).abs() < f32::EPSILON);
     if let Some(m) = mode {
         return Some(m.refresh);
     }
 
-    let mode = video_modes.iter().find(|&m| {
-        m.width == width && m.height == height
-    });
+    let mode = video_modes
+        .iter()
+        .find(|&m| m.width == width && m.height == height);
 
     if let Some(m) = mode {
         return Some(m.refresh / 1000.0);
@@ -467,19 +469,19 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
     wnd_parms.window_handle = None;
     wnd_parms.aa_samples =
         dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
-    wnd_parms.monitor_handle =
-        Some(primary_monitor().unwrap_or_else(||
-            current_monitor(None).unwrap_or_else(||
-                primary_monitor().unwrap_or_else(|| *available_monitors().get(0).unwrap()),
-            ),
-        ));
+    wnd_parms.monitor_handle = Some(primary_monitor().unwrap_or_else(|| {
+        current_monitor(None).unwrap_or_else(|| {
+            primary_monitor()
+                .unwrap_or_else(|| *available_monitors().get(0).unwrap())
+        })
+    }));
 }
 
 #[allow(
     clippy::panic,
     clippy::panic_in_result_fn,
     clippy::unnecessary_wraps,
-    clippy::cast_precision_loss,
+    clippy::cast_precision_loss
 )]
 fn store_window_settings(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     let mut vid_config = vid::CONFIG.write().unwrap();
@@ -798,8 +800,8 @@ cfg_if! {
         }
 
         #[allow(
-            clippy::undocumented_unsafe_blocks, 
-            clippy::cast_possible_wrap, 
+            clippy::undocumented_unsafe_blocks,
+            clippy::cast_possible_wrap,
             clippy::cast_possible_truncation,
             clippy::cast_sign_loss,
         )]
@@ -871,8 +873,8 @@ cfg_if! {
         }
 
         #[allow(
-            clippy::undocumented_unsafe_blocks, 
-            clippy::cast_sign_loss, 
+            clippy::undocumented_unsafe_blocks,
+            clippy::cast_sign_loss,
             clippy::cast_possible_wrap,
             clippy::cast_precision_loss,
             clippy::cast_possible_truncation,
@@ -943,7 +945,7 @@ cfg_if! {
                 video_modes,
             })
         }
-        
+
         #[allow(clippy::undocumented_unsafe_blocks)]
         pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             assert!(wnd_parms.window_handle.is_none());
@@ -998,9 +1000,10 @@ struct MonitorInfo {
 }
 
 fn enum_display_modes() {
-    let info =
-        monitor_info(primary_monitor().unwrap_or(*available_monitors().get(0).unwrap()))
-            .unwrap();
+    let info = monitor_info(
+        primary_monitor().unwrap_or(*available_monitors().get(0).unwrap()),
+    )
+    .unwrap();
 
     let valid_modes = info
         .video_modes

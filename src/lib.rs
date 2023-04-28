@@ -51,14 +51,14 @@
     clippy::semicolon_if_nothing_returned,
     clippy::let_unit_value,
     clippy::panic_in_result_fn,
-    clippy::bool_assert_comparison,
+    clippy::bool_assert_comparison
 )]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 
 use cfg_if::cfg_if;
 use core::sync::atomic::{AtomicBool, Ordering};
-use lazy_static::lazy_static;
 use core::time::Duration;
+use lazy_static::lazy_static;
 extern crate alloc;
 use alloc::sync::Arc;
 

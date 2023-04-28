@@ -1508,18 +1508,19 @@ pub enum MouseScancode {
 
 impl KeyboardScancode {
     pub const fn affected_by_num_lock(self) -> bool {
-        matches!(self,
+        matches!(
+            self,
             Self::Num0
-            | Self::Num1
-            | Self::Num2
-            | Self::Num3
-            | Self::Num4
-            | Self::Num5
-            | Self::Num6
-            | Self::Num7
-            | Self::Num8
-            | Self::Num9
-            | Self::NumPeriod,
+                | Self::Num1
+                | Self::Num2
+                | Self::Num3
+                | Self::Num4
+                | Self::Num5
+                | Self::Num6
+                | Self::Num7
+                | Self::Num8
+                | Self::Num9
+                | Self::NumPeriod,
         )
     }
 }
@@ -1677,7 +1678,8 @@ fn get_current_thread_id() -> ThreadId {
 }
 
 pub fn init_main_thread() {
-    *THREAD_ID.write().unwrap().get_mut(0).unwrap() = Some(get_current_thread_id());
+    *THREAD_ID.write().unwrap().get_mut(0).unwrap() =
+        Some(get_current_thread_id());
 }
 
 pub fn is_main_thread() -> bool {

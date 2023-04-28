@@ -28,15 +28,15 @@ fn swap_buffers() {
                     dvar::DvarFlags::ARCHIVE,
                      Some("Automatically set the priority of the windows process when the game is minimized")
                 ).unwrap();
-            },
+            }
             WindowEvent::CloseRequested => {
                 cbuf::add_textln(0, "quit");
                 sys::set_quit_event();
-            },
+            }
             WindowEvent::Destroyed => {
                 //FUN_004dfd60()
                 platform::clear_window_handle();
-            },
+            }
             WindowEvent::Moved { x, y } => {
                 if dvar::get_bool("r_fullscreen").unwrap() {
                     input::mouse::activate(0);
@@ -49,7 +49,7 @@ fn swap_buffers() {
                         input::activate(true);
                     }
                 }
-            },
+            }
             WindowEvent::ModifiersChanged { modifier, down } => {
                 if modifier == Modifiers::CAPSLOCK
                     || modifier == Modifiers::NUMLOCK
@@ -66,7 +66,7 @@ fn swap_buffers() {
                     sys::EventType::Key(modifier.try_into().unwrap(), down),
                     None,
                 ));
-            },
+            }
             WindowEvent::KeyDown {
                 logical_scancode, ..
             } => {
