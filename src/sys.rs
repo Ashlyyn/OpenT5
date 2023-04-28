@@ -11,7 +11,7 @@ pub mod gpu;
 
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
-use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
+use x11::xlib::{XOpenDisplay, XMapWindow, XSetInputFocus, RevertToParent, CurrentTime};
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
@@ -36,6 +36,7 @@ cfg_if! {
         use windows::Win32::UI::WindowsAndMessaging::{PeekMessageA, MSG, PM_NOREMOVE, GetMessageA, TranslateMessage, DispatchMessageA};
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
         use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
+        use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
     }
 }
 

@@ -644,10 +644,6 @@ unsafe impl Sync for MonitorHandle {}
 // testing, we'll see if any pop up later.
 unsafe impl Send for MonitorHandle {}
 
-// We implement MonitorHandle here, rather than in src/platform.rs like 
-// WindowHandle because we can't just implement it as a wrapper around
-// RawDisplayHandle since we need more information than RawDisplayHandle gives.
-// WindowsDisplayHandle is a unit struct, but we need the HMONITOR.
 impl MonitorHandle {
     pub fn get(&self) -> RawDisplayHandle {
         match *self {
