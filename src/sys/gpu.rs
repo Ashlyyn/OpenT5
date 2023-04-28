@@ -6,7 +6,7 @@ use num_derive::FromPrimitive;
 use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 
-use crate::{util::WgpuSurface};
+use crate::util::WgpuSurface;
 
 pub fn init() {
     env_logger::init();

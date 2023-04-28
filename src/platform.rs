@@ -9,9 +9,7 @@ extern crate alloc;
 use alloc::sync::Arc;
 
 use lazy_static::lazy_static;
-use raw_window_handle::{
-    HasRawWindowHandle,  RawWindowHandle,
-};
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct WindowHandle(pub RawWindowHandle);

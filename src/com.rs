@@ -446,18 +446,20 @@ fn init_dvars() {
     .unwrap();
 
     dvar::register_bool(
-        "useFastFile", 
-        true, 
-        dvar::DvarFlags::WRITE_PROTECTED, 
-        Some("Enables loading data from fast files.")
-    ).unwrap();
+        "useFastFile",
+        true,
+        dvar::DvarFlags::WRITE_PROTECTED,
+        Some("Enables loading data from fast files."),
+    )
+    .unwrap();
 
     dvar::register_bool(
-        "sys_smp_allowed", 
-        1 < sys::get_logical_cpu_count(), 
-        dvar::DvarFlags::WRITE_PROTECTED, 
-        Some("Allow multi-threading")
-    ).unwrap();
+        "sys_smp_allowed",
+        1 < sys::get_logical_cpu_count(),
+        dvar::DvarFlags::WRITE_PROTECTED,
+        Some("Allow multi-threading"),
+    )
+    .unwrap();
 }
 
 fn init_try_block_function() {
@@ -506,13 +508,8 @@ pub fn frame_time() -> Duration {
 
 pub fn quit_f() -> ! {
     self::println!(0.into(), "quitting...");
-    if ERROR_ENTERED.load(Ordering::Relaxed) {
-
-    }
+    if ERROR_ENTERED.load(Ordering::Relaxed) {}
     sys::quit();
 }
 
-pub fn frame() {
-
-}
-
+pub fn frame() {}

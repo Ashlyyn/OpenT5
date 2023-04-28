@@ -3,15 +3,20 @@
 use core::f32::consts::PI;
 use std::path::Path;
 
-use core::sync::atomic::{Ordering, AtomicBool, AtomicI8, AtomicU8, AtomicI16, AtomicU16, AtomicI32, AtomicU32, AtomicI64, AtomicU64, AtomicIsize, AtomicUsize};
+use core::sync::atomic::{
+    AtomicBool, AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicIsize,
+    AtomicU16, AtomicU32, AtomicU64, AtomicU8, AtomicUsize, Ordering,
+};
 extern crate alloc;
 use alloc::sync::Arc;
 use std::sync::{Condvar, Mutex};
 
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle, HasRawDisplayHandle, RawDisplayHandle};
+use raw_window_handle::{
+    HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
+};
 
-use crate::platform::WindowHandle;
 use crate::platform::os::target::MonitorHandle;
+use crate::platform::WindowHandle;
 
 use cfg_if::cfg_if;
 
@@ -76,7 +81,7 @@ impl SmpEvent {
     }
 
     pub fn query(&mut self) -> SignalState {
-        *self.inner.0.lock().unwrap() 
+        *self.inner.0.lock().unwrap()
     }
 
     pub fn clear(&mut self) {

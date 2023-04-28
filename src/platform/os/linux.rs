@@ -1,5 +1,8 @@
-use raw_window_handle::{RawWindowHandle, WaylandWindowHandle, XlibWindowHandle, XlibDisplayHandle, RawDisplayHandle};
 use cfg_if::cfg_if;
+use raw_window_handle::{
+    RawDisplayHandle, RawWindowHandle, WaylandWindowHandle, XlibDisplayHandle,
+    XlibWindowHandle,
+};
 
 use crate::platform::WindowHandle;
 
@@ -40,7 +43,10 @@ pub enum MonitorHandle {
 impl Ord for MonitorHandle {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match *self {
-            Self::Xlib(handle) => handle.display.cmp(&other.get_xlib().unwrap().display).then(handle.screen.cmp(&other.get_xlib().unwrap().screen)),
+            Self::Xlib(handle) => handle
+                .display
+                .cmp(&other.get_xlib().unwrap().display)
+                .then(handle.screen.cmp(&other.get_xlib().unwrap().screen)),
             Self::Wayland(()) => ().cmp(&()),
         }
     }
@@ -63,14 +69,14 @@ impl MonitorHandle {
                 match *self {
                     Self::Wayland(handle) => RawDisplayHandle::Wayland(handle),
                     _ => panic!()
-                }  
+                }
             }
         } else {
             pub const fn get(&self) -> RawDisplayHandle {
                 match *self {
                     Self::Xlib(handle) => RawDisplayHandle::Xlib(handle),
                     _ => panic!()
-                }  
+                }
             }
         }
     }

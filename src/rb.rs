@@ -4,7 +4,8 @@ use crate::{
     cl::Connstate,
     gfx::R_GLOB,
     sys::{KeyboardScancode, Modifiers, WindowEvent},
-    *, util::SignalState,
+    util::SignalState,
+    *,
 };
 
 static MODIFIERS: RwLock<Modifiers> = RwLock::new(Modifiers::empty());

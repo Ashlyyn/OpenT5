@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::gfx::{WindowTarget, R_GLOB};
-use crate::platform::os::target::{MonitorHandle};
+use crate::platform::os::target::MonitorHandle;
 use crate::sys::gpu::Device;
 use crate::sys::show_window;
 use crate::util::{EasierAtomic, SignalState};
@@ -10,12 +10,12 @@ use pollster::block_on;
 use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
 extern crate alloc;
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::ptr::addr_of_mut;
-use std::sync::RwLock;
 use std::sync::atomic::AtomicUsize;
+use std::sync::RwLock;
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u32 = 480;
@@ -106,11 +106,11 @@ static G_MAIN_THREAD_BLOCKED: AtomicUsize = AtomicUsize::new(0);
 pub fn end_remote_screen_update() {
     end_remote_screen_update_with(|| {})
 }
- 
+
 pub fn end_remote_screen_update_with(f: impl Fn()) {
-    if dvar::get_bool("useFastFile").unwrap() == false 
+    if dvar::get_bool("useFastFile").unwrap() == false
         || !sys::is_main_thread()
-        || dvar::get_bool("sys_smp_allowed").unwrap() == false 
+        || dvar::get_bool("sys_smp_allowed").unwrap() == false
     {
         return;
     }
@@ -120,9 +120,11 @@ pub fn end_remote_screen_update_with(f: impl Fn()) {
     if R_GLOB.read().unwrap().started_render_thread == false {
         assert_eq!(R_GLOB.read().unwrap().remote_screen_update_nesting, 0);
         return;
-    } 
+    }
 
-    if cl::local_client_is_in_game(0) && R_GLOB.read().unwrap().remote_screen_update_in_game == 0 {
+    if cl::local_client_is_in_game(0)
+        && R_GLOB.read().unwrap().remote_screen_update_in_game == 0
+    {
         assert_eq!(R_GLOB.read().unwrap().remote_screen_update_nesting, 0);
         return;
     }
@@ -367,8 +369,7 @@ fn closest_refresh_rate_for_mode(
     height: u32,
     hz: f32,
 ) -> Option<f32> {
-    let video_modes =
-        RENDER_GLOBALS.read().unwrap().video_modes.clone();
+    let video_modes = RENDER_GLOBALS.read().unwrap().video_modes.clone();
     if video_modes.is_empty() {
         return None;
     }
@@ -456,7 +457,12 @@ fn set_wnd_parms(wnd_parms: &mut gfx::WindowParms) {
     wnd_parms.window_handle = None;
     wnd_parms.aa_samples =
         dvar::get_int("r_aaSamples").unwrap().clamp(0, i32::MAX) as _;
-    wnd_parms.monitor_handle = Some(primary_monitor().unwrap_or(current_monitor(None).unwrap_or(primary_monitor().unwrap_or(available_monitors()[0]))));
+    wnd_parms.monitor_handle =
+        Some(primary_monitor().unwrap_or(
+            current_monitor(None).unwrap_or(
+                primary_monitor().unwrap_or(available_monitors()[0]),
+            ),
+        ));
 }
 
 #[allow(
@@ -596,7 +602,7 @@ cfg_if! {
                 Some(MonitorHandle::Win32(hmonitor.0))
             } else {
                 None
-            }            
+            }
         }
 
         #[repr(C)]
@@ -771,7 +777,7 @@ cfg_if! {
             let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
             let screen = unsafe { XDefaultScreen(display) };
             let white_pixel = unsafe { XWhitePixel(display, screen) };
-            let window = unsafe { XCreateSimpleWindow(display, XRootWindow(display, screen), 0, 0, 1, 1, 1, white_pixel, white_pixel) }; 
+            let window = unsafe { XCreateSimpleWindow(display, XRootWindow(display, screen), 0, 0, 1, 1, 1, white_pixel, white_pixel) };
             let mut nmonitors = 0;
             let monitors_ptr = unsafe { XRRGetMonitors(display, window, x11::xlib::True, addr_of_mut!(nmonitors)) };
             let monitors = unsafe { slice::from_raw_parts(monitors_ptr, nmonitors as _) };
@@ -805,7 +811,7 @@ cfg_if! {
 
             let screen = unsafe { XScreenOfDisplay(display, monitor) };
             handle.screen = if screen.is_null() {
-                unsafe { XDefaultScreen(display) as _ } 
+                unsafe { XDefaultScreen(display) as _ }
             } else {
                 monitor as _
             };
@@ -839,7 +845,7 @@ cfg_if! {
             }
 
             let white_pixel = unsafe { XWhitePixel(display, screen_num) };
-            let window = unsafe { XCreateSimpleWindow(display, XRootWindow(display, screen_num), 0, 0, 1, 1, 1, white_pixel, white_pixel) }; 
+            let window = unsafe { XCreateSimpleWindow(display, XRootWindow(display, screen_num), 0, 0, 1, 1, 1, white_pixel, white_pixel) };
             let screen_info = unsafe { XRRGetScreenInfo(display, window) };
             if screen_info.is_null() {
                 return None;
@@ -873,7 +879,7 @@ cfg_if! {
                 }
 
                 let rates = unsafe { slice::from_raw_parts(rates_ptr, nrates as _) };
-                
+
                 for rate in rates {
                     video_modes.push(VideoMode {
                         width: m.width as _,
@@ -903,14 +909,14 @@ cfg_if! {
             let screen = unsafe { XDefaultScreen(display) };
             let white_pixel = unsafe { XWhitePixel(display, screen) };
             let window = unsafe { XCreateSimpleWindow(
-                display, 
-                XRootWindow(display, screen), 
-                wnd_parms.x as _, 
-                wnd_parms.y as _, 
-                wnd_parms.display_width, 
-                wnd_parms.display_height, 
-                0, 
-                white_pixel, 
+                display,
+                XRootWindow(display, screen),
+                wnd_parms.x as _,
+                wnd_parms.y as _,
+                wnd_parms.display_width,
+                wnd_parms.display_height,
+                0,
+                white_pixel,
                 white_pixel,
             ) };
 
@@ -995,7 +1001,8 @@ fn enum_display_modes() {
     )
     .unwrap();
 
-    RENDER_GLOBALS.write().unwrap().video_modes = valid_modes.iter().cloned().cloned().collect();
+    RENDER_GLOBALS.write().unwrap().video_modes =
+        valid_modes.iter().cloned().cloned().collect();
 }
 
 #[allow(clippy::significant_drop_tightening)]

@@ -1,9 +1,7 @@
 // This file is for any Unix-specific initialization that
 // should be done before the rest of main() executes
 
-pub fn main() {
-
-}
+pub fn main() {}
 
 impl WindowHandle {
     pub const fn new(handle: RawWindowHandle) -> Self {
@@ -34,7 +32,7 @@ pub enum MonitorHandle {
 impl MonitorHandle {
     pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
         match *self {
-            Self::Xlib { display, screen }=> Some((display, screen)),
+            Self::Xlib { display, screen } => Some((display, screen)),
             _ => None,
         }
     }
@@ -48,5 +46,7 @@ pub fn show_window(handle: WindowHandle) {
 pub fn focus_window(handle: WindowHandle) {
     let handle = handle.get_xlib().unwrap();
     let display = unsafe { XOpenDisplay(core::ptr::null()) };
-    unsafe { XSetInputFocus(display, handle.window, RevertToParent, CurrentTime) };
+    unsafe {
+        XSetInputFocus(display, handle.window, RevertToParent, CurrentTime)
+    };
 }

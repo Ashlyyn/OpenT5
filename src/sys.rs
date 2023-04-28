@@ -2,26 +2,28 @@
 
 extern crate alloc;
 
-use crate::{platform::WindowHandle, util::EasierAtomicBool};
-use crate::util::{SmpEvent, SignalState};
+use crate::util::{SignalState, SmpEvent};
 use crate::*;
+use crate::{platform::WindowHandle, util::EasierAtomicBool};
 use num_derive::FromPrimitive;
 
 pub mod gpu;
 
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
-use x11::xlib::{XOpenDisplay, XMapWindow, XSetInputFocus, RevertToParent, CurrentTime};
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
 };
 use lazy_static::lazy_static;
-use std::{fs::File};
+use std::fs::File;
 use std::io::{Read, Write};
 use std::sync::{Mutex, RwLock};
 use std::thread::{JoinHandle, ThreadId};
 use std::{path::PathBuf, time::SystemTime};
+use x11::xlib::{
+    CurrentTime, RevertToParent, XMapWindow, XOpenDisplay, XSetInputFocus,
+};
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         use core::ffi::{CStr};
@@ -1117,7 +1119,7 @@ cfg_if! {
     if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
         pub fn message_box(
             handle: Option<WindowHandle>,
-            title: &str, 
+            title: &str,
             text: &str,
             msg_box_type: MessageBoxType,
             msg_box_icon: Option<MessageBoxIcon>
@@ -1622,7 +1624,7 @@ cfg_if! {
         pub fn show_window(handle: WindowHandle) {
             unsafe { ShowWindow(HWND(handle.get_win32().unwrap().hwnd as _), SW_SHOW) };
         }
-        
+
         pub fn focus_window(handle: WindowHandle) {
             unsafe { SetFocus(HWND(handle.get_win32().unwrap().hwnd as _)) };
         }
@@ -1686,7 +1688,9 @@ pub fn quit() -> ! {
 
 pub fn wait_renderer() {
     // TODO - TLS shit, maybe?
-    if !is_main_thread() || query_render_device_ok_event() == SignalState::Signaled {
+    if !is_main_thread()
+        || query_render_device_ok_event() == SignalState::Signaled
+    {
         return;
     }
 

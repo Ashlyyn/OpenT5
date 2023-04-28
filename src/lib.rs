@@ -58,8 +58,8 @@
 
 use cfg_if::cfg_if;
 use core::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 use lazy_static::lazy_static;
+use std::time::Duration;
 extern crate alloc;
 use alloc::sync::Arc;
 
@@ -165,7 +165,11 @@ pub fn run() {
     }
 
     com::init();
-    com::println!(16.into(), "Working directory: {}", sys::cwd().as_os_str().to_string_lossy());
+    com::println!(
+        16.into(),
+        "Working directory: {}",
+        sys::cwd().as_os_str().to_string_lossy()
+    );
     focus_window(platform::get_window_handle().unwrap());
     loop {
         if platform::get_minimized() {

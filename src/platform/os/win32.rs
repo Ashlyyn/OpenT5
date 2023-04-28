@@ -48,7 +48,7 @@ use windows::{
                 WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
                 WM_MOVE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETFOCUS,
                 WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
-                WNDCLASSEXA, 
+                WNDCLASSEXA,
             },
         },
     },
@@ -619,7 +619,10 @@ pub enum MonitorHandle {
 
 impl Ord for MonitorHandle {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.get_win32().unwrap().0.cmp(&other.get_win32().unwrap().0)
+        self.get_win32()
+            .unwrap()
+            .0
+            .cmp(&other.get_win32().unwrap().0)
     }
 }
 
@@ -647,7 +650,9 @@ unsafe impl Send for MonitorHandle {}
 impl MonitorHandle {
     pub fn get(&self) -> RawDisplayHandle {
         match *self {
-            Self::Win32(_) => RawDisplayHandle::Windows(WindowsDisplayHandle::empty())
+            Self::Win32(_) => {
+                RawDisplayHandle::Windows(WindowsDisplayHandle::empty())
+            }
         }
     }
 
