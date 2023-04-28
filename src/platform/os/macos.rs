@@ -29,17 +29,3 @@ pub enum MonitorHandle {
     Xlib { display: *mut c_void, screen: i32 },
     AppKit(()),
 }
-
-cfg_if! {
-    if #[cfg(feature = "macos_use_appkit")] {
-        fn show_window(handle: WindowHandle) {
-            let handle = handle.get_app_kit().unwrap();
-            todo!()
-        }
-    } else {
-        fn show_window(handle: WindowHandle) {
-            let handle = handle.get_xlib().unwrap();
-            todo!()
-        }
-    }
-}

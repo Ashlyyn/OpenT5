@@ -37,7 +37,7 @@ use windows::{
                 VK_OEM_PLUS, VK_PAUSE, VK_PRIOR, VK_RBUTTON, VK_RCONTROL,
                 VK_RETURN, VK_RIGHT, VK_RMENU, VK_RSHIFT, VK_RWIN,
                 VK_SEPARATOR, VK_SHIFT, VK_SNAPSHOT, VK_SPACE, VK_SUBTRACT,
-                VK_TAB, VK_UP, VK_XBUTTON1, VK_XBUTTON2, SetFocus,
+                VK_TAB, VK_UP, VK_XBUTTON1, VK_XBUTTON2,
             },
             WindowsAndMessaging::{
                 DefWindowProcA, DestroyWindow, GetSystemMetrics, LoadCursorA,
@@ -48,7 +48,7 @@ use windows::{
                 WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
                 WM_MOVE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETFOCUS,
                 WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
-                WNDCLASSEXA, ShowWindow, SW_SHOW,
+                WNDCLASSEXA, 
             },
         },
     },
@@ -644,10 +644,10 @@ unsafe impl Sync for MonitorHandle {}
 // testing, we'll see if any pop up later.
 unsafe impl Send for MonitorHandle {}
 
-// Win32 => Win32
-// Linux => Xlib, Wayland
-// macOS => Xlib, AppKit, UiKit
-// Other Unix => Xlib
+// We implement MonitorHandle here, rather than in src/platform.rs like 
+// WindowHandle because we can't just implement it as a wrapper around
+// RawDisplayHandle since we need more information than RawDisplayHandle gives.
+// WindowsDisplayHandle is a unit struct, but we need the HMONITOR.
 impl MonitorHandle {
     pub fn get(&self) -> RawDisplayHandle {
         match *self {
@@ -660,14 +660,6 @@ impl MonitorHandle {
             Self::Win32(hmonitor) => Some(HMONITOR(hmonitor)),
         }
     }
-}
-
-pub fn show_window(handle: WindowHandle) {
-    unsafe { ShowWindow(HWND(handle.get_win32().unwrap().hwnd as _), SW_SHOW) };
-}
-
-pub fn focus_window(handle: WindowHandle) {
-    unsafe { SetFocus(HWND(handle.get_win32().unwrap().hwnd as _)) };
 }
 
 #[allow(unused_variables, clippy::semicolon_outside_block)]

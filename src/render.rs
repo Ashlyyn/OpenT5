@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 
 use crate::gfx::{WindowTarget, R_GLOB};
-use crate::platform::os::target::{MonitorHandle, show_window};
+use crate::platform::os::target::{MonitorHandle};
 use crate::sys::gpu::Device;
+use crate::sys::show_window;
 use crate::util::{EasierAtomic, SignalState};
 use crate::{platform::WindowHandle, *};
 use pollster::block_on;

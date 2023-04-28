@@ -63,7 +63,7 @@ use lazy_static::lazy_static;
 extern crate alloc;
 use alloc::sync::Arc;
 
-use crate::platform::os::target::focus_window;
+use crate::sys::focus_window;
 
 cfg_if! {
     if #[cfg(target_arch="wasm32")] {

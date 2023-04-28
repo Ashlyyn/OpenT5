@@ -90,18 +90,3 @@ impl MonitorHandle {
         }
     }
 }
-
-cfg_if! {
-    if #[cfg(feature = "linux_use_wayland")] {
-        pub fn show_window(handle: WindowHandle) {
-            let _handle = handle.get_wayland().unwrap();
-            todo!()
-        }
-    } else {
-        pub fn show_window(handle: WindowHandle) {
-            let handle = handle.get_xlib().unwrap();
-            let display = unsafe { XOpenDisplay(core::ptr::null()) };
-            unsafe { XMapWindow(display, handle.window) };
-        }
-    }
-}

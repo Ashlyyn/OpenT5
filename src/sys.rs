@@ -11,6 +11,7 @@ pub mod gpu;
 
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
+use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
@@ -33,6 +34,8 @@ cfg_if! {
         use windows::core::PCSTR;
         use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
         use windows::Win32::UI::WindowsAndMessaging::{PeekMessageA, MSG, PM_NOREMOVE, GetMessageA, TranslateMessage, DispatchMessageA};
+        use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
+        use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
     }
 }
 
@@ -1609,6 +1612,50 @@ cfg_if! {
     } else if #[cfg(unix)] {
         pub fn next_window_event() -> Option<WindowEvent> {
             None
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(windows)] {
+        pub fn show_window(handle: WindowHandle) {
+            unsafe { ShowWindow(HWND(handle.get_win32().unwrap().hwnd as _), SW_SHOW) };
+        }
+        
+        pub fn focus_window(handle: WindowHandle) {
+            unsafe { SetFocus(HWND(handle.get_win32().unwrap().hwnd as _)) };
+        }
+    } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
+        pub fn show_window(handle: WindowHandle) {
+            let _handle = handle.get_wayland().unwrap();
+            todo!()
+        }
+
+        pub fn focus_window(handle: WindowHandle) {
+            let _handle = handle.get_wayland().unwrap();
+            todo!()
+        }
+    } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
+        pub fn show_window(handle: WindowHandle) {
+            let handle = handle.get_app_kit().unwrap();
+            todo!()
+        }
+
+        pub fn focus_window(handle: WindowHandle) {
+            let _handle = handle.get_wayland().unwrap();
+            todo!()
+        }
+    } else if #[cfg(unix)] {
+        pub fn show_window(handle: WindowHandle) {
+            let handle = handle.get_xlib().unwrap();
+            let display = unsafe { XOpenDisplay(core::ptr::null()) };
+            unsafe { XMapWindow(display, handle.window) };
+        }
+
+        pub fn focus_window(handle: WindowHandle) {
+            let handle = handle.get_xlib().unwrap();
+            let display = unsafe { XOpenDisplay(core::ptr::null()) };
+            unsafe { XSetInputFocus(display, handle.window, RevertToParent, CurrentTime) };
         }
     }
 }
