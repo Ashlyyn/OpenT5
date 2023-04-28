@@ -30,7 +30,7 @@ cfg_if! {
         use windows::core::{PCSTR, PCWSTR};
         use windows::s;
         use crate::platform::os::target::monitor_enum_proc;
-        use std::mem::size_of_val;
+        use core::mem::size_of_val;
         use alloc::collections::BTreeSet;
         use raw_window_handle::Win32WindowHandle;
     } else if #[cfg(unix)] {
@@ -600,27 +600,25 @@ cfg_if! {
                     None,
                     None,
                     Some(monitor_enum_proc),
-                    LPARAM(&mut monitors as *mut _ as _),
+                    LPARAM(addr_of_mut!(monitors) as _),
                 );
             }
             monitors
         }
 
-        #[allow(clippy::undocumented_unsafe_blocks)]
+        #[allow(clippy::undocumented_unsafe_blocks, clippy::unnecessary_wraps)]
         fn primary_monitor() -> Option<MonitorHandle> {
             const ORIGIN: POINT = POINT { x: 0, y: 0 };
             let hmonitor = unsafe { MonitorFromPoint(ORIGIN, MONITOR_DEFAULTTOPRIMARY) };
             Some(MonitorHandle::Win32(hmonitor.0))
         }
 
-        #[allow(clippy::undocumented_unsafe_blocks)]
+        #[allow(clippy::undocumented_unsafe_blocks, clippy::unnecessary_wraps)]
         fn current_monitor(handle: Option<WindowHandle>) -> Option<MonitorHandle> {
-            if let Some(handle) = handle {
+            handle.map(|handle| {
                 let hmonitor = unsafe { MonitorFromWindow(HWND(handle.get_win32().unwrap().hwnd as _), MONITOR_DEFAULTTONEAREST) };
-                Some(MonitorHandle::Win32(hmonitor.0))
-            } else {
-                None
-            }
+                MonitorHandle::Win32(hmonitor.0)
+            })
         }
 
         #[repr(C)]
@@ -631,14 +629,14 @@ cfg_if! {
 
         #[allow(clippy::undocumented_unsafe_blocks)]
         unsafe extern "system" fn monitor_enum_callback(hmonitor: HMONITOR, _hdc: HDC, _rect: *mut RECT, data: LPARAM) -> BOOL {
-            // SAFETY: This is safe because the only time we ever call this
+            // This is safe because the only time we ever call this
             // function, we wrap a *mut MonitorEnumData in `data`
             let data = data.0 as *mut MonitorEnumData;
             (*data).monitor -= 1;
             if (*data).monitor == 0 {
                 (*data).handle = hmonitor;
             }
-            BOOL(((*data).monitor != 0) as _)
+            BOOL(i32::from((*data).monitor != 0))
         }
 
         #[allow(clippy::undocumented_unsafe_blocks)]
@@ -647,7 +645,7 @@ cfg_if! {
             if fullscreen {
                 let monitor = dvar::get_int("r_monitor").unwrap();
                 let mut data = MonitorEnumData { monitor, handle: HMONITOR(0) };
-                unsafe { EnumDisplayMonitors(None, None, Some(monitor_enum_callback), LPARAM(addr_of_mut!(data) as _)) };
+                unsafe { EnumDisplayMonitors(None, None, Some(monitor_enum_callback), LPARAM(addr_of_mut!(data) as _)); }
                 if data.handle != HMONITOR(0) {
                     return MonitorHandle::Win32(data.handle.0);
                 }
@@ -659,11 +657,15 @@ cfg_if! {
             MonitorHandle::Win32(hmonitor.0)
         }
 
-        #[allow(clippy::undocumented_unsafe_blocks)]
+        #[allow(
+            clippy::undocumented_unsafe_blocks, 
+            clippy::cast_sign_loss, 
+            clippy::cast_possible_truncation
+        )]
         fn get_monitor_dimensions(monitor_handle: MonitorHandle) -> Option<(u32, u32)> {
             let mut mi = MONITORINFOEXW::default();
             mi.monitorInfo.cbSize = size_of_val(&mi) as _;
-            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)) };
+            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)); }
 
             let mi_width = (mi.monitorInfo.rcMonitor.right - mi.monitorInfo.rcMonitor.left) as u32;
             let mi_height = (mi.monitorInfo.rcMonitor.bottom - mi.monitorInfo.rcMonitor.top) as u32;
@@ -673,9 +675,8 @@ cfg_if! {
                 let width = unsafe { GetSystemMetrics(SM_CXSCREEN) };
                 if width == 0 {
                     return None;
-                } else {
-                    width as _
-                }
+                } 
+                width as _
             };
             let height = if mi_width > 0 {
                 mi_height
@@ -683,19 +684,23 @@ cfg_if! {
                 let height = unsafe { GetSystemMetrics(SM_CYSCREEN) };
                 if height == 0 {
                     return None;
-                } else {
-                    height as _
                 }
+                height as _
             };
 
             Some((width, height))
         }
 
-        #[allow(clippy::undocumented_unsafe_blocks)]
+        #[allow(
+            clippy::undocumented_unsafe_blocks, 
+            clippy::cast_precision_loss, 
+            clippy::items_after_statements,
+            clippy::cast_possible_truncation,
+        )]
         fn monitor_info(monitor_handle: MonitorHandle) -> Option<MonitorInfo> {
             let mut mi = MONITORINFOEXW::default();
             mi.monitorInfo.cbSize = size_of_val(&mi) as _;
-            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)) };
+            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)); }
             let name = char::decode_utf16(mi.szDevice).flatten().collect::<String>();
 
             let mut mode = DEVMODEW::default();
@@ -733,7 +738,11 @@ cfg_if! {
 
         }
 
-        #[allow(clippy::undocumented_unsafe_blocks)]
+        #[allow(
+            clippy::undocumented_unsafe_blocks, 
+            clippy::cast_lossless, 
+            clippy::cast_possible_wrap
+        )]
         pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             assert!(wnd_parms.window_handle.is_none());
 
@@ -746,7 +755,7 @@ cfg_if! {
             };
 
             let mut rect = RECT { left: 0, right: wnd_parms.display_width as _, top: 0, bottom: wnd_parms.display_height as _ };
-            unsafe { AdjustWindowRectEx(addr_of_mut!(rect), dw_style, false, dw_ex_style) };
+            unsafe { AdjustWindowRectEx(addr_of_mut!(rect), dw_style, false, dw_ex_style); }
             let hinstance = unsafe { GetModuleHandleA(None) }.unwrap_or_default();
             let height = rect.bottom - rect.top;
             let width = rect.right - rect.left;
@@ -754,7 +763,7 @@ cfg_if! {
             let hwnd = unsafe { CreateWindowExA(
                 dw_ex_style,
                 s!("CoDBlackOps"),
-                PCSTR(window_name.as_ptr() as _),
+                PCSTR(window_name.as_ptr().cast()),
                 dw_style,
                 wnd_parms.x as _,
                 wnd_parms.y as _,
@@ -777,8 +786,8 @@ cfg_if! {
                 wnd_parms.window_handle = Some(WindowHandle(RawWindowHandle::Win32(handle)));
 
                 if wnd_parms.fullscreen == false {
-                    unsafe { SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE) };
-                    unsafe { SetFocus(hwnd) };
+                    unsafe { SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE); }
+                    unsafe { SetFocus(hwnd); }
                 }
                 com::println!(8.into(), "Game window successfully created.");
                 Ok(())

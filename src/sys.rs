@@ -21,11 +21,8 @@ use std::io::{Read, Write};
 use std::sync::{Mutex, RwLock};
 use std::thread::{JoinHandle, ThreadId};
 use std::{path::PathBuf, time::SystemTime};
-use x11::xlib::{
-    CurrentTime, RevertToParent, XMapWindow, XOpenDisplay, XSetInputFocus,
-};
 cfg_if! {
-    if #[cfg(target_os = "windows")] {
+    if #[cfg(windows)] {
         use core::ffi::{CStr};
         use core::ptr::{addr_of_mut, addr_of};
         use std::fs::OpenOptions;
@@ -39,6 +36,10 @@ cfg_if! {
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
         use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
+    } else if #[cfg(unix)] {
+        use x11::xlib::{
+            CurrentTime, RevertToParent, XMapWindow, XOpenDisplay, XSetInputFocus,
+        };
     }
 }
 
@@ -1589,8 +1590,12 @@ lazy_static! {
         Mutex::new(VecDeque::new());
 }
 
+// All uses of unsafe in the following cfg_if! block are just for FFI,
+// and all of those functions should be safe. No reason to comment them
+// individually.
 cfg_if! {
     if #[cfg(windows)] {
+        #[allow(clippy::undocumented_unsafe_blocks, clippy::cast_possible_wrap)]
         pub fn next_window_event() -> Option<WindowEvent> {
             if query_quit_event() == SignalState::Signaled {
                 com::quit_f();
@@ -1604,8 +1609,8 @@ cfg_if! {
                         set_quit_event();
                     }
                     platform::set_msg_time(msg.time as _);
-                    unsafe { TranslateMessage(addr_of!(msg)) };
-                    unsafe { DispatchMessageA(addr_of!(msg)) };
+                    unsafe { TranslateMessage(addr_of!(msg)); }
+                    unsafe { DispatchMessageA(addr_of!(msg)); }
                 }
                 None
             } else {

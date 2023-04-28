@@ -360,24 +360,28 @@ impl HighWord for i32 {
 cfg_if! {
     if #[cfg(windows)] {
         impl LowWord for WPARAM {
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             fn low_word(self) -> u16 {
                 (self.0 as u32).low_word()
             }
         }
 
         impl HighWord for WPARAM {
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             fn high_word(self) -> u16 {
                 (self.0 as u32).high_word()
             }
         }
 
         impl LowWord for LPARAM {
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             fn low_word(self) -> u16 {
                 (self.0 as u32).low_word()
             }
         }
 
         impl HighWord for LPARAM {
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             fn high_word(self) -> u16 {
                 (self.0 as u32).high_word()
             }

@@ -2,7 +2,10 @@
 // should be done before the rest of main() executes
 
 #![allow(non_snake_case)]
-use std::{collections::VecDeque, mem::size_of_val, ptr::addr_of};
+
+use core::{mem::size_of_val, ptr::addr_of};
+extern crate alloc;
+use alloc::{collections::VecDeque};
 
 use raw_window_handle::{
     HasRawDisplayHandle, RawDisplayHandle, RawWindowHandle, Win32WindowHandle,
@@ -115,6 +118,7 @@ pub fn main() {
     WinMain(hInstance, None, pCmdLine, nCmdShow);
 }
 
+#[allow(clippy::field_reassign_with_default)]
 unsafe extern "system" fn main_wnd_proc(
     hwnd: HWND,
     msg: u32,
@@ -149,6 +153,11 @@ unsafe extern "system" fn main_wnd_proc(
     }
 }
 
+#[allow(
+    clippy::undocumented_unsafe_blocks,
+    clippy::cast_possible_truncation,
+    clippy::unreadable_literal,
+)]
 fn register_class(hinstance: HMODULE) {
     let mut wnd_class = WNDCLASSEXA::default();
     wnd_class.cbSize = size_of_val(&wnd_class) as _;
@@ -157,7 +166,7 @@ fn register_class(hinstance: HMODULE) {
     wnd_class.hIcon = unsafe { LoadIconA(hinstance, PCSTR(0x00000001 as _)) }
         .unwrap_or_default();
     wnd_class.hCursor =
-        unsafe { LoadCursorA(hinstance, PCSTR(IDC_ARROW.0 as _)) }
+        unsafe { LoadCursorA(hinstance, PCSTR(IDC_ARROW.0.cast())) }
             .unwrap_or_default();
     wnd_class.hbrBackground = unsafe { CreateSolidBrush(COLORREF(0)) };
     wnd_class.lpszClassName = s!("CoDBlackOps");
@@ -168,6 +177,10 @@ fn register_class(hinstance: HMODULE) {
 
 impl TryFrom<MSG> for WindowEvent {
     type Error = ();
+    #[allow(
+        clippy::cast_possible_truncation, 
+        clippy::undocumented_unsafe_blocks
+    )]
     fn try_from(value: MSG) -> Result<Self, Self::Error> {
         match value.message {
             WM_CREATE => {
@@ -181,8 +194,8 @@ impl TryFrom<MSG> for WindowEvent {
             WM_DESTROY => Ok(Self::Destroyed),
             WM_CLOSE => Ok(Self::CloseRequested),
             WM_MOVE => Ok(Self::Moved {
-                x: value.lParam.low_word() as _,
-                y: value.lParam.high_word() as _,
+                x: u32::from(value.lParam.low_word()),
+                y: u32::from(value.lParam.high_word()),
             }),
             WM_ACTIVATE => {
                 if value.wParam.0 == WA_INACTIVE as usize {
@@ -195,8 +208,8 @@ impl TryFrom<MSG> for WindowEvent {
             WM_KILLFOCUS => Ok(Self::KillFocus),
             WM_DISPLAYCHANGE => Ok(Self::DisplayChange {
                 bit_depth: value.wParam.0 as _,
-                horz_res: value.lParam.low_word() as _,
-                vert_res: value.lParam.high_word() as _,
+                horz_res: u32::from(value.lParam.low_word()),
+                vert_res: u32::from(value.lParam.high_word()),
             }),
             WM_LBUTTONDOWN => Ok(Self::MouseButtonDown(MouseScancode::LClick)),
             WM_LBUTTONUP => Ok(Self::MouseButtonUp(MouseScancode::LClick)),
@@ -256,12 +269,7 @@ impl TryFrom<MSG> for WindowEvent {
             }
             WM_CHAR => {
                 let c = (value.wParam.low_word()).try_as_char();
-
-                if let Some(c) = c {
-                    Ok(Self::Character(c))
-                } else {
-                    Err(())
-                }
+                c.map_or(Err(()), |c| Ok(Self::Character(c)))
             }
             _ => Err(()),
         }
@@ -274,7 +282,7 @@ enum KeyState {
 }
 
 impl KeyState {
-    fn from_bool(b: bool) -> Self {
+    const fn from_bool(b: bool) -> Self {
         if b {
             Self::Down
         } else {
@@ -291,11 +299,16 @@ struct KeyPressInfo {
 }
 
 impl KeyPressInfo {
-    fn from_lparam(lparam: LPARAM) -> Self {
+    const fn from_lparam(lparam: LPARAM) -> Self {
         Self::from_isize(lparam.0)
     }
 
-    fn from_isize(i: isize) -> Self {
+    #[allow(
+        clippy::cast_sign_loss, 
+        clippy::cast_possible_truncation, 
+        clippy::unreadable_literal,
+    )]
+    const fn from_isize(i: isize) -> Self {
         let repeat_count = (i & 0x0000FFFF) as u16;
         let scancode = ((i & 0x00FF0000) >> 16) as u16;
         let extended = i & 0x01000000 != 0;
@@ -321,6 +334,7 @@ struct OemScancode(u16);
 
 impl TryFrom<OemScancode> for KeyboardScancode {
     type Error = ();
+    #[allow(clippy::too_many_lines)]
     fn try_from(value: OemScancode) -> Result<Self, Self::Error> {
         match value.0 {
             0x001E => Ok(Self::A),
@@ -456,6 +470,11 @@ trait ModifiersExt {
 }
 
 impl ModifiersExt for Modifiers {
+    #[allow(
+        clippy::cast_lossless, 
+        clippy::undocumented_unsafe_blocks, 
+        clippy::cast_possible_truncation
+    )]
     fn try_from_vk(vk: VIRTUAL_KEY, scancode: u16) -> Option<Self> {
         let vk = if vk == VK_SHIFT || vk == VK_MENU || vk == VK_CONTROL {
             VIRTUAL_KEY(unsafe {
@@ -466,16 +485,16 @@ impl ModifiersExt for Modifiers {
         };
 
         match vk {
-            VK_LSHIFT => Some(Modifiers::LSHIFT),
-            VK_RSHIFT => Some(Modifiers::RSHIFT),
-            VK_LMENU => Some(Modifiers::LALT),
-            VK_RMENU => Some(Modifiers::RALT),
-            VK_LCONTROL => Some(Modifiers::LCTRL),
-            VK_RCONTROL => Some(Modifiers::RCTRL),
-            VK_LWIN => Some(Modifiers::LSYS),
-            VK_RWIN => Some(Modifiers::RSYS),
-            VK_CAPITAL => Some(Modifiers::CAPSLOCK),
-            VK_NUMLOCK => Some(Modifiers::NUMLOCK),
+            VK_LSHIFT => Some(Self::LSHIFT),
+            VK_RSHIFT => Some(Self::RSHIFT),
+            VK_LMENU => Some(Self::LALT),
+            VK_RMENU => Some(Self::RALT),
+            VK_LCONTROL => Some(Self::LCTRL),
+            VK_RCONTROL => Some(Self::RCTRL),
+            VK_LWIN => Some(Self::LSYS),
+            VK_RWIN => Some(Self::RSYS),
+            VK_CAPITAL => Some(Self::CAPSLOCK),
+            VK_NUMLOCK => Some(Self::NUMLOCK),
             _ => None,
         }
     }
@@ -483,6 +502,7 @@ impl ModifiersExt for Modifiers {
 
 impl TryFrom<VIRTUAL_KEY> for KeyboardScancode {
     type Error = ();
+    #[allow(clippy::match_same_arms)]
     fn try_from(value: VIRTUAL_KEY) -> Result<Self, Self::Error> {
         match value {
             VK_BACK => Ok(Self::Backspace),
@@ -617,8 +637,9 @@ pub enum MonitorHandle {
     Win32(isize),
 }
 
+#[allow(clippy::missing_trait_methods)]
 impl Ord for MonitorHandle {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.get_win32()
             .unwrap()
             .0
@@ -626,12 +647,15 @@ impl Ord for MonitorHandle {
     }
 }
 
+#[allow(clippy::missing_trait_methods)]
 impl PartialOrd for MonitorHandle {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other))
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
+// SAFETY:
+// Always safe somce WindowsDisplayHandle is a unit struct
 unsafe impl HasRawDisplayHandle for WindowHandle {
     fn raw_display_handle(&self) -> RawDisplayHandle {
         RawDisplayHandle::Windows(WindowsDisplayHandle::empty())
@@ -648,6 +672,7 @@ unsafe impl Sync for MonitorHandle {}
 unsafe impl Send for MonitorHandle {}
 
 impl MonitorHandle {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     pub fn get(&self) -> RawDisplayHandle {
         match *self {
             Self::Win32(_) => {
@@ -656,6 +681,7 @@ impl MonitorHandle {
         }
     }
 
+    #[allow(clippy::unnecessary_wraps, clippy::trivially_copy_pass_by_ref)]
     pub const fn get_win32(&self) -> Option<HMONITOR> {
         match *self {
             Self::Win32(hmonitor) => Some(HMONITOR(hmonitor)),
