@@ -23,6 +23,9 @@ unsafe impl Sync for WindowHandle {}
 // testing, we'll see if any pop up later.
 unsafe impl Send for WindowHandle {}
 
+// SAFETY:
+// Really don't know if this is safe. It hasn't created any problems in
+// testing, we'll see if any pop up later.
 unsafe impl HasRawWindowHandle for WindowHandle {
     fn raw_window_handle(&self) -> RawWindowHandle {
         self.get()

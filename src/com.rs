@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, clippy::pub_use)]
 
 use crate::console::Channel;
 use crate::util::EasierAtomic;
@@ -512,4 +512,5 @@ pub fn quit_f() -> ! {
     sys::quit();
 }
 
+#[allow(clippy::missing_const_for_fn)]
 pub fn frame() {}

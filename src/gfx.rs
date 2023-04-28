@@ -438,21 +438,22 @@ impl Default for WindowTarget {
     }
 }
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Copy, Clone, Default, Debug)]
 pub struct Globals {
     pub started_render_thread: bool,
-    is_multiplayer: bool,
-    end_frame_fence: i32,
+    pub is_multiplayer: bool,
+    pub end_frame_fence: i32,
     pub is_rendering_remote_update: bool,
     pub screen_update_notify: bool,
     pub remote_screen_update_nesting: i32,
     pub remote_screen_update_in_game: i32,
-    remote_screen_last_scene_resolve_target: u8,
-    back_end_frame_count: i32,
-    frame_buffer: u8,
-    display_buffer: u8,
-    ui_3d_use_frame_buffer: u8,
-    ui_3d_render_target: u8,
+    pub remote_screen_last_scene_resolve_target: u8,
+    pub back_end_frame_count: i32,
+    pub frame_buffer: u8,
+    pub display_buffer: u8,
+    pub ui_3d_use_frame_buffer: u8,
+    pub ui_3d_render_target: u8,
 }
 
 lazy_static! {

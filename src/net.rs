@@ -1,5 +1,5 @@
 use core::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use core::time::Duration;
 
 static NETWORKING_ENABLED: AtomicBool = AtomicBool::new(false);
 

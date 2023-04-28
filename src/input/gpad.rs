@@ -170,7 +170,6 @@ fn init_dvars() {
     .unwrap();
 }
 
-#[allow(clippy::significant_drop_tightening)]
 fn init_all() {
     init_dvars();
     S_GAMEPADS
@@ -388,7 +387,6 @@ pub fn is_stick_released(port_index: GPadIdx, stick: Stick) -> Option<bool> {
 }
 
 // TODO - verify implementation is actually correct
-#[allow(clippy::significant_drop_tightening)]
 fn update_sticks_down(port_index: GPadIdx) {
     let stick_pressed =
         dvar::get_float("gpad_stick_pressed").unwrap_or_default();
@@ -428,7 +426,7 @@ fn update_sticks_down(port_index: GPadIdx) {
     gpad.rstick.1 = (s < gpad.rstick.0 .0).into();
 }
 
-#[allow(clippy::semicolon_outside_block, clippy::significant_drop_tightening)]
+#[allow(clippy::semicolon_outside_block)]
 pub fn update_sticks(port_index: GPadIdx) {
     let lstick = get_stick(port_index, Stick::LStick).unwrap();
     let rstick = get_stick(port_index, Stick::RStick).unwrap();

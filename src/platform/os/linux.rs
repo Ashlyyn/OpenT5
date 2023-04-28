@@ -40,8 +40,9 @@ pub enum MonitorHandle {
     Wayland(()),
 }
 
+#[allow(clippy::missing_trait_methods)]
 impl Ord for MonitorHandle {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         match *self {
             Self::Xlib(handle) => handle
                 .display
@@ -52,8 +53,9 @@ impl Ord for MonitorHandle {
     }
 }
 
+#[allow(clippy::missing_trait_methods)]
 impl PartialOrd for MonitorHandle {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }

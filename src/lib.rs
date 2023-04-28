@@ -49,17 +49,16 @@
     clippy::iter_nth_zero,
     clippy::missing_inline_in_public_items,
     clippy::semicolon_if_nothing_returned,
-    clippy::let_underscore_untyped,
     clippy::let_unit_value,
-    clippy::question_mark_used,
-    clippy::impl_trait_in_params
+    clippy::panic_in_result_fn,
+    clippy::bool_assert_comparison,
 )]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 
 use cfg_if::cfg_if;
 use core::sync::atomic::{AtomicBool, Ordering};
 use lazy_static::lazy_static;
-use std::time::Duration;
+use core::time::Duration;
 extern crate alloc;
 use alloc::sync::Arc;
 

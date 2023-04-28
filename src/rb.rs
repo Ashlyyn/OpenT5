@@ -10,6 +10,7 @@ use crate::{
 
 static MODIFIERS: RwLock<Modifiers> = RwLock::new(Modifiers::empty());
 
+#[allow(clippy::cast_possible_wrap)]
 fn swap_buffers() {
     while let Some(ev) = sys::next_window_event() {
         match ev {
@@ -27,15 +28,15 @@ fn swap_buffers() {
                     dvar::DvarFlags::ARCHIVE,
                      Some("Automatically set the priority of the windows process when the game is minimized")
                 ).unwrap();
-            }
+            },
             WindowEvent::CloseRequested => {
                 cbuf::add_textln(0, "quit");
                 sys::set_quit_event();
-            }
+            },
             WindowEvent::Destroyed => {
                 //FUN_004dfd60()
                 platform::clear_window_handle();
-            }
+            },
             WindowEvent::Moved { x, y } => {
                 if dvar::get_bool("r_fullscreen").unwrap() {
                     input::mouse::activate(0);
@@ -48,13 +49,7 @@ fn swap_buffers() {
                         input::activate(true);
                     }
                 }
-            }
-            WindowEvent::SetFocus => {
-                vid::app_activate(true, platform::get_minimized());
-            }
-            WindowEvent::KillFocus => {
-                vid::app_activate(true, platform::get_minimized());
-            }
+            },
             WindowEvent::ModifiersChanged { modifier, down } => {
                 if modifier == Modifiers::CAPSLOCK
                     || modifier == Modifiers::NUMLOCK
@@ -71,7 +66,7 @@ fn swap_buffers() {
                     sys::EventType::Key(modifier.try_into().unwrap(), down),
                     None,
                 ));
-            }
+            },
             WindowEvent::KeyDown {
                 logical_scancode, ..
             } => {

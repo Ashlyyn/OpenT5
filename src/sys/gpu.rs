@@ -85,7 +85,7 @@ pub struct Surface {
 }
 
 impl Surface {
-    pub fn new(instance: &Instance, window: WgpuSurface) -> Self {
+    pub fn new(instance: &Instance, window: &WgpuSurface) -> Self {
         if render_api_implemented_by_wgpu!() {
             Self {
                 // SAFETY:
@@ -95,7 +95,7 @@ impl Surface {
                         .wgpu_instance
                         .as_ref()
                         .unwrap()
-                        .create_surface(&window)
+                        .create_surface(window)
                         .unwrap()
                 }),
             }

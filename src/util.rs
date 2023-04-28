@@ -41,7 +41,7 @@ pub struct SmpEvent {
     inner: Arc<(Mutex<SignalState>, Condvar)>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SignalState {
     Signaled,
     Cleared,
@@ -330,24 +330,28 @@ pub trait HighWord {
 }
 
 impl LowWord for u32 {
+    #[allow(clippy::cast_sign_loss)]
     fn low_word(self) -> u16 {
         (self & 0xFFFF) as _
     }
 }
 
 impl HighWord for u32 {
+    #[allow(clippy::cast_sign_loss)]
     fn high_word(self) -> u16 {
         ((self >> 16) & 0xFFFF) as _
     }
 }
 
 impl LowWord for i32 {
+    #[allow(clippy::cast_sign_loss)]
     fn low_word(self) -> u16 {
         (self & 0xFFFF) as _
     }
 }
 
 impl HighWord for i32 {
+    #[allow(clippy::cast_sign_loss)]
     fn high_word(self) -> u16 {
         ((self >> 16) & 0xFFFF) as _
     }
@@ -390,12 +394,13 @@ pub struct WgpuSurface {
     pub monitor_handle: MonitorHandle,
 }
 
+// SAFETY: Should be safe since it's just grabbing the monitor handle
 unsafe impl HasRawWindowHandle for WgpuSurface {
     fn raw_window_handle(&self) -> RawWindowHandle {
         self.window_handle.get()
     }
 }
-
+// SAFETY: Should be safe since it's just grabbing the monitor handle
 unsafe impl HasRawDisplayHandle for WgpuSurface {
     fn raw_display_handle(&self) -> RawDisplayHandle {
         self.monitor_handle.get()

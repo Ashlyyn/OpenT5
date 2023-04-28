@@ -1507,21 +1507,20 @@ pub enum MouseScancode {
 }
 
 impl KeyboardScancode {
-    pub fn affected_by_num_lock(self) -> bool {
-        match self {
-            KeyboardScancode::Num0
-            | KeyboardScancode::Num1
-            | KeyboardScancode::Num2
-            | KeyboardScancode::Num3
-            | KeyboardScancode::Num4
-            | KeyboardScancode::Num5
-            | KeyboardScancode::Num6
-            | KeyboardScancode::Num7
-            | KeyboardScancode::Num8
-            | KeyboardScancode::Num9
-            | KeyboardScancode::NumPeriod => true,
-            _ => false,
-        }
+    pub const fn affected_by_num_lock(self) -> bool {
+        matches!(self,
+            Self::Num0
+            | Self::Num1
+            | Self::Num2
+            | Self::Num3
+            | Self::Num4
+            | Self::Num5
+            | Self::Num6
+            | Self::Num7
+            | Self::Num8
+            | Self::Num9
+            | Self::NumPeriod,
+        )
     }
 }
 
@@ -1613,20 +1612,26 @@ cfg_if! {
             }
         }
     } else if #[cfg(unix)] {
+        #[allow(clippy::missing_const_for_fn)]
         pub fn next_window_event() -> Option<WindowEvent> {
             None
         }
     }
 }
 
+// All uses of unsafe in the following cfg_if! block are just for FFI,
+// and all of those functions should be safe. No reason to comment them
+// individually.
 cfg_if! {
     if #[cfg(windows)] {
         pub fn show_window(handle: WindowHandle) {
-            unsafe { ShowWindow(HWND(handle.get_win32().unwrap().hwnd as _), SW_SHOW) };
+            #[allow(clippy::undocumented_unsafe_blocks)]
+            unsafe { ShowWindow(HWND(handle.get_win32().unwrap().hwnd as _), SW_SHOW); }
         }
 
         pub fn focus_window(handle: WindowHandle) {
-            unsafe { SetFocus(HWND(handle.get_win32().unwrap().hwnd as _)) };
+            #[allow(clippy::undocumented_unsafe_blocks)]
+            unsafe { SetFocus(HWND(handle.get_win32().unwrap().hwnd as _)); }
         }
     } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
         pub fn show_window(handle: WindowHandle) {
@@ -1649,16 +1654,18 @@ cfg_if! {
             todo!()
         }
     } else if #[cfg(unix)] {
+        #[allow(clippy::undocumented_unsafe_blocks)]
         pub fn show_window(handle: WindowHandle) {
             let handle = handle.get_xlib().unwrap();
             let display = unsafe { XOpenDisplay(core::ptr::null()) };
-            unsafe { XMapWindow(display, handle.window) };
+            unsafe { XMapWindow(display, handle.window); }
         }
 
+        #[allow(clippy::undocumented_unsafe_blocks)]
         pub fn focus_window(handle: WindowHandle) {
             let handle = handle.get_xlib().unwrap();
             let display = unsafe { XOpenDisplay(core::ptr::null()) };
-            unsafe { XSetInputFocus(display, handle.window, RevertToParent, CurrentTime) };
+            unsafe { XSetInputFocus(display, handle.window, RevertToParent, CurrentTime); }
         }
     }
 }
@@ -1670,11 +1677,11 @@ fn get_current_thread_id() -> ThreadId {
 }
 
 pub fn init_main_thread() {
-    THREAD_ID.write().unwrap()[0] = Some(get_current_thread_id());
+    *THREAD_ID.write().unwrap().get_mut(0).unwrap() = Some(get_current_thread_id());
 }
 
 pub fn is_main_thread() -> bool {
-    Some(get_current_thread_id()) == THREAD_ID.read().unwrap()[0]
+    Some(get_current_thread_id()) == *THREAD_ID.read().unwrap().get(0).unwrap()
 }
 
 pub fn notify_renderer() {
