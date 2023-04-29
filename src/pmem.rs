@@ -143,7 +143,9 @@ cfg_if! {
             // unsafety, but in our case, we pass None (NULL), so it should
             // never corrupt our program.
             let p = unsafe {
-                VirtualAlloc(None, size.get(), MEM_COMMIT, PAGE_READWRITE).cast::<u8>()
+                VirtualAlloc(
+                    None, size.get(), MEM_COMMIT, PAGE_READWRITE
+                ).cast::<u8>()
             };
 
             if p.is_null() {
@@ -153,7 +155,9 @@ cfg_if! {
                 // We've already verified p isn't null, and if mmap returns a
                 // non-null pointer, an allocation with at least the size
                 // supplied should've been alloced.
-                Some( unsafe { core::slice::from_raw_parts_mut(p, size.get() ) })
+                Some( unsafe { 
+                    core::slice::from_raw_parts_mut(p, size.get()) 
+                })
             }
         }
     } else if #[cfg(target_family = "unix")] {
@@ -185,7 +189,9 @@ cfg_if! {
             let p = malloc(size.get()) as *mut u8;
             match p.is_null() {
                 true => None,
-                false => Some( unsafe { core::slice::from_raw_parts_mut(p, size.get()) }),
+                false => Some( unsafe { 
+                    core::slice::from_raw_parts_mut(p, size.get())
+                }),
             }
         }
     }

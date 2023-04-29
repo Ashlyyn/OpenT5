@@ -32,7 +32,10 @@ cfg_if! {
         use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_HIDDEN;
         use windows::core::PCSTR;
         use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
-        use windows::Win32::UI::WindowsAndMessaging::{PeekMessageA, MSG, PM_NOREMOVE, GetMessageA, TranslateMessage, DispatchMessageA};
+        use windows::Win32::UI::WindowsAndMessaging::{
+            PeekMessageA, MSG, PM_NOREMOVE, 
+            GetMessageA, TranslateMessage, DispatchMessageA,
+        };
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
         use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
@@ -196,7 +199,10 @@ cfg_if! {
                 .to_str()
                 .unwrap()
                 .to_owned();
-            s.strip_suffix(".exe").map_or(s.clone(), alloc::borrow::ToOwned::to_owned)
+            s.strip_suffix(".exe").map_or(
+                s.clone(), 
+                alloc::borrow::ToOwned::to_owned
+            )
         }
     } else if #[cfg(target_os = "linux")] {
         pub fn get_executable_name() -> String {
@@ -278,10 +284,15 @@ cfg_if! {
                 .to_owned()
         }
     }
-    // Fallback method - if no platform-specific method is used, try to get the executable name from argv[0]
+    // Fallback method - if no platform-specific method is used, 
+    // try to get the executable name from argv[0]
     else {
         pub fn get_executable_name() -> String {
-            let argv_0 = std::env::args().collect::<Vec<String>>().get(0).unwrap().clone();
+            let argv_0 = std::env::args()
+                .collect::<Vec<String>>()
+                .get(0)
+                .unwrap()
+                .clone();
             let path = PathBuf::from(argv_0);
             let file_name = path.file_name()
                 .unwrap()
@@ -321,7 +332,10 @@ cfg_if! {
         }
     } else {
         pub fn get_semaphore_file_name() -> String {
-            com::dprintln!(0.into(), "sys::get_semaphore_file: using default implementation.");
+            com::dprintln!(
+                0.into(), 
+                "sys::get_semaphore_file: using default implementation."
+            );
             format!("__{}", get_executable_name())
         }
     }
@@ -1175,8 +1189,9 @@ cfg_if! {
             static GTK_RESPONSE_EVENT: RefCell<SmpEvent>
                 = RefCell::new(SmpEvent::new(SignalState::Cleared, false));
 
-            static GTK_RESPONSE_EVENT_VALUE: RefCell<Option<gtk4::ResponseType>>
-                = RefCell::new(None);
+            static GTK_RESPONSE_EVENT_VALUE: 
+                RefCell<Option<gtk4::ResponseType>>
+                    = RefCell::new(None);
         }
 
         #[allow(clippy::unnecessary_wraps)]
@@ -1602,7 +1617,10 @@ lazy_static! {
 // individually.
 cfg_if! {
     if #[cfg(windows)] {
-        #[allow(clippy::undocumented_unsafe_blocks, clippy::cast_possible_wrap)]
+        #[allow(
+            clippy::undocumented_unsafe_blocks, 
+            clippy::cast_possible_wrap
+        )]
         pub fn next_window_event() -> Option<WindowEvent> {
             if query_quit_event() == SignalState::Signaled {
                 com::quit_f();
@@ -1611,8 +1629,12 @@ cfg_if! {
             if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
                 let mut msg = MSG::default();
 
-                if unsafe { PeekMessageA(addr_of_mut!(msg), None, 0, 0, PM_NOREMOVE) }.as_bool() {
-                    if unsafe { GetMessageA(addr_of_mut!(msg), None, 0, 0) }.0 == 0 {
+                if unsafe { 
+                    PeekMessageA(addr_of_mut!(msg), None, 0, 0, PM_NOREMOVE) 
+                }.as_bool() {
+                    if unsafe { 
+                        GetMessageA(addr_of_mut!(msg), None, 0, 0) 
+                    }.0 == 0 {
                         set_quit_event();
                     }
                     platform::set_msg_time(msg.time as _);
@@ -1639,7 +1661,10 @@ cfg_if! {
     if #[cfg(windows)] {
         pub fn show_window(handle: WindowHandle) {
             #[allow(clippy::undocumented_unsafe_blocks)]
-            unsafe { ShowWindow(HWND(handle.get_win32().unwrap().hwnd as _), SW_SHOW); }
+            unsafe { ShowWindow(
+                HWND(handle.get_win32().unwrap().hwnd as _), 
+                SW_SHOW
+            ); }
         }
 
         pub fn focus_window(handle: WindowHandle) {
@@ -1678,7 +1703,9 @@ cfg_if! {
         pub fn focus_window(handle: WindowHandle) {
             let handle = handle.get_xlib().unwrap();
             let display = unsafe { XOpenDisplay(core::ptr::null()) };
-            unsafe { XSetInputFocus(display, handle.window, RevertToParent, CurrentTime); }
+            unsafe { XSetInputFocus(
+                display, handle.window, RevertToParent, CurrentTime
+            ); }
         }
     }
 }

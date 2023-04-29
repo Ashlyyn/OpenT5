@@ -154,15 +154,20 @@ pub fn run() {
 
     dvar::init();
 
-    cfg_if::cfg_if! {
+    cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
             std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-            console_log::init_with_level(log::Level::Warn).expect("Couldn't initialize logger");
+            console_log::init_with_level(
+                log::Level::Warn
+            ).expect("Couldn't initialize logger");
         } else {
             env_logger::init();
-            // Set Discord activity on a different thread so that it doesn't block main
+            // Set Discord activity on a different thread so that it doesn't 
+            // block main
             std::thread::spawn(|| {
-                discord_rpc::set_activity(Activity::new().state("Testing...")).unwrap();
+                discord_rpc::set_activity(
+                    Activity::new().state("Testing...")
+                ).unwrap();
             });
         }
     }
