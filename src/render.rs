@@ -1,21 +1,19 @@
 #![allow(dead_code)]
 
-use crate::gfx::{WindowTarget, R_GLOB};
-use crate::platform::os::target::MonitorHandle;
-use crate::sys::gpu::Device;
-use crate::sys::show_window;
-use crate::util::{EasierAtomic, SignalState};
-use crate::{platform::WindowHandle, *};
+use crate::{
+    gfx::{WindowTarget, R_GLOB},
+    platform::{os::target::MonitorHandle, WindowHandle},
+    sys::{gpu::Device, show_window},
+    util::{EasierAtomic, SignalState},
+    *,
+};
 use pollster::block_on;
 use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
 extern crate alloc;
-use alloc::collections::VecDeque;
-use alloc::ffi::CString;
-use core::ptr::addr_of_mut;
-use core::sync::atomic::AtomicUsize;
-use std::collections::HashSet;
-use std::sync::RwLock;
+use alloc::{collections::VecDeque, ffi::CString};
+use core::{ptr::addr_of_mut, sync::atomic::AtomicUsize};
+use std::{collections::HashSet, sync::RwLock};
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u32 = 480;
@@ -56,7 +54,7 @@ pub fn init_threads() {
         std::thread::current().name().unwrap_or("main"),
     );
     init_render_thread();
-    //init_worker_threads();
+    // init_worker_threads();
     com::println!(
         8.into(),
         "{}: ...succeeded",

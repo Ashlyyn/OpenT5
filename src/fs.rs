@@ -3,13 +3,12 @@
 // This file exists to abstract filesystem-related functionalities
 
 use crate::{util::EasierAtomic, *};
-use core::str::FromStr;
-use core::sync::atomic::AtomicUsize;
+use cfg_if::cfg_if;
+use core::{str::FromStr, sync::atomic::AtomicUsize};
 use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
 };
-use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(target_os = "windows")] {
@@ -37,12 +36,12 @@ cfg_if::cfg_if! {
         // TODO - will panic if folder path contains invalid UTF-8 characters.
         // Fix later.
         #[allow(
-            clippy::indexing_slicing, 
+            clippy::indexing_slicing,
             clippy::multiple_unsafe_ops_per_block
         )]
         pub fn get_os_folder_path(os_folder: OsFolder) -> Option<String> {
             let csidl: u32 = match os_folder {
-                OsFolder::UserData 
+                OsFolder::UserData
                     | OsFolder::UserConfig => CSIDL_LOCAL_APPDATA,
                 OsFolder::Documents => CSIDL_MYDOCUMENTS,
                 OsFolder::Home => CSIDL_PROFILE,
@@ -67,8 +66,8 @@ cfg_if::cfg_if! {
                     // Null-terminate the string, in case the folder path
                     // was exactly MAX_PATH characters.
                     buf[buf.len() - 1] = 0x00;
-                    let Ok(c) = CStr::from_bytes_until_nul(&buf) else { 
-                        return None 
+                    let Ok(c) = CStr::from_bytes_until_nul(&buf) else {
+                        return None
                     };
                     Some(c.to_str().unwrap().to_owned())
                 },
@@ -126,8 +125,8 @@ pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
     if std::fs::File::create(path).is_ok() {
         Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap())
     } else {
-        let Some(dir_path) = path.parent() else { 
-            return Err(std::io::ErrorKind::InvalidFilename.into()) 
+        let Some(dir_path) = path.parent() else {
+            return Err(std::io::ErrorKind::InvalidFilename.into())
         };
 
         std::fs::create_dir_all(dir_path)?;

@@ -60,8 +60,10 @@
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 
 use cfg_if::cfg_if;
-use core::sync::atomic::{AtomicBool, Ordering};
-use core::time::Duration;
+use core::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 use lazy_static::lazy_static;
 extern crate alloc;
 use alloc::sync::Arc;
@@ -162,7 +164,7 @@ pub fn run() {
             ).expect("Couldn't initialize logger");
         } else {
             env_logger::init();
-            // Set Discord activity on a different thread so that it doesn't 
+            // Set Discord activity on a different thread so that it doesn't
             // block main
             std::thread::spawn(|| {
                 discord_rpc::set_activity(

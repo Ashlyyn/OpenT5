@@ -38,7 +38,7 @@ fn swap_buffers() {
                 sys::set_quit_event();
             }
             WindowEvent::Destroyed => {
-                //FUN_004dfd60()
+                // FUN_004dfd60()
                 platform::clear_window_handle();
             }
             WindowEvent::Moved { x, y } => {

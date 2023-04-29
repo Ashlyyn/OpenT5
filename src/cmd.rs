@@ -4,8 +4,10 @@ use arrayvec::ArrayVec;
 use std::{collections::HashMap, sync::RwLock};
 extern crate alloc;
 use alloc::rc::Rc;
-use core::cell::RefCell;
-use core::hash::{Hash, Hasher};
+use core::{
+    cell::RefCell,
+    hash::{Hash, Hasher},
+};
 
 use lazy_static::lazy_static;
 

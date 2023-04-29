@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
-use core::num::NonZeroUsize;
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::{
+    num::NonZeroUsize,
+    sync::atomic::{AtomicBool, Ordering},
+};
 use std::sync::RwLock;
 
 use arrayvec::ArrayVec;
@@ -155,8 +157,8 @@ cfg_if! {
                 // We've already verified p isn't null, and if mmap returns a
                 // non-null pointer, an allocation with at least the size
                 // supplied should've been alloced.
-                Some( unsafe { 
-                    core::slice::from_raw_parts_mut(p, size.get()) 
+                Some( unsafe {
+                    core::slice::from_raw_parts_mut(p, size.get())
                 })
             }
         }
@@ -189,7 +191,7 @@ cfg_if! {
             let p = malloc(size.get()) as *mut u8;
             match p.is_null() {
                 true => None,
-                false => Some( unsafe { 
+                false => Some( unsafe {
                     core::slice::from_raw_parts_mut(p, size.get())
                 }),
             }

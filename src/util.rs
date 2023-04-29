@@ -15,8 +15,7 @@ use raw_window_handle::{
     HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
 
-use crate::platform::os::target::MonitorHandle;
-use crate::platform::WindowHandle;
+use crate::platform::{os::target::MonitorHandle, WindowHandle};
 
 use cfg_if::cfg_if;
 
@@ -133,7 +132,7 @@ impl Module {
             /// Returns [`Some`] if the library was successfully loaded,
             /// [`None`] if not.
             pub fn load(name: &Path) -> Option<Self> {
-                // [`OsStrExt::encode_wide`] doesn't add the null-terminator 
+                // [`OsStrExt::encode_wide`] doesn't add the null-terminator
                 // that LoadLibraryW is going to expect, so we have to add it
                 // manually
                 let mut name =
@@ -146,8 +145,8 @@ impl Module {
                 // LoadLibraryW itself should never create UB, violate memory
                 // safety, etc., regardless of the name or path passed to it
                 // in any scenario.
-                unsafe { 
-                    LoadLibraryW(PCWSTR(name)) 
+                unsafe {
+                    LoadLibraryW(PCWSTR(name))
                 }.ok().map(|h| Self { ptr: h.0 as *mut () })
             }
 
@@ -279,8 +278,7 @@ macro_rules! easier_atomic_impl {
                 self.load(Ordering::Relaxed)
             }
 
-            fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType 
-            {
+            fn store_relaxed(&self, value: Self::ValueType) -> Self::ValueType {
                 self.store(value, Ordering::Relaxed);
                 value
             }

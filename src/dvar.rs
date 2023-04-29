@@ -17,20 +17,19 @@ pub use global_fns::*;
 mod cmds;
 
 /// This file contains all of code related to the Dvar subsystem, including
-/// the [`Dvar`] itself, functions to get, set, and create Dvars, and [`CmdFunctions`]
-/// related to the [`Dvar`] subsystem. There is *a lot* of repeated code here
-/// due to the different types of value a [`Dvar`] can hold
+/// the [`Dvar`] itself, functions to get, set, and create Dvars, and
+/// [`CmdFunctions`] related to the [`Dvar`] subsystem. There is *a lot* of
+/// repeated code here due to the different types of value a [`Dvar`] can
+/// hold
 use crate::*;
 use bitflags::bitflags;
-use core::fmt::Display;
-use core::hash::Hash;
+use core::{fmt::Display, hash::Hash};
 use lazy_static::lazy_static;
 use std::sync::RwLock;
 extern crate alloc;
 use alloc::sync::Arc;
 
-use self::limits::DvarLimits;
-use self::value::DvarValue;
+use self::{limits::DvarLimits, value::DvarValue};
 
 // Enum for the possible sources a Dvar may be set from
 #[derive(PartialEq, Eq)]

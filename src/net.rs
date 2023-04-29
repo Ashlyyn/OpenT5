@@ -1,5 +1,7 @@
-use core::sync::atomic::{AtomicBool, Ordering};
-use core::time::Duration;
+use core::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
 static NETWORKING_ENABLED: AtomicBool = AtomicBool::new(false);
 

@@ -32,7 +32,7 @@ cfg_if! {
                 WindowsAndMessaging::SendMessageA, Controls::{
                     EM_SETSEL, EM_LINESCROLL, EM_SCROLLCARET, EM_REPLACESEL
                 }
-            }, 
+            },
             Foundation::{WPARAM, LPARAM, HWND}};
     }
 }
@@ -194,7 +194,7 @@ cfg_if! {
 cfg_if! {
     if #[cfg(target_os = "windows")] {
         #[allow(
-            clippy::undocumented_unsafe_blocks, 
+            clippy::undocumented_unsafe_blocks,
             clippy::unnecessary_safety_comment
         )]
         pub fn append_text(text: &str) {
@@ -230,7 +230,7 @@ cfg_if! {
                 HWND(hwnd as _), EM_SCROLLCARET, WPARAM(0), LPARAM(0)
             ); }
             unsafe { SendMessageA(
-                HWND(hwnd as _), EM_REPLACESEL, 
+                HWND(hwnd as _), EM_REPLACESEL,
                 WPARAM(0), LPARAM(addr_of!(clean_text) as isize)
             ); }
         }

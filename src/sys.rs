@@ -2,9 +2,11 @@
 
 extern crate alloc;
 
-use crate::util::{SignalState, SmpEvent};
-use crate::*;
-use crate::{platform::WindowHandle, util::EasierAtomicBool};
+use crate::{
+    platform::WindowHandle,
+    util::{EasierAtomicBool, SignalState, SmpEvent},
+    *,
+};
 use num_derive::FromPrimitive;
 
 pub mod gpu;
@@ -16,11 +18,14 @@ use core::{
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
 };
 use lazy_static::lazy_static;
-use std::fs::File;
-use std::io::{Read, Write};
-use std::sync::{Mutex, RwLock};
-use std::thread::{JoinHandle, ThreadId};
-use std::{path::PathBuf, time::SystemTime};
+use std::{
+    fs::File,
+    io::{Read, Write},
+    path::PathBuf,
+    sync::{Mutex, RwLock},
+    thread::{JoinHandle, ThreadId},
+    time::SystemTime,
+};
 cfg_if! {
     if #[cfg(windows)] {
         use core::ffi::{CStr};
@@ -33,7 +38,7 @@ cfg_if! {
         use windows::core::PCSTR;
         use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
         use windows::Win32::UI::WindowsAndMessaging::{
-            PeekMessageA, MSG, PM_NOREMOVE, 
+            PeekMessageA, MSG, PM_NOREMOVE,
             GetMessageA, TranslateMessage, DispatchMessageA,
         };
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
@@ -200,7 +205,7 @@ cfg_if! {
                 .unwrap()
                 .to_owned();
             s.strip_suffix(".exe").map_or(
-                s.clone(), 
+                s.clone(),
                 alloc::borrow::ToOwned::to_owned
             )
         }
@@ -284,7 +289,7 @@ cfg_if! {
                 .to_owned()
         }
     }
-    // Fallback method - if no platform-specific method is used, 
+    // Fallback method - if no platform-specific method is used,
     // try to get the executable name from argv[0]
     else {
         pub fn get_executable_name() -> String {
@@ -333,7 +338,7 @@ cfg_if! {
     } else {
         pub fn get_semaphore_file_name() -> String {
             com::dprintln!(
-                0.into(), 
+                0.into(),
                 "sys::get_semaphore_file: using default implementation."
             );
             format!("__{}", get_executable_name())
@@ -374,14 +379,12 @@ pub fn check_crash_or_rerun() -> bool {
         if let Ok(mut f) = File::open(semaphore_file_path.clone()) {
             let mut buf = [0u8; 4];
             if let Ok(4) = f.read(&mut buf) {
-                /*
-                let pid_read = u32::from_ne_bytes(buf);
-                if pid_read != std::process::id()
-                    || is_game_process(pid_read) == false
-                {
-                    return true;
-                }
-                */
+                // let pid_read = u32::from_ne_bytes(buf);
+                // if pid_read != std::process::id()
+                // || is_game_process(pid_read) == false
+                // {
+                // return true;
+                // }
 
                 let msg_box_type = MessageBoxType::YesNoCancel;
                 let msg_box_icon = MessageBoxIcon::Stop;
@@ -640,7 +643,7 @@ pub fn render_fatal_error() -> ! {
     let text = locale::localize_ref("WIN_RENDER_INIT_BODY");
     let handle = None;
     message_box(handle, &title, &text, msg_box_type, Some(msg_box_icon));
-    //DoSetEvent_UNK();
+    // DoSetEvent_UNK();
     std::process::exit(-1);
 }
 
@@ -756,213 +759,206 @@ pub fn spawn_render_thread<F: Fn() -> ! + Send + Sync + 'static>(
     })
 }
 
-/*
-const MAX_CPUS: usize = 32;
+// const MAX_CPUS: usize = 32;
+//
+// lazy_static! {
+// static ref S_CPU_COUNT: AtomicUsize = AtomicUsize::new(0);
+// static ref S_AFFINITY_MASK_FOR_PROCESS: AtomicUsize = AtomicUsize::new(0);
+// static ref S_AFFINITY_MASK_FOR_CPU: Arc<RwLock<ArrayVec<usize, MAX_CPUS>>> =
+// Arc::new(RwLock::new(ArrayVec::new())); }
+//
+// cfg_if! {
+// if #[cfg(target_os = "windows")] {
+// pub fn init_threads() {
+// let hprocess = unsafe { GetCurrentProcess() };
+// let systemaffinitymask: c_ulonglong = 0;
+// let processaffinitymask: c_ulonglong = 0;
+// unsafe { GetProcessAffinityMask(hprocess, addr_of!(processaffinitymask) as
+// *mut _, addr_of!(systemaffinitymask) as *mut _) };
+// S_AFFINITY_MASK_FOR_PROCESS.store(processaffinitymask as _,
+// Ordering::SeqCst); let mut cpu_count = 0usize;
+// let mut affinity_mask_for_cpu: Vec<usize> = Vec::new();
+// affinity_mask_for_cpu.push(1);
+// while (!affinity_mask_for_cpu[0] + 1 & processaffinitymask as usize) != 0 {
+// if (affinity_mask_for_cpu[0] & processaffinitymask as usize) != 0 {
+// affinity_mask_for_cpu[cpu_count + 1] = affinity_mask_for_cpu[0];
+// cpu_count += 1;
+// if cpu_count == MAX_CPUS { break; }
+// }
+// affinity_mask_for_cpu[0] = affinity_mask_for_cpu[0] << 1;
+// }
+//
+// if cpu_count == 0 || cpu_count == 1 {
+// S_CPU_COUNT.store(1, Ordering::SeqCst);
+// S_AFFINITY_MASK_FOR_CPU.clone().write().unwrap()[0] = 0xFFFFFFFF;
+// return;
+// }
+//
+// S_CPU_COUNT.store(cpu_count, Ordering::SeqCst);
+// let lock = S_AFFINITY_MASK_FOR_CPU.clone();
+// let mut writer = lock.write().unwrap();
+// writer[0] = affinity_mask_for_cpu[1];
+// writer[1] = affinity_mask_for_cpu[cpu_count];
+// if cpu_count > 2 {
+// if cpu_count == 3 {
+// writer[2] = affinity_mask_for_cpu[2];
+// } else if cpu_count == 4 {
+// writer[2] = affinity_mask_for_cpu[2];
+// writer[3] = affinity_mask_for_cpu[3];
+// } else {
+// writer.iter_mut().for_each(|a| *a = 0xFFFFFFFF);
+// if cpu_count > MAX_CPUS {
+// S_CPU_COUNT.store(MAX_CPUS, Ordering::SeqCst);
+// }
+// }
+// }
+// }
+// }
+// }
 
-lazy_static! {
-    static ref S_CPU_COUNT: AtomicUsize = AtomicUsize::new(0);
-    static ref S_AFFINITY_MASK_FOR_PROCESS: AtomicUsize = AtomicUsize::new(0);
-    static ref S_AFFINITY_MASK_FOR_CPU: Arc<RwLock<ArrayVec<usize, MAX_CPUS>>> = Arc::new(RwLock::new(ArrayVec::new()));
-}
+// cfg_if! {
+// if #[cfg(target_os = "windows")] {
+// lazy_static! {
+// static ref THREAD_LOCK: Arc<Mutex<()>> = Arc::new(Mutex::new(()));
+// static ref H_THREADS: Arc<RwLock<ArrayVec<HANDLE, 15>>> =
+// Arc::new(RwLock::new(ArrayVec::new())); }
+//
+// pub fn lock_thread_affinity() {
+// let cpu_count = S_CPU_COUNT.load(Ordering::SeqCst);
+//
+// if cpu_count == 1 {
+// return;
+// }
+//
+// let thread_lock = THREAD_LOCK.clone();
+// let _thread_lock_2 = thread_lock.lock().unwrap();
+//
+// let threads_lock = H_THREADS.clone();
+// let threads_reader = threads_lock.read().unwrap();
+//
+// let affinity_mask_lock = S_AFFINITY_MASK_FOR_CPU.clone();
+// let affinity_mask_reader = affinity_mask_lock.read().unwrap();
+//
+// if threads_reader[0].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[0], affinity_mask_reader[0]) };
+// }
+//
+// if threads_reader[1].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[1], affinity_mask_reader[1]) };
+// }
+//
+// if cpu_count < 3 && threads_reader[13].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[13], affinity_mask_reader[1])
+// }; } else if threads_reader[13].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[13], affinity_mask_reader[2])
+// }; }
+//
+// if cpu_count > 2 && threads_reader[2].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[2], affinity_mask_reader[2]) };
+// }
+//
+// if cpu_count > 3 && threads_reader[3].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[3], affinity_mask_reader[3]) };
+// }
+// }
+// }
+// }
 
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        pub fn init_threads() {
-            let hprocess = unsafe { GetCurrentProcess() };
-            let systemaffinitymask: c_ulonglong = 0;
-            let processaffinitymask: c_ulonglong = 0;
-            unsafe { GetProcessAffinityMask(hprocess, addr_of!(processaffinitymask) as *mut _, addr_of!(systemaffinitymask) as *mut _) };
-            S_AFFINITY_MASK_FOR_PROCESS.store(processaffinitymask as _, Ordering::SeqCst);
-            let mut cpu_count = 0usize;
-            let mut affinity_mask_for_cpu: Vec<usize> = Vec::new();
-            affinity_mask_for_cpu.push(1);
-            while (!affinity_mask_for_cpu[0] + 1 & processaffinitymask as usize) != 0 {
-                if (affinity_mask_for_cpu[0] & processaffinitymask as usize) != 0 {
-                    affinity_mask_for_cpu[cpu_count + 1] = affinity_mask_for_cpu[0];
-                    cpu_count += 1;
-                    if cpu_count == MAX_CPUS { break; }
-                }
-                affinity_mask_for_cpu[0] = affinity_mask_for_cpu[0] << 1;
-            }
+// cfg_if! {
+// if #[cfg(target_os = "windows")] {
+// pub fn unlock_thread_affinity() {
+// let cpu_count = S_CPU_COUNT.load(Ordering::SeqCst);
+//
+// if cpu_count == 1 {
+// return;
+// }
+//
+// let thread_lock = THREAD_LOCK.clone();
+// let _thread_lock_2 = thread_lock.lock().unwrap();
+//
+// let threads_lock = H_THREADS.clone();
+// let threads_reader = threads_lock.read().unwrap();
+//
+// let affinity_mask = S_AFFINITY_MASK_FOR_PROCESS.load(Ordering::SeqCst);
+//
+// if threads_reader[0].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[0], affinity_mask) };
+// }
+//
+// if threads_reader[1].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[1], affinity_mask) };
+// }
+//
+// if threads_reader[13].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[0], affinity_mask) };
+// }
+//
+// if threads_reader[2].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[1], affinity_mask) };
+// }
+//
+// if threads_reader[3].0 != 0 {
+// unsafe { SetThreadAffinityMask(threads_reader[1], affinity_mask) };
+// }
+// }
+// }
+// }
 
-            if cpu_count == 0 || cpu_count == 1 {
-                S_CPU_COUNT.store(1, Ordering::SeqCst);
-                S_AFFINITY_MASK_FOR_CPU.clone().write().unwrap()[0] = 0xFFFFFFFF;
-                return;
-            }
-
-            S_CPU_COUNT.store(cpu_count, Ordering::SeqCst);
-            let lock = S_AFFINITY_MASK_FOR_CPU.clone();
-            let mut writer = lock.write().unwrap();
-            writer[0] = affinity_mask_for_cpu[1];
-            writer[1] = affinity_mask_for_cpu[cpu_count];
-            if cpu_count > 2 {
-                if cpu_count == 3 {
-                    writer[2] = affinity_mask_for_cpu[2];
-                } else if cpu_count == 4 {
-                    writer[2] = affinity_mask_for_cpu[2];
-                    writer[3] = affinity_mask_for_cpu[3];
-                } else {
-                    writer.iter_mut().for_each(|a| *a = 0xFFFFFFFF);
-                    if cpu_count > MAX_CPUS {
-                        S_CPU_COUNT.store(MAX_CPUS, Ordering::SeqCst);
-                    }
-                }
-            }
-        }
-    }
-}
-*/
-
-/*
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        lazy_static! {
-            static ref THREAD_LOCK: Arc<Mutex<()>> = Arc::new(Mutex::new(()));
-            static ref H_THREADS: Arc<RwLock<ArrayVec<HANDLE, 15>>> = Arc::new(RwLock::new(ArrayVec::new()));
-        }
-
-        pub fn lock_thread_affinity() {
-            let cpu_count = S_CPU_COUNT.load(Ordering::SeqCst);
-
-            if cpu_count == 1 {
-                return;
-            }
-
-            let thread_lock = THREAD_LOCK.clone();
-            let _thread_lock_2 = thread_lock.lock().unwrap();
-
-            let threads_lock = H_THREADS.clone();
-            let threads_reader = threads_lock.read().unwrap();
-
-            let affinity_mask_lock = S_AFFINITY_MASK_FOR_CPU.clone();
-            let affinity_mask_reader = affinity_mask_lock.read().unwrap();
-
-            if threads_reader[0].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[0], affinity_mask_reader[0]) };
-            }
-
-            if threads_reader[1].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[1], affinity_mask_reader[1]) };
-            }
-
-            if cpu_count < 3 && threads_reader[13].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[13], affinity_mask_reader[1]) };
-            } else if threads_reader[13].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[13], affinity_mask_reader[2]) };
-            }
-
-            if cpu_count > 2 && threads_reader[2].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[2], affinity_mask_reader[2]) };
-            }
-
-            if cpu_count > 3 && threads_reader[3].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[3], affinity_mask_reader[3]) };
-            }
-        }
-    }
-}
-*/
-
-/*
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        pub fn unlock_thread_affinity() {
-            let cpu_count = S_CPU_COUNT.load(Ordering::SeqCst);
-
-            if cpu_count == 1 {
-                return;
-            }
-
-            let thread_lock = THREAD_LOCK.clone();
-            let _thread_lock_2 = thread_lock.lock().unwrap();
-
-            let threads_lock = H_THREADS.clone();
-            let threads_reader = threads_lock.read().unwrap();
-
-            let affinity_mask = S_AFFINITY_MASK_FOR_PROCESS.load(Ordering::SeqCst);
-
-            if threads_reader[0].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[0], affinity_mask) };
-            }
-
-            if threads_reader[1].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[1], affinity_mask) };
-            }
-
-            if threads_reader[13].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[0], affinity_mask) };
-            }
-
-            if threads_reader[2].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[1], affinity_mask) };
-            }
-
-            if threads_reader[3].0 != 0 {
-                unsafe { SetThreadAffinityMask(threads_reader[1], affinity_mask) };
-            }
-        }
-    }
-}
-*/
-
-/*
-fn register_info_dvars() {
-    dvar::register_float(
-        "sys_configureGHz",
-        0.0,
-        Some(f32::MIN),
-        Some(f32::MAX),
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
-        Some("Normalized total CPU power, based on cpu type, count, and speed; used in autoconfigure")
-    );
-    dvar::register_int(
-        "sys_sysMB",
-        0,
-        Some(i32::MIN),
-        Some(i32::MAX),
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
-        Some("Physical memory in the system"),
-    );
-    dvar::register_string(
-        "sys_gpu",
-        "",
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
-        Some("GPU description"),
-    );
-    dvar::register_int(
-        "sys_configSum",
-        0,
-        Some(i32::MIN),
-        Some(i32::MAX),
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
-        Some("Configuration checksum"),
-    );
-    // TODO - SIMD support Dvar
-    dvar::register_float(
-        "sys_cpuGHz",
-        info().unwrap().cpu_ghz,
-        Some(f32::MIN),
-        Some(f32::MAX),
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
-        Some("Measured CPU speed"),
-    );
-    dvar::register_string(
-        "sys_cpuName",
-        &info().unwrap().cpu_name,
-        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
-        Some("CPU name description"),
-    );
-}
-
-fn archive_info(sum: i32) {
-    register_info_dvars();
-    dvar::set_float_internal("sys_configureGHz", info().unwrap().configure_ghz);
-    dvar::set_int_internal("sys_sysMB", info().unwrap().sys_mb as _);
-    dvar::set_string_internal("sys_gpu", &info().unwrap().gpu_description);
-    dvar::set_int_internal("sys_configSum", sum);
-}
-*/
+// fn register_info_dvars() {
+// dvar::register_float(
+// "sys_configureGHz",
+// 0.0,
+// Some(f32::MIN),
+// Some(f32::MAX),
+// dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
+// Some("Normalized total CPU power, based on cpu type, count, and speed; used
+// in autoconfigure") );
+// dvar::register_int(
+// "sys_sysMB",
+// 0,
+// Some(i32::MIN),
+// Some(i32::MAX),
+// dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
+// Some("Physical memory in the system"),
+// );
+// dvar::register_string(
+// "sys_gpu",
+// "",
+// dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
+// Some("GPU description"),
+// );
+// dvar::register_int(
+// "sys_configSum",
+// 0,
+// Some(i32::MIN),
+// Some(i32::MAX),
+// dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
+// Some("Configuration checksum"),
+// );
+// TODO - SIMD support Dvar
+// dvar::register_float(
+// "sys_cpuGHz",
+// info().unwrap().cpu_ghz,
+// Some(f32::MIN),
+// Some(f32::MAX),
+// dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
+// Some("Measured CPU speed"),
+// );
+// dvar::register_string(
+// "sys_cpuName",
+// &info().unwrap().cpu_name,
+// dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::WRITE_PROTECTED,
+// Some("CPU name description"),
+// );
+// }
+//
+// fn archive_info(sum: i32) {
+// register_info_dvars();
+// dvar::set_float_internal("sys_configureGHz", info().unwrap().configure_ghz);
+// dvar::set_int_internal("sys_sysMB", info().unwrap().sys_mb as _);
+// dvar::set_string_internal("sys_gpu", &info().unwrap().gpu_description);
+// dvar::set_int_internal("sys_configSum", sum);
+// }
 
 fn should_update_for_info_change() -> bool {
     let msg_box_type = MessageBoxType::YesNo;
@@ -1189,7 +1185,7 @@ cfg_if! {
             static GTK_RESPONSE_EVENT: RefCell<SmpEvent>
                 = RefCell::new(SmpEvent::new(SignalState::Cleared, false));
 
-            static GTK_RESPONSE_EVENT_VALUE: 
+            static GTK_RESPONSE_EVENT_VALUE:
                 RefCell<Option<gtk4::ResponseType>>
                     = RefCell::new(None);
         }
@@ -1618,7 +1614,7 @@ lazy_static! {
 cfg_if! {
     if #[cfg(windows)] {
         #[allow(
-            clippy::undocumented_unsafe_blocks, 
+            clippy::undocumented_unsafe_blocks,
             clippy::cast_possible_wrap
         )]
         pub fn next_window_event() -> Option<WindowEvent> {
@@ -1629,11 +1625,11 @@ cfg_if! {
             if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
                 let mut msg = MSG::default();
 
-                if unsafe { 
-                    PeekMessageA(addr_of_mut!(msg), None, 0, 0, PM_NOREMOVE) 
+                if unsafe {
+                    PeekMessageA(addr_of_mut!(msg), None, 0, 0, PM_NOREMOVE)
                 }.as_bool() {
-                    if unsafe { 
-                        GetMessageA(addr_of_mut!(msg), None, 0, 0) 
+                    if unsafe {
+                        GetMessageA(addr_of_mut!(msg), None, 0, 0)
                     }.0 == 0 {
                         set_quit_event();
                     }
@@ -1662,7 +1658,7 @@ cfg_if! {
         pub fn show_window(handle: WindowHandle) {
             #[allow(clippy::undocumented_unsafe_blocks)]
             unsafe { ShowWindow(
-                HWND(handle.get_win32().unwrap().hwnd as _), 
+                HWND(handle.get_win32().unwrap().hwnd as _),
                 SW_SHOW
             ); }
         }

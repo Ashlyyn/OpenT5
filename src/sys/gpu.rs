@@ -294,34 +294,33 @@ impl Config {
     }
 }
 
-/*
-struct State {
-    surface: Surface,
-    device: Device,
-    queue: Queue,
-    //config: Config,
-}
-
-impl State {
-    pub async fn new(window: &winit::window::Window) -> Self {
-        if render_api_implemented_by_wgpu!() {
-            let instance = Instance::new();
-            let surface = Surface::new(&instance, window);
-            let adapter = Adapter::new(&instance, Some(&surface)).await;
-            let device = Device::new(&adapter).await.un;
-            let queue = Queue::new(&adapter).await;
-            //let config = Config::new(&surface, &adapter, width, height).await;
-            //surface.wgpu_surface.unwrap().configure(&device.wgpu_device.unwrap(), &config.wgpu_config.unwrap());
-
-            Self {
-                surface,
-                device,
-                queue,
-                //config
-            }
-        } else {
-            todo!("gpu::State not yet implemented for {:?}.", render_api!());
-        }
-    }
-}
-*/
+// struct State {
+// surface: Surface,
+// device: Device,
+// queue: Queue,
+// config: Config,
+// }
+//
+// impl State {
+// pub async fn new(window: &winit::window::Window) -> Self {
+// if render_api_implemented_by_wgpu!() {
+// let instance = Instance::new();
+// let surface = Surface::new(&instance, window);
+// let adapter = Adapter::new(&instance, Some(&surface)).await;
+// let device = Device::new(&adapter).await.un;
+// let queue = Queue::new(&adapter).await;
+// let config = Config::new(&surface, &adapter, width, height).await;
+// surface.wgpu_surface.unwrap().configure(&device.wgpu_device.unwrap(),
+// &config.wgpu_config.unwrap());
+//
+// Self {
+// surface,
+// device,
+// queue,
+// config
+// }
+// } else {
+// todo!("gpu::State not yet implemented for {:?}.", render_api!());
+// }
+// }
+// }
