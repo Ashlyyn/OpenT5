@@ -525,10 +525,17 @@ pub struct SysInfo {
 
 impl Display for SysInfo {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        write!(f,
-            "GPU Description: {}\nCPU: {} ({})\nCores: {} ({} physical)\nSystem RAM: {}MiB",
-            self.gpu_description, self.cpu_name, self.cpu_vendor,
-            self.logical_cpu_count, self.physical_cpu_count, self.sys_mb)
+        write!(
+            f,
+            "GPU Description: {}\nCPU: {} ({})\nCores: {} ({} \
+             physical)\nSystem RAM: {}MiB",
+            self.gpu_description,
+            self.cpu_name,
+            self.cpu_vendor,
+            self.logical_cpu_count,
+            self.physical_cpu_count,
+            self.sys_mb
+        )
     }
 }
 

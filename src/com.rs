@@ -441,7 +441,10 @@ fn init_dvars() {
         "onlinegame",
         true,
         dvar::DvarFlags::READ_ONLY,
-        Some("Current game is an online game with stats, custom classes, unlocks"),
+        Some(
+            "Current game is an online game with stats, custom classes, \
+             unlocks",
+        ),
     )
     .unwrap();
 

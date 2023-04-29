@@ -23,11 +23,15 @@ fn swap_buffers() {
                     cbuf::add_textln(0, "vid_restart");
                 }
                 dvar::register_bool(
-                    "r_autopriority", 
+                    "r_autopriority",
                     false,
                     dvar::DvarFlags::ARCHIVE,
-                     Some("Automatically set the priority of the windows process when the game is minimized")
-                ).unwrap();
+                    Some(
+                        "Automatically set the priority of the windows \
+                         process when the game is minimized",
+                    ),
+                )
+                .unwrap();
             }
             WindowEvent::CloseRequested => {
                 cbuf::add_textln(0, "quit");

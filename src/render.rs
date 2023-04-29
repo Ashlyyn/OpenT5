@@ -190,7 +190,10 @@ fn register_dvars() {
             ASPECT_RATIO_16_9.into(),
         ]),
         dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
-        Some("Screen aspect ratio.  Most widescreen monitors are 16:10 instead of 16:9."),
+        Some(
+            "Screen aspect ratio.  Most widescreen monitors are 16:10 instead \
+             of 16:9.",
+        ),
     )
     .unwrap();
     dvar::register_int(
@@ -206,7 +209,10 @@ fn register_dvars() {
         "r_vsync",
         true,
         dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
-        Some("Enable v-sync before drawing the next frame to avoid \'tearing\' artifacts."),
+        Some(
+            "Enable v-sync before drawing the next frame to avoid \'tearing\' \
+             artifacts.",
+        ),
     )
     .unwrap();
     dvar::register_string(
@@ -296,8 +302,16 @@ lazy_static! {
 
 #[allow(clippy::needless_pass_by_value)]
 fn fatal_init_error(error: impl ToString) -> ! {
-    com::println!(8.into(), "********** Device returned an unrecoverable error code during initialization  **********");
-    com::println!(8.into(), "********** Initialization also happens while playing if Renderer loses a device **********");
+    com::println!(
+        8.into(),
+        "********** Device returned an unrecoverable error code during \
+         initialization  **********"
+    );
+    com::println!(
+        8.into(),
+        "********** Initialization also happens while playing if Renderer \
+         loses a device **********"
+    );
     com::println!(8.into(), "{}", error.to_string());
     sys::render_fatal_error();
 }
