@@ -34,7 +34,6 @@ cfg_if! {
         use alloc::collections::BTreeSet;
         use raw_window_handle::Win32WindowHandle;
     } else if #[cfg(unix)] {
-        use core::slice;
         use x11::xlib::XStoreName;
         use x11::xlib::{XOpenDisplay};
         use raw_window_handle::XlibWindowHandle;
@@ -182,17 +181,18 @@ fn register_dvars() {
     )
     .unwrap();
     dvar::register_enumeration(
-        "r_aspectRatio", 
-        "auto".into(), 
+        "r_aspectRatio",
+        "auto".into(),
         Some(vec![
             ASPECT_RATIO_AUTO.into(),
             ASPECT_RATIO_STANDARD.into(),
             ASPECT_RATIO_16_10.into(),
-            ASPECT_RATIO_16_9.into()
-            ]),
+            ASPECT_RATIO_16_9.into(),
+        ]),
         dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
-        Some("Screen aspect ratio.  Most widescreen monitors are 16:10 instead of 16:9.")
-    ).unwrap();
+        Some("Screen aspect ratio.  Most widescreen monitors are 16:10 instead of 16:9."),
+    )
+    .unwrap();
     dvar::register_int(
         "r_aaSamples",
         1,
@@ -206,8 +206,9 @@ fn register_dvars() {
         "r_vsync",
         true,
         dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
-        Some("Enable v-sync before drawing the next frame to avoid \'tearing\' artifacts.")
-    ).unwrap();
+        Some("Enable v-sync before drawing the next frame to avoid \'tearing\' artifacts."),
+    )
+    .unwrap();
     dvar::register_string(
         "r_customMode",
         "",
@@ -609,14 +610,23 @@ cfg_if! {
         #[allow(clippy::undocumented_unsafe_blocks, clippy::unnecessary_wraps)]
         fn primary_monitor() -> Option<MonitorHandle> {
             const ORIGIN: POINT = POINT { x: 0, y: 0 };
-            let hmonitor = unsafe { MonitorFromPoint(ORIGIN, MONITOR_DEFAULTTOPRIMARY) };
+            let hmonitor = unsafe {
+                MonitorFromPoint(ORIGIN, MONITOR_DEFAULTTOPRIMARY)
+            };
             Some(MonitorHandle::Win32(hmonitor.0))
         }
 
         #[allow(clippy::undocumented_unsafe_blocks, clippy::unnecessary_wraps)]
-        fn current_monitor(handle: Option<WindowHandle>) -> Option<MonitorHandle> {
+        fn current_monitor(
+            handle: Option<WindowHandle>
+        ) -> Option<MonitorHandle> {
             handle.map(|handle| {
-                let hmonitor = unsafe { MonitorFromWindow(HWND(handle.get_win32().unwrap().hwnd as _), MONITOR_DEFAULTTONEAREST) };
+                let hmonitor = unsafe {
+                    MonitorFromWindow(
+                        HWND(handle.get_win32().unwrap().hwnd as _),
+                        MONITOR_DEFAULTTONEAREST
+                    )
+                };
                 MonitorHandle::Win32(hmonitor.0)
             })
         }
@@ -628,7 +638,12 @@ cfg_if! {
         }
 
         #[allow(clippy::undocumented_unsafe_blocks)]
-        unsafe extern "system" fn monitor_enum_callback(hmonitor: HMONITOR, _hdc: HDC, _rect: *mut RECT, data: LPARAM) -> BOOL {
+        unsafe extern "system" fn monitor_enum_callback(
+            hmonitor: HMONITOR,
+            _hdc: HDC,
+            _rect: *mut RECT,
+            data: LPARAM
+        ) -> BOOL {
             // This is safe because the only time we ever call this
             // function, we wrap a *mut MonitorEnumData in `data`
             let data = data.0 as *mut MonitorEnumData;
@@ -644,8 +659,16 @@ cfg_if! {
             let fullscreen = dvar::get_bool("r_fullscreen").unwrap();
             if fullscreen {
                 let monitor = dvar::get_int("r_monitor").unwrap();
-                let mut data = MonitorEnumData { monitor, handle: HMONITOR(0) };
-                unsafe { EnumDisplayMonitors(None, None, Some(monitor_enum_callback), LPARAM(addr_of_mut!(data) as _)); }
+                let mut data = MonitorEnumData {
+                    monitor,
+                    handle: HMONITOR(0)
+                };
+                unsafe { EnumDisplayMonitors(
+                    None,
+                    None,
+                    Some(monitor_enum_callback),
+                    LPARAM(addr_of_mut!(data) as _)
+                ); }
                 if data.handle != HMONITOR(0) {
                     return MonitorHandle::Win32(data.handle.0);
                 }
@@ -653,7 +676,10 @@ cfg_if! {
 
             let xpos = dvar::get_int("vid_xpos").unwrap();
             let ypos = dvar::get_int("vid_ypos").unwrap();
-            let hmonitor = unsafe { MonitorFromPoint(POINT { x: xpos, y: ypos }, MONITOR_DEFAULTTOPRIMARY) };
+            let hmonitor = unsafe { MonitorFromPoint(
+                POINT { x: xpos, y: ypos },
+                MONITOR_DEFAULTTOPRIMARY
+            ) };
             MonitorHandle::Win32(hmonitor.0)
         }
 
@@ -662,13 +688,20 @@ cfg_if! {
             clippy::cast_sign_loss,
             clippy::cast_possible_truncation
         )]
-        fn get_monitor_dimensions(monitor_handle: MonitorHandle) -> Option<(u32, u32)> {
+        fn get_monitor_dimensions(
+            monitor_handle: MonitorHandle
+        ) -> Option<(u32, u32)> {
             let mut mi = MONITORINFOEXW::default();
             mi.monitorInfo.cbSize = size_of_val(&mi) as _;
-            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)); }
+            unsafe { GetMonitorInfoW(
+                monitor_handle.get_win32().unwrap(),
+                addr_of_mut!(mi.monitorInfo));
+            }
 
-            let mi_width = (mi.monitorInfo.rcMonitor.right - mi.monitorInfo.rcMonitor.left) as u32;
-            let mi_height = (mi.monitorInfo.rcMonitor.bottom - mi.monitorInfo.rcMonitor.top) as u32;
+            let mi_width = (mi.monitorInfo.rcMonitor.right -
+                mi.monitorInfo.rcMonitor.left) as u32;
+            let mi_height = (mi.monitorInfo.rcMonitor.bottom -
+                mi.monitorInfo.rcMonitor.top) as u32;
             let width = if mi_width > 0 {
                 mi_width
             } else {
@@ -700,12 +733,22 @@ cfg_if! {
         fn monitor_info(monitor_handle: MonitorHandle) -> Option<MonitorInfo> {
             let mut mi = MONITORINFOEXW::default();
             mi.monitorInfo.cbSize = size_of_val(&mi) as _;
-            unsafe { GetMonitorInfoW(monitor_handle.get_win32().unwrap(), addr_of_mut!(mi.monitorInfo)); }
-            let name = char::decode_utf16(mi.szDevice).flatten().collect::<String>();
+            unsafe { GetMonitorInfoW(
+                monitor_handle.get_win32().unwrap(),
+                addr_of_mut!(mi.monitorInfo)
+            ); }
+            let name = char::decode_utf16(mi.szDevice)
+                .flatten()
+                .collect::<String>();
 
             let mut mode = DEVMODEW::default();
             mode.dmSize = size_of_val(&mode) as _;
-            if unsafe { EnumDisplaySettingsExW(PCWSTR(mi.szDevice.as_ptr()), ENUM_CURRENT_SETTINGS, addr_of_mut!(mode), ENUM_DISPLAY_SETTINGS_FLAGS(0)) }.ok().is_err() {
+            if unsafe { EnumDisplaySettingsExW(
+                PCWSTR(mi.szDevice.as_ptr()),
+                ENUM_CURRENT_SETTINGS,
+                addr_of_mut!(mode),
+                ENUM_DISPLAY_SETTINGS_FLAGS(0)
+            ) }.ok().is_err() {
                 return None;
             };
             let refresh = mode.dmDisplayFrequency as f32;
@@ -723,7 +766,13 @@ cfg_if! {
                 }
                 i += 1;
 
-                const REQUIRED_FIELDS: DEVMODE_FIELD_FLAGS = DEVMODE_FIELD_FLAGS(DM_BITSPERPEL.0 | DM_PELSWIDTH.0 | DM_PELSHEIGHT.0 | DM_DISPLAYFREQUENCY.0);
+                const REQUIRED_FIELDS: DEVMODE_FIELD_FLAGS =
+                    DEVMODE_FIELD_FLAGS(
+                        DM_BITSPERPEL.0
+                        | DM_PELSWIDTH.0
+                        | DM_PELSHEIGHT.0
+                        | DM_DISPLAYFREQUENCY.0
+                    );
                 assert!(mode.dmFields.contains(REQUIRED_FIELDS));
                 modes.insert(VideoMode {
                     width: mode.dmPelsWidth,
@@ -734,7 +783,10 @@ cfg_if! {
             }
 
             let (width, height) = get_monitor_dimensions(monitor_handle)?;
-            Some(MonitorInfo { name, width, height, refresh: refresh as _, video_modes: modes.into_iter().collect() })
+            Some(MonitorInfo {
+                name, width, height, refresh: refresh as _,
+                video_modes: modes.into_iter().collect()
+            })
 
         }
 
@@ -743,23 +795,44 @@ cfg_if! {
             clippy::cast_lossless,
             clippy::cast_possible_wrap
         )]
-        pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
+        pub fn create_window_2(
+            wnd_parms: &mut gfx::WindowParms
+        ) -> Result<(), ()> {
             assert!(wnd_parms.window_handle.is_none());
 
             let (dw_ex_style, dw_style) = if wnd_parms.fullscreen == false {
-                com::println!(8.into(), "Attempting {} x {} window at ({}, {})", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.x, wnd_parms.y);
+                com::println!(
+                    8.into(), "Attempting {} x {} window at ({}, {})",
+                    wnd_parms.display_width, wnd_parms.display_height,
+                    wnd_parms.x, wnd_parms.y
+                );
                 (WS_EX_LEFT, WS_SYSMENU | WS_CAPTION | WS_VISIBLE)
             } else {
-                com::println!(8.into(), "Attempting {} x {} fullscreen with 32 bpp at {} hz", wnd_parms.display_width, wnd_parms.display_height, wnd_parms.hz);
+                com::println!(
+                    8.into(),
+                    "Attempting {} x {} fullscreen with 32 bpp at {} hz",
+                    wnd_parms.display_width, wnd_parms.display_height,
+                    wnd_parms.hz
+                );
                 (WS_EX_TOPMOST, WS_POPUP)
             };
 
-            let mut rect = RECT { left: 0, right: wnd_parms.display_width as _, top: 0, bottom: wnd_parms.display_height as _ };
-            unsafe { AdjustWindowRectEx(addr_of_mut!(rect), dw_style, false, dw_ex_style); }
-            let hinstance = unsafe { GetModuleHandleA(None) }.unwrap_or_default();
+            let mut rect = RECT {
+                left: 0, right: wnd_parms.display_width as _,
+                top: 0, bottom: wnd_parms.display_height as _
+            };
+            unsafe { AdjustWindowRectEx(
+                addr_of_mut!(rect), dw_style,
+                false, dw_ex_style
+            ); }
+            let hinstance = unsafe {
+                GetModuleHandleA(None)
+            }.unwrap_or_default();
             let height = rect.bottom - rect.top;
             let width = rect.right - rect.left;
-            let window_name = CString::new(com::get_official_build_name_r()).unwrap();
+            let window_name = CString::new(
+                com::get_official_build_name_r()
+            ).unwrap();
             let hwnd = unsafe { CreateWindowExA(
                 dw_ex_style,
                 s!("CoDBlackOps"),
@@ -783,10 +856,16 @@ cfg_if! {
                 let mut handle = Win32WindowHandle::empty();
                 handle.hinstance = hinstance.0 as _;
                 handle.hwnd = hwnd.0 as _;
-                wnd_parms.window_handle = Some(WindowHandle(RawWindowHandle::Win32(handle)));
+                wnd_parms.window_handle = Some(
+                    WindowHandle(RawWindowHandle::Win32(handle))
+                );
 
                 if wnd_parms.fullscreen == false {
-                    unsafe { SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE); }
+                    unsafe { SetWindowPos(
+                        hwnd, HWND_NOTOPMOST,
+                        0, 0, 0, 0,
+                        SWP_NOSIZE | SWP_NOMOVE
+                    ); }
                     unsafe { SetFocus(hwnd); }
                 }
                 com::println!(8.into(), "Game window successfully created.");
@@ -819,16 +898,27 @@ cfg_if! {
             let screen = unsafe { XDefaultScreen(display) };
             let root_window = unsafe { XRootWindow(display, screen) };
             let white_pixel = unsafe { XWhitePixel(display, screen) };
-            let window = unsafe { XCreateSimpleWindow(display, root_window, 0, 0, 1, 1, 1, white_pixel, white_pixel) };
+            let window = unsafe { XCreateSimpleWindow(
+                display, root_window, 0, 0, 1, 1, 1, white_pixel, white_pixel
+            ) };
             let mut nmonitors = 0;
-            let monitors_ptr = unsafe { XRRGetMonitors(display, window, x11::xlib::True, addr_of_mut!(nmonitors)) };
-            let monitors = unsafe { slice::from_raw_parts(monitors_ptr, nmonitors as _) };
-            let primary_monitor = monitors.iter().enumerate().find(|(_, m)| m.primary != 0).map(|(i, _)| {
-                let mut handle = XlibDisplayHandle::empty();
-                handle.display = display.cast();
-                handle.screen = i as _;
-                MonitorHandle::Xlib(handle)
-            });
+            let monitors_ptr = unsafe { XRRGetMonitors(
+                display, window, x11::xlib::True, addr_of_mut!(nmonitors)
+            ) };
+            // SAFETY: assuming the Xlib implementation is conforming,
+            // [monitors_ptr, monitors_ptr + nmonitors) should always
+            // be valid.
+            let monitors = unsafe {
+                core::slice::from_raw_parts(monitors_ptr, nmonitors as _)
+            };
+            let primary_monitor = monitors.iter()
+                .enumerate()
+                .find(|(_, m)| m.primary != 0).map(|(i, _)| {
+                    let mut handle = XlibDisplayHandle::empty();
+                    handle.display = display.cast();
+                    handle.screen = i as _;
+                    MonitorHandle::Xlib(handle)
+                });
 
             unsafe { XRRFreeMonitors(monitors_ptr); }
             unsafe { XDestroyWindow(display, window); }
@@ -864,7 +954,8 @@ cfg_if! {
         }
 
         #[allow(clippy::undocumented_unsafe_blocks, clippy::cast_sign_loss)]
-        fn get_monitor_dimensions(monitor: MonitorHandle) -> Option<(u32, u32)> {
+        fn get_monitor_dimensions(monitor: MonitorHandle) -> Option<(u32, u32)>
+        {
             let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
             let screen_num = monitor.get_xlib().unwrap().screen;
             let screen = unsafe { XScreenOfDisplay(display, screen_num) };
@@ -889,7 +980,10 @@ cfg_if! {
             clippy::cast_possible_truncation,
         )]
         fn monitor_info(monitor: MonitorHandle) -> Option<MonitorInfo> {
-            let display = monitor.get_xlib().unwrap().display.cast::<x11::xlib::Display>();
+            let display = monitor.get_xlib()
+                .unwrap()
+                .display
+                .cast::<x11::xlib::Display>();
             let screen_num = monitor.get_xlib().unwrap().screen;
             let screen = unsafe { XScreenOfDisplay(display, screen_num) };
             if screen.is_null() {
@@ -898,7 +992,9 @@ cfg_if! {
 
             let root_window = unsafe { XRootWindow(display, screen_num) };
             let white_pixel = unsafe { XWhitePixel(display, screen_num) };
-            let window = unsafe { XCreateSimpleWindow(display, root_window, 0, 0, 1, 1, 1, white_pixel, white_pixel) };
+            let window = unsafe { XCreateSimpleWindow(
+                display, root_window, 0, 0, 1, 1, 1, white_pixel, white_pixel
+            ) };
             let screen_info = unsafe { XRRGetScreenInfo(display, window) };
             if screen_info.is_null() {
                 return None;
@@ -916,28 +1012,42 @@ cfg_if! {
             }
 
             let mut nsizes = 0;
-            let sizes_ptr = unsafe { XRRConfigSizes(screen_info, addr_of_mut!(nsizes)) };
+            let sizes_ptr = unsafe {
+                XRRConfigSizes(screen_info, addr_of_mut!(nsizes))
+            };
             if sizes_ptr.is_null() {
                 return None;
             }
 
-            let sizes = unsafe { core::slice::from_raw_parts(sizes_ptr, nsizes as _) };
+            // SAFETY: assuming the Xlib implementation is conforming,
+            // [sizes_ptr, sizes_ptr + nsizes) should always be valid.
+            let sizes = unsafe {
+                core::slice::from_raw_parts(sizes_ptr, nsizes as _)
+            };
 
             let mut video_modes = Vec::new();
             for (i, m) in sizes.iter().enumerate() {
                 let mut nrates = 0;
-                let rates_ptr = unsafe { XRRConfigRates(screen_info, i as _, addr_of_mut!(nrates)) };
+                let rates_ptr = unsafe {
+                    XRRConfigRates(screen_info, i as _, addr_of_mut!(nrates))
+                };
                 if rates_ptr.is_null() {
                     return None;
                 }
 
-                let rates = unsafe { slice::from_raw_parts(rates_ptr, nrates as _) };
+                // SAFETY: assuming the Xlib implementation is conforming,
+                // [rates_ptr, rates_ptr + nrates) should always be valid.
+                let rates = unsafe {
+                    core::slice::from_raw_parts(rates_ptr, nrates as _)
+                };
 
                 for rate in rates {
                     video_modes.push(VideoMode {
                         width: m.width as _,
                         height: m.height as _,
-                        bit_depth: unsafe { XDefaultDepth(display, screen_num) as _ },
+                        bit_depth: unsafe {
+                            XDefaultDepth(display, screen_num) as _
+                        },
                         refresh: f32::from(*rate),
                     });
                 }
@@ -956,7 +1066,9 @@ cfg_if! {
         }
 
         #[allow(clippy::undocumented_unsafe_blocks)]
-        pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
+        pub fn create_window_2(
+            wnd_parms: &mut gfx::WindowParms
+        ) -> Result<(), ()> {
             assert!(wnd_parms.window_handle.is_none());
 
             let display = unsafe { XOpenDisplay(core::ptr::null()) };
@@ -980,7 +1092,9 @@ cfg_if! {
                 wnd_parms.window_handle = None;
                 Err(())
             } else {
-                let window_name = CString::new(com::get_official_build_name_r()).unwrap();
+                let window_name = CString::new(
+                    com::get_official_build_name_r()
+                ).unwrap();
                 unsafe { XStoreName(display, window, window_name.as_ptr()); }
 
                 let mut handle = XlibWindowHandle::empty();
@@ -988,10 +1102,14 @@ cfg_if! {
 
                 let visual = unsafe { XDefaultVisual(display, screen) };
                 handle.visual_id = unsafe { XVisualIDFromVisual(visual) };
-                wnd_parms.window_handle = Some(WindowHandle(RawWindowHandle::Xlib(handle)));
+                wnd_parms.window_handle = Some(
+                    WindowHandle(RawWindowHandle::Xlib(handle))
+                );
 
                 if wnd_parms.fullscreen == false {
-                    unsafe { XSetInputFocus(display, window, RevertToParent, CurrentTime); }
+                    unsafe { XSetInputFocus(
+                        display, window, RevertToParent, CurrentTime
+                    ); }
                 }
                 com::println!(8.into(), "Game window successfully created.");
                 Ok(())
