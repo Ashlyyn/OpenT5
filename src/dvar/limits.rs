@@ -649,9 +649,8 @@ impl DvarLimitsLinearColorRGB {
     pub fn new(min: f32, max: f32) -> Self {
         if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
             panic!(
-                "DvarLimitsLinearColorRGB::new(): \
-            supplied min is greater than max,\
-            or min and/or max are not within [0.0, 1.0]"
+                "DvarLimitsLinearColorRGB::new(): supplied min is greater \
+                 than max,or min and/or max are not within [0.0, 1.0]"
             );
         }
 
@@ -734,9 +733,8 @@ impl DvarLimitsColorXYZ {
     pub fn new(min: f32, max: f32) -> Self {
         if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
             panic!(
-                "DvarLimitsLinearColorRGB::new(): \
-            supplied min is greater than max,\
-            or min and/or max are not within [0.0, 1.0]"
+                "DvarLimitsLinearColorRGB::new(): supplied min is greater \
+                 than max,or min and/or max are not within [0.0, 1.0]"
             );
         }
 
