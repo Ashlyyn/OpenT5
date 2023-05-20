@@ -18,8 +18,8 @@ use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
 use core::{
     fmt::Display,
-    sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
     ptr::addr_of_mut,
+    sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
 };
 use lazy_static::lazy_static;
 use std::{
@@ -1617,7 +1617,7 @@ lazy_static! {
 cfg_if! {
     if #[cfg(windows)] {
         // All uses of unsafe in the following function are just for FFI,
-        // and all of those functions should be safe as called. 
+        // and all of those functions should be safe as called.
         // No reason to comment them individually.
         #[allow(
             clippy::undocumented_unsafe_blocks,
@@ -1654,12 +1654,12 @@ cfg_if! {
         }
 
         // All uses of unsafe in the following function are either for FFI
-        // or for accessing the members of the XEvent union. All of the 
+        // or for accessing the members of the XEvent union. All of the
         // functions should be safe as called, and all of the union accesses
         // should be safe since XEvent is a tagged union thanks to its
         // `type_` member. No reason to comment them individually.
         #[allow(
-            clippy::undocumented_unsafe_blocks, 
+            clippy::undocumented_unsafe_blocks,
             clippy::cast_sign_loss,
             clippy::get_first,
             clippy::if_then_some_else_none,

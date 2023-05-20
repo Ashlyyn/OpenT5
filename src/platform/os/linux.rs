@@ -4,7 +4,7 @@
 use core::{ptr::addr_of_mut, sync::atomic::AtomicU64};
 
 extern crate alloc;
-use alloc::{collections::VecDeque};
+use alloc::collections::VecDeque;
 
 use cfg_if::cfg_if;
 
@@ -65,9 +65,12 @@ lazy_static! {
 }
 
 // All uses of unsafe in the following function are just for FFI,
-// and all of those functions should be safe as called. 
+// and all of those functions should be safe as called.
 // No reason to comment them individually.
-#[allow(clippy::undocumented_unsafe_blocks, clippy::multiple_unsafe_ops_per_block)]
+#[allow(
+    clippy::undocumented_unsafe_blocks,
+    clippy::multiple_unsafe_ops_per_block
+)]
 pub fn main() {
     gtk4::init().unwrap();
     let display = unsafe { XOpenDisplay(core::ptr::null()) };
@@ -368,7 +371,7 @@ cfg_if! {
 
         impl WindowEventExtXlib for WindowEvent {
             // All uses of unsafe in the following function are either for FFI
-            // or for accessing the members of the XEvent union. All of the 
+            // or for accessing the members of the XEvent union. All of the
             // functions should be safe as called, and all of the union accesses
             // should be safe since XEvent is a tagged union thanks to its
             // `type_` member. No reason to comment them individually.
