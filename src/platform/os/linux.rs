@@ -8,9 +8,48 @@ use raw_window_handle::{
     RawDisplayHandle, RawWindowHandle, WaylandWindowHandle, XlibDisplayHandle,
     XlibWindowHandle,
 };
-use x11::{xlib::{XEvent, CreateNotify, XDefaultVisual, XVisualIDFromVisual, XDefaultScreen, DestroyNotify, ConfigureNotify, FocusIn, FocusOut, Button1, Button2, Button3, Button4, ButtonPress, Button5, ButtonRelease, ShiftMask, ControlMask, LockMask, Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask, KeyPress, XKeycodeToKeysym, XLookupString, KeyRelease, XDefaultDepth}, keysym::{XK_space, XK_exclam, XK_1, XK_at, XK_2, XK_3, XK_numbersign, XK_dollar, XK_4, XK_5, XK_percent, XK_6, XK_asciicircum, XK_7, XK_ampersand, XK_asterisk, XK_8, XK_parenleft, XK_9, XK_0, XK_parenright, XK_hyphen, XK_underscore, XK_F1, XK_F2, XK_F3, XK_F4, XK_F5, XK_F6, XK_F7, XK_F8, XK_F9, XK_F10, XK_F11, XK_F12, XK_Escape, XK_Scroll_Lock, XK_Pause, XK_Sys_Req, XK_Print, XK_Break, XK_asciitilde, XK_grave, XK_equal, XK_plus, XK_BackSpace, XK_Insert, XK_Home, XK_Page_Up, XK_Num_Lock, XK_KP_Divide, XK_KP_Multiply, XK_KP_Subtract, XK_Tab, XK_Q, XK_q, XK_W, XK_E, XK_R, XK_T, XK_Y, XK_U, XK_I, XK_O, XK_P, XK_w, XK_e, XK_r, XK_t, XK_y, XK_u, XK_i, XK_o, XK_p, XK_bracketleft, XK_braceleft, XK_bracketright, XK_braceright, XK_backslash, XK_bar, XK_Delete, XK_End, XK_Page_Down, XK_KP_7, XK_KP_Home, XK_KP_8, XK_KP_9, XK_KP_Up, XK_KP_Page_Down, XK_KP_Add, XK_Caps_Lock, XK_A, XK_a, XK_S, XK_D, XK_F, XK_G, XK_H, XK_J, XK_K, XK_L, XK_semicolon, XK_apostrophe, XK_s, XK_d, XK_f, XK_g, XK_h, XK_j, XK_k, XK_l, XK_colon, XK_quotedbl, XK_Return, XK_KP_4, XK_KP_Left, XK_KP_5, XK_KP_6, XK_KP_Begin, XK_KP_Right, XK_Shift_L, XK_Z, XK_X, XK_C, XK_V, XK_B, XK_N, XK_M, XK_comma, XK_period, XK_slash, XK_Shift_R, XK_z, XK_x, XK_c, XK_v, XK_b, XK_n, XK_m, XK_less, XK_greater, XK_question, XK_uparrow, XK_KP_1, XK_KP_End, XK_KP_2, XK_KP_Down, XK_KP_3, XK_KP_Enter, XK_Control_L, XK_Win_L, XK_Alt_L, XK_Alt_R, XK_function, XK_Menu, XK_Control_R, XK_leftarrow, XK_downarrow, XK_rightarrow, XK_KP_0, XK_KP_Insert, XK_KP_Delete, XK_KP_Decimal, XK_KP_Page_Up}, xrandr::RRScreenChangeNotify};
+use x11::{
+    keysym::{
+        XK_Alt_L, XK_Alt_R, XK_BackSpace, XK_Break, XK_Caps_Lock, XK_Control_L,
+        XK_Control_R, XK_Delete, XK_End, XK_Escape, XK_Home, XK_Insert,
+        XK_KP_Add, XK_KP_Begin, XK_KP_Decimal, XK_KP_Delete, XK_KP_Divide,
+        XK_KP_Down, XK_KP_End, XK_KP_Enter, XK_KP_Home, XK_KP_Insert,
+        XK_KP_Left, XK_KP_Multiply, XK_KP_Page_Down, XK_KP_Page_Up,
+        XK_KP_Right, XK_KP_Subtract, XK_KP_Up, XK_Menu, XK_Num_Lock,
+        XK_Page_Down, XK_Page_Up, XK_Pause, XK_Print, XK_Return,
+        XK_Scroll_Lock, XK_Shift_L, XK_Shift_R, XK_Sys_Req, XK_Tab, XK_Win_L,
+        XK_a, XK_ampersand, XK_apostrophe, XK_asciicircum, XK_asciitilde,
+        XK_asterisk, XK_at, XK_b, XK_backslash, XK_bar, XK_braceleft,
+        XK_braceright, XK_bracketleft, XK_bracketright, XK_c, XK_colon,
+        XK_comma, XK_d, XK_dollar, XK_downarrow, XK_e, XK_equal, XK_exclam,
+        XK_f, XK_function, XK_g, XK_grave, XK_greater, XK_h, XK_hyphen, XK_i,
+        XK_j, XK_k, XK_l, XK_leftarrow, XK_less, XK_m, XK_n, XK_numbersign,
+        XK_o, XK_p, XK_parenleft, XK_parenright, XK_percent, XK_period,
+        XK_plus, XK_q, XK_question, XK_quotedbl, XK_r, XK_rightarrow, XK_s,
+        XK_semicolon, XK_slash, XK_space, XK_t, XK_u, XK_underscore,
+        XK_uparrow, XK_v, XK_w, XK_x, XK_y, XK_z, XK_0, XK_1, XK_2, XK_3, XK_4,
+        XK_5, XK_6, XK_7, XK_8, XK_9, XK_A, XK_B, XK_C, XK_D, XK_E, XK_F,
+        XK_F1, XK_F10, XK_F11, XK_F12, XK_F2, XK_F3, XK_F4, XK_F5, XK_F6,
+        XK_F7, XK_F8, XK_F9, XK_G, XK_H, XK_I, XK_J, XK_K, XK_KP_0, XK_KP_1,
+        XK_KP_2, XK_KP_3, XK_KP_4, XK_KP_5, XK_KP_6, XK_KP_7, XK_KP_8, XK_KP_9,
+        XK_L, XK_M, XK_N, XK_O, XK_P, XK_Q, XK_R, XK_S, XK_T, XK_U, XK_V, XK_W,
+        XK_X, XK_Y, XK_Z,
+    },
+    xlib::{
+        Button1, Button2, Button3, Button4, Button5, ButtonPress,
+        ButtonRelease, ConfigureNotify, ControlMask, CreateNotify,
+        DestroyNotify, FocusIn, FocusOut, KeyPress, KeyRelease, LockMask,
+        Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask, ShiftMask,
+        XDefaultDepth, XDefaultScreen, XDefaultVisual, XEvent,
+        XKeycodeToKeysym, XLookupString, XVisualIDFromVisual,
+    },
+    xrandr::RRScreenChangeNotify,
+};
 
-use crate::{platform::WindowHandle, sys::{WindowEvent, MouseScancode, Modifiers, KeyboardScancode}};
+use crate::{
+    platform::WindowHandle,
+    sys::{KeyboardScancode, Modifiers, MouseScancode, WindowEvent},
+};
 
 pub fn main() {
     gtk4::init().unwrap();
@@ -132,11 +171,11 @@ cfg_if! {
 
         impl XlibModifiers {
             fn contains_mod_masks(self) -> bool {
-                self.0 & (Mod1Mask | Mod2Mask | Mod3Mask | Mod4Mask | Mod5Mask) != 0 
+                self.0 & (Mod1Mask | Mod2Mask | Mod3Mask | Mod4Mask | Mod5Mask) != 0
             }
         }
 
-        // We don't care about the mouse buttons for this, and 
+        // We don't care about the mouse buttons for this, and
         // Mod1Mask-Mod5Mask might be different between systems,
         // so we can't reliably map them to a certain modifier key here
         impl TryFrom<XlibModifiers> for Modifiers {
@@ -165,7 +204,7 @@ cfg_if! {
 
         pub struct XlibContext {
             width: i32,
-            height: i32, 
+            height: i32,
             x: i32,
             y: i32,
         }
@@ -253,7 +292,7 @@ cfg_if! {
                     XK_KP_4 | XK_KP_Left => Ok(Self::Num4),
                     XK_KP_5 | XK_KP_Begin => Ok(Self::Num5),
                     XK_KP_6 | XK_KP_Right => Ok(Self::Num6),
-                    
+
                     XK_Shift_L => Ok(Self::LShift),
                     XK_Z | XK_z => Ok(Self::Z),
                     XK_X | XK_x => Ok(Self::X),
@@ -271,7 +310,7 @@ cfg_if! {
                     XK_KP_2 | XK_KP_Down => Ok(Self::Num2),
                     XK_KP_3 | XK_KP_Page_Down => Ok(Self::Num3),
                     XK_KP_Enter => Ok(Self::NumEnter),
-                    
+
                     XK_Control_L => Ok(Self::LCtrl),
                     XK_Win_L => Ok(Self::LSys),
                     XK_Alt_L => Ok(Self::LAlt),
@@ -337,7 +376,7 @@ cfg_if! {
                     ButtonPress => {
                         let ev = unsafe { ev.button };
                         let button = XlibMouseButton(ev.button);
-                        
+
                         if let Ok(b) = MouseScancode::try_from(button) {
                             Ok((vec![Self::MouseButtonDown(b)].into_iter(), None))
                         } else if button.0 == Button4 {
@@ -361,24 +400,24 @@ cfg_if! {
                         let down = any.type_ == KeyPress;
                         let mut ev = unsafe { ev.key };
                         let keycode = ev.keycode;
-                        let physical_keysym = unsafe { 
-                            XKeycodeToKeysym(ev.display, keycode as _, 0) 
+                        let physical_keysym = unsafe {
+                            XKeycodeToKeysym(ev.display, keycode as _, 0)
                         };
                         let mut c = 0i8;
                         let mut logical_keysym = 0;
-                        unsafe { 
+                        unsafe {
                             XLookupString(
-                                addr_of_mut!(ev), addr_of_mut!(c), 
-                                core::mem::size_of_val(&c) as _, 
-                                addr_of_mut!(logical_keysym), 
+                                addr_of_mut!(ev), addr_of_mut!(c),
+                                core::mem::size_of_val(&c) as _,
+                                addr_of_mut!(logical_keysym),
                                 core::ptr::null_mut()
-                            ); 
+                            );
                         };
 
                         let physical_scancode: Option<KeyboardScancode> = XlibKeysym(physical_keysym).try_into().ok();
                         let logical_scancode = if let Ok(k) = XlibKeysym(logical_keysym).try_into() {
                             k
-                        } else { 
+                        } else {
                             return Err(())
                         };
 
@@ -398,8 +437,8 @@ cfg_if! {
                         let ev = unsafe { ev.xrr_screen_change_notify };
                         let screen = unsafe { XDefaultScreen(ev.display) };
                         let depth = unsafe { XDefaultDepth(ev.display, screen) };
-                        Ok((vec![Self::DisplayChange { 
-                            bits_per_pixel: depth as _, 
+                        Ok((vec![Self::DisplayChange {
+                            bits_per_pixel: depth as _,
                             horz_res: ev.width as _,
                             vert_res: ev.height as _,
                         }].into_iter(), None))
