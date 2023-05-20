@@ -19,13 +19,13 @@ use cfg_if::cfg_if;
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
+    ptr::addr_of_mut,
 };
 use lazy_static::lazy_static;
 use std::{
     fs::File,
     io::{Read, Write},
     path::PathBuf,
-    ptr::addr_of_mut,
     sync::{Mutex, RwLock},
     thread::{JoinHandle, ThreadId},
     time::{SystemTime, UNIX_EPOCH},
@@ -1614,11 +1614,11 @@ lazy_static! {
         Mutex::new(VecDeque::new());
 }
 
-// All uses of unsafe in the following cfg_if! block are just for FFI,
-// and all of those functions should be safe. No reason to comment them
-// individually.
 cfg_if! {
     if #[cfg(windows)] {
+        // All uses of unsafe in the following function are just for FFI,
+        // and all of those functions should be safe as called. 
+        // No reason to comment them individually.
         #[allow(
             clippy::undocumented_unsafe_blocks,
             clippy::cast_possible_wrap
@@ -1653,6 +1653,19 @@ cfg_if! {
             static ref XLIB_CONTEXT: RwLock<XlibContext> = RwLock::new(XlibContext::default());
         }
 
+        // All uses of unsafe in the following function are either for FFI
+        // or for accessing the members of the XEvent union. All of the 
+        // functions should be safe as called, and all of the union accesses
+        // should be safe since XEvent is a tagged union thanks to its
+        // `type_` member. No reason to comment them individually.
+        #[allow(
+            clippy::undocumented_unsafe_blocks, 
+            clippy::cast_sign_loss,
+            clippy::get_first,
+            clippy::if_then_some_else_none,
+            clippy::single_match_else,
+            clippy::cast_possible_wrap,
+        )]
         pub fn next_window_event() -> Option<WindowEvent> {
             if query_quit_event() == SignalState::Signaled {
                 com::quit_f();
@@ -1665,14 +1678,14 @@ cfg_if! {
                     return None;
                 }
 
-                unsafe { XNextEvent(display, addr_of_mut!(ev)) };
+                unsafe { XNextEvent(display, addr_of_mut!(ev)); }
                 let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as isize;
                 let any = unsafe { ev.any };
                 match any.type_ {
                     ClientMessage => {
                         let ev = unsafe { ev.client_message };
-                        if ev.data.as_longs()[0] as u64 == WM_DELETE_WINDOW.load_relaxed() {
-                            unsafe { XDestroyWindow(ev.display, ev.window) };
+                        if *ev.data.as_longs().get(0).unwrap() as u64 == WM_DELETE_WINDOW.load_relaxed() {
+                            unsafe { XDestroyWindow(ev.display, ev.window); }
                             platform::set_msg_time(time);
                             Some(WindowEvent::CloseRequested)
                         } else {

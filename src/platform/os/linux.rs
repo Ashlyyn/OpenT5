@@ -1,7 +1,10 @@
 // have to do this to deal with warnings created from x11 constants
 #![allow(non_upper_case_globals)]
 
-use std::{collections::VecDeque, ptr::addr_of_mut, sync::atomic::AtomicU64};
+use core::{ptr::addr_of_mut, sync::atomic::AtomicU64};
+
+extern crate alloc;
+use alloc::{collections::VecDeque};
 
 use cfg_if::cfg_if;
 
@@ -61,6 +64,10 @@ lazy_static! {
     pub static ref WM_DELETE_WINDOW: AtomicU64 = AtomicU64::new(0);
 }
 
+// All uses of unsafe in the following function are just for FFI,
+// and all of those functions should be safe as called. 
+// No reason to comment them individually.
+#[allow(clippy::undocumented_unsafe_blocks, clippy::multiple_unsafe_ops_per_block)]
 pub fn main() {
     gtk4::init().unwrap();
     let display = unsafe { XOpenDisplay(core::ptr::null()) };
@@ -190,7 +197,7 @@ cfg_if! {
         struct XlibModifiers(u32);
 
         impl XlibModifiers {
-            fn contains_mod_masks(self) -> bool {
+            const fn contains_mod_masks(self) -> bool {
                 self.0 & (Mod1Mask | Mod2Mask | Mod3Mask | Mod4Mask | Mod5Mask) != 0
             }
         }
@@ -201,17 +208,17 @@ cfg_if! {
         impl TryFrom<XlibModifiers> for Modifiers {
             type Error = ();
             fn try_from(value: XlibModifiers) -> Result<Self, Self::Error> {
-                let mut modifiers = Modifiers::empty();
+                let mut modifiers = Self::empty();
                 if value.0 & ShiftMask != 0 {
-                    modifiers |= Modifiers::LSHIFT;
+                    modifiers |= Self::LSHIFT;
                 }
 
                 if value.0 & ControlMask != 0 {
-                    modifiers |= Modifiers::LCTRL;
+                    modifiers |= Self::LCTRL;
                 }
 
                 if value.0 & LockMask != 0 {
-                    modifiers |= Modifiers::CAPSLOCK;
+                    modifiers |= Self::CAPSLOCK;
                 }
 
                 if modifiers.is_empty() {
@@ -234,6 +241,10 @@ cfg_if! {
 
         impl TryFrom<XlibKeysym> for KeyboardScancode {
             type Error = ();
+            #[allow(
+                clippy::cast_possible_truncation,
+                clippy::too_many_lines,
+            )]
             fn try_from(value: XlibKeysym) -> Result<Self, Self::Error> {
                 match value.0 as u32 {
                     XK_Escape => Ok(Self::Esc),
@@ -356,6 +367,17 @@ cfg_if! {
         }
 
         impl WindowEventExtXlib for WindowEvent {
+            // All uses of unsafe in the following function are either for FFI
+            // or for accessing the members of the XEvent union. All of the 
+            // functions should be safe as called, and all of the union accesses
+            // should be safe since XEvent is a tagged union thanks to its
+            // `type_` member. No reason to comment them individually.
+            #[allow(
+                clippy::cast_sign_loss,
+                clippy::undocumented_unsafe_blocks,
+                clippy::cast_possible_wrap,
+                clippy::cast_possible_truncation,
+            )]
             fn try_from_xevent(ev: XEvent, context: XlibContext) -> Result<(VecDeque<WindowEvent>, Option<XlibContext>),()> {
                 let any = unsafe { ev.any };
                 match any.type_ {
@@ -396,24 +418,18 @@ cfg_if! {
                         let ev = unsafe { ev.button };
                         let button = XlibMouseButton(ev.button);
 
-                        if let Ok(b) = MouseScancode::try_from(button) {
-                            Ok((vec![Self::MouseButtonDown(b)].into(), None))
-                        } else if button.0 == Button4 {
+                        MouseScancode::try_from(button).map_or_else(|_| if button.0 == Button4 {
                             Ok((vec![Self::MouseWheelScroll(120.0)].into(), None))
                         } else if button.0 == Button5 {
                             Ok((vec![Self::MouseWheelScroll(-120.0)].into(), None))
                         } else {
                             Err(())
-                        }
+                        }, |b| Ok((vec![Self::MouseButtonDown(b)].into(), None)))
                     },
                     ButtonRelease => {
                         let ev = unsafe { ev.button };
                         let button = XlibMouseButton(ev.button);
-                        if let Ok(b) = MouseScancode::try_from(button) {
-                            Ok((vec![Self::MouseButtonUp(b)].into(), None))
-                        } else {
-                            Err(())
-                        }
+                        MouseScancode::try_from(button).map_or(Err(()), |b| Ok((vec![Self::MouseButtonUp(b)].into(), None)))
                     },
                     KeyPress | KeyRelease => {
                         let down = any.type_ == KeyPress;
@@ -434,9 +450,7 @@ cfg_if! {
                         };
 
                         let physical_scancode: Option<KeyboardScancode> = XlibKeysym(physical_keysym).try_into().ok();
-                        let logical_scancode = if let Ok(k) = XlibKeysym(logical_keysym).try_into() {
-                            k
-                        } else {
+                        let Ok(logical_scancode) = XlibKeysym(logical_keysym).try_into() else {
                             return Err(())
                         };
 
