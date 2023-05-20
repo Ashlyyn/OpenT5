@@ -1,9 +1,12 @@
 // have to do this to deal with warnings created from x11 constants
 #![allow(non_upper_case_globals)]
 
-use std::ptr::addr_of_mut;
+use std::{ptr::addr_of_mut, sync::{atomic::AtomicU64}, collections::{VecDeque}};
 
 use cfg_if::cfg_if;
+
+use lazy_static::lazy_static;
+
 use raw_window_handle::{
     RawDisplayHandle, RawWindowHandle, WaylandWindowHandle, XlibDisplayHandle,
     XlibWindowHandle,
@@ -41,18 +44,28 @@ use x11::{
         DestroyNotify, FocusIn, FocusOut, KeyPress, KeyRelease, LockMask,
         Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask, ShiftMask,
         XDefaultDepth, XDefaultScreen, XDefaultVisual, XEvent,
-        XKeycodeToKeysym, XLookupString, XVisualIDFromVisual,
+        XKeycodeToKeysym, XLookupString, XVisualIDFromVisual, XInternAtom, XOpenDisplay,
     },
     xrandr::RRScreenChangeNotify,
 };
 
+use cstr::cstr;
+
 use crate::{
     platform::WindowHandle,
-    sys::{KeyboardScancode, Modifiers, MouseScancode, WindowEvent},
+    sys::{KeyboardScancode, Modifiers, MouseScancode, WindowEvent}, util::EasierAtomic,
 };
+
+lazy_static! {
+    pub static ref WM_DELETE_WINDOW: AtomicU64 = AtomicU64::new(0);
+}
 
 pub fn main() {
     gtk4::init().unwrap();
+    let display = unsafe { XOpenDisplay(core::ptr::null()) };
+    let atom = unsafe { XInternAtom(display, cstr!("WM_DELETE_WINDOW").as_ptr(), x11::xlib::False) };
+    assert_ne!(atom, 0);
+    WM_DELETE_WINDOW.store_relaxed(atom);
 }
 
 impl WindowHandle {
@@ -202,6 +215,7 @@ cfg_if! {
             }
         }
 
+        #[derive(Copy, Clone, Default, Debug)]
         pub struct XlibContext {
             width: i32,
             height: i32,
@@ -331,13 +345,11 @@ cfg_if! {
         }
 
         pub trait WindowEventExtXlib {
-            type Iter: Iterator<Item = WindowEvent>;
-            fn try_from_xevent(ev: XEvent, context: XlibContext) -> Result<(Self::Iter, Option<XlibContext>), ()>;
+            fn try_from_xevent(ev: XEvent, context: XlibContext) -> Result<(VecDeque<WindowEvent>, Option<XlibContext>), ()>;
         }
 
         impl WindowEventExtXlib for WindowEvent {
-            type Iter = impl Iterator<Item = WindowEvent>;
-            fn try_from_xevent(ev: XEvent, context: XlibContext) -> Result<(Self::Iter, Option<XlibContext>),()> {
+            fn try_from_xevent(ev: XEvent, context: XlibContext) -> Result<(VecDeque<WindowEvent>, Option<XlibContext>),()> {
                 let any = unsafe { ev.any };
                 match any.type_ {
                     CreateNotify => {
@@ -348,9 +360,9 @@ cfg_if! {
                         let visual = unsafe { XDefaultVisual(ev.display, screen) };
                         let visual_id = unsafe { XVisualIDFromVisual(visual) };
                         handle.visual_id = visual_id;
-                        Ok((vec![Self::Created(WindowHandle::new(RawWindowHandle::Xlib(handle)))].into_iter(), None))
+                        Ok((vec![Self::Created(WindowHandle::new(RawWindowHandle::Xlib(handle)))].into(), None))
                     },
-                    DestroyNotify => Ok((vec![Self::Destroyed].into_iter(), None)),
+                    DestroyNotify => Ok((vec![Self::Destroyed].into(), None)),
                     ConfigureNotify => {
                         let ev = unsafe { ev.configure };
                         let x = ev.x;
@@ -368,21 +380,21 @@ cfg_if! {
                         if evs.is_empty() {
                             Err(())
                         } else {
-                            Ok((evs.into_iter(), Some(new_context)))
+                            Ok((evs.into(), Some(new_context)))
                         }
                     },
-                    FocusIn => Ok((vec![Self::SetFocus].into_iter(), None)),
-                    FocusOut => Ok((vec![Self::KillFocus].into_iter(), None)),
+                    FocusIn => Ok((vec![Self::SetFocus].into(), None)),
+                    FocusOut => Ok((vec![Self::KillFocus].into(), None)),
                     ButtonPress => {
                         let ev = unsafe { ev.button };
                         let button = XlibMouseButton(ev.button);
 
                         if let Ok(b) = MouseScancode::try_from(button) {
-                            Ok((vec![Self::MouseButtonDown(b)].into_iter(), None))
+                            Ok((vec![Self::MouseButtonDown(b)].into(), None))
                         } else if button.0 == Button4 {
-                            Ok((vec![Self::MouseWheelScroll(120.0)].into_iter(), None))
+                            Ok((vec![Self::MouseWheelScroll(120.0)].into(), None))
                         } else if button.0 == Button5 {
-                            Ok((vec![Self::MouseWheelScroll(-120.0)].into_iter(), None))
+                            Ok((vec![Self::MouseWheelScroll(-120.0)].into(), None))
                         } else {
                             Err(())
                         }
@@ -391,7 +403,7 @@ cfg_if! {
                         let ev = unsafe { ev.button };
                         let button = XlibMouseButton(ev.button);
                         if let Ok(b) = MouseScancode::try_from(button) {
-                            Ok((vec![Self::MouseButtonUp(b)].into_iter(), None))
+                            Ok((vec![Self::MouseButtonUp(b)].into(), None))
                         } else {
                             Err(())
                         }
@@ -425,12 +437,12 @@ cfg_if! {
                             Ok((vec![Self::KeyDown {
                                 logical_scancode,
                                 physical_scancode,
-                            }].into_iter(), None))
+                            }].into(), None))
                         } else {
                             Ok((vec![Self::KeyUp {
                                 logical_scancode,
                                 physical_scancode,
-                            }].into_iter(), None))
+                            }].into(), None))
                         }
                     },
                     RRScreenChangeNotify => {
@@ -441,7 +453,7 @@ cfg_if! {
                             bits_per_pixel: depth as _,
                             horz_res: ev.width as _,
                             vert_res: ev.height as _,
-                        }].into_iter(), None))
+                        }].into(), None))
                     }
                     _ => Err(())
                 }

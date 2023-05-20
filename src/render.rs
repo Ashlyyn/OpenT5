@@ -2,7 +2,7 @@
 
 use crate::{
     gfx::{WindowTarget, R_GLOB},
-    platform::{os::target::MonitorHandle, WindowHandle},
+    platform::{os::{target::MonitorHandle, linux::WM_DELETE_WINDOW}, WindowHandle},
     sys::{gpu::Device, show_window},
     util::{EasierAtomic, SignalState},
     *,
@@ -12,6 +12,7 @@ use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
 extern crate alloc;
 use alloc::{collections::VecDeque, ffi::CString};
+use x11::xlib::XSetWMProtocols;
 use core::{ptr::addr_of_mut, sync::atomic::AtomicUsize};
 use std::{collections::HashSet, sync::RwLock};
 
@@ -1123,6 +1124,10 @@ cfg_if! {
                         display, window, RevertToParent, CurrentTime
                     ); }
                 }
+
+                let mut wm_delete_window = WM_DELETE_WINDOW.load_relaxed();
+                unsafe { XSetWMProtocols(display, window, addr_of_mut!(wm_delete_window), 1); }
+
                 com::println!(8.into(), "Game window successfully created.");
                 Ok(())
             }

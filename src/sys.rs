@@ -1,10 +1,10 @@
-#![allow(dead_code)]
+#![allow(dead_code, non_upper_case_globals)]
 
 extern crate alloc;
 
 use crate::{
-    platform::WindowHandle,
-    util::{EasierAtomicBool, SignalState, SmpEvent},
+    platform::{WindowHandle, os::linux::{WM_DELETE_WINDOW, WindowEventExtXlib, XlibContext}},
+    util::{EasierAtomicBool, SignalState, SmpEvent, EasierAtomic},
     *,
 };
 use num_derive::FromPrimitive;
@@ -13,6 +13,7 @@ pub mod gpu;
 
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
+use x11::xlib::{XEvent, XNextEvent, XPending, ClientMessage, XDestroyWindow};
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
@@ -24,7 +25,7 @@ use std::{
     path::PathBuf,
     sync::{Mutex, RwLock},
     thread::{JoinHandle, ThreadId},
-    time::SystemTime,
+    time::{SystemTime, UNIX_EPOCH}, ptr::addr_of_mut,
 };
 cfg_if! {
     if #[cfg(windows)] {
@@ -1644,9 +1645,56 @@ cfg_if! {
             }
         }
     } else if #[cfg(unix)] {
-        #[allow(clippy::missing_const_for_fn)]
+        lazy_static! {
+            static ref XLIB_CONTEXT: RwLock<XlibContext> = RwLock::new(XlibContext::default());
+        }
+
         pub fn next_window_event() -> Option<WindowEvent> {
-            None
+            if query_quit_event() == SignalState::Signaled {
+                com::quit_f();
+            }
+
+            if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
+                let mut ev = unsafe { core::mem::MaybeUninit::<XEvent>::zeroed().assume_init() };
+                let display = unsafe { XOpenDisplay(core::ptr::null()) };
+                if unsafe { XPending(display) } == 0 {
+                    return None;
+                }
+    
+                unsafe { XNextEvent(display, addr_of_mut!(ev)) };
+                let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as isize;
+                let any = unsafe { ev.any };
+                match any.type_ {
+                    ClientMessage => {
+                        let ev = unsafe { ev.client_message };
+                        if ev.data.as_longs()[0] as u64 == WM_DELETE_WINDOW.load_relaxed() {
+                            unsafe { XDestroyWindow(ev.display, ev.window) };
+                            platform::set_msg_time(time);
+                            Some(WindowEvent::CloseRequested)
+                        } else {
+                            None
+                        }
+                    },
+                    _ => {
+                        let context = *XLIB_CONTEXT.read().unwrap();
+                        if let Ok((mut evs, new_context)) = WindowEvent::try_from_xevent(ev, context) {
+                            if let Some(n) = new_context {
+                                *XLIB_CONTEXT.write().unwrap() = n;
+                            }
+                            
+                            platform::set_msg_time(time);
+                            let ev = evs.pop_front();
+                            MAIN_WINDOW_EVENTS.lock().unwrap().append(&mut evs);
+
+                            ev
+                        } else {
+                            None
+                        }
+                    }
+                }
+            } else {
+                MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
+            }
         }
     }
 }
