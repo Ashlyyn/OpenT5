@@ -1,7 +1,7 @@
 // have to do this to deal with warnings created from x11 constants
 #![allow(non_upper_case_globals)]
 
-use std::{ptr::addr_of_mut, sync::{atomic::AtomicU64}, collections::{VecDeque}};
+use std::{collections::VecDeque, ptr::addr_of_mut, sync::atomic::AtomicU64};
 
 use cfg_if::cfg_if;
 
@@ -43,8 +43,8 @@ use x11::{
         ButtonRelease, ConfigureNotify, ControlMask, CreateNotify,
         DestroyNotify, FocusIn, FocusOut, KeyPress, KeyRelease, LockMask,
         Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask, ShiftMask,
-        XDefaultDepth, XDefaultScreen, XDefaultVisual, XEvent,
-        XKeycodeToKeysym, XLookupString, XVisualIDFromVisual, XInternAtom, XOpenDisplay,
+        XDefaultDepth, XDefaultScreen, XDefaultVisual, XEvent, XInternAtom,
+        XKeycodeToKeysym, XLookupString, XOpenDisplay, XVisualIDFromVisual,
     },
     xrandr::RRScreenChangeNotify,
 };
@@ -53,7 +53,8 @@ use cstr::cstr;
 
 use crate::{
     platform::WindowHandle,
-    sys::{KeyboardScancode, Modifiers, MouseScancode, WindowEvent}, util::EasierAtomic,
+    sys::{KeyboardScancode, Modifiers, MouseScancode, WindowEvent},
+    util::EasierAtomic,
 };
 
 lazy_static! {
@@ -63,7 +64,13 @@ lazy_static! {
 pub fn main() {
     gtk4::init().unwrap();
     let display = unsafe { XOpenDisplay(core::ptr::null()) };
-    let atom = unsafe { XInternAtom(display, cstr!("WM_DELETE_WINDOW").as_ptr(), x11::xlib::False) };
+    let atom = unsafe {
+        XInternAtom(
+            display,
+            cstr!("WM_DELETE_WINDOW").as_ptr(),
+            x11::xlib::False,
+        )
+    };
     assert_ne!(atom, 0);
     WM_DELETE_WINDOW.store_relaxed(atom);
 }

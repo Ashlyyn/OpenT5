@@ -2,7 +2,10 @@
 
 use crate::{
     gfx::{WindowTarget, R_GLOB},
-    platform::{os::{target::MonitorHandle, linux::WM_DELETE_WINDOW}, WindowHandle},
+    platform::{
+        os::{linux::WM_DELETE_WINDOW, target::MonitorHandle},
+        WindowHandle,
+    },
     sys::{gpu::Device, show_window},
     util::{EasierAtomic, SignalState},
     *,
@@ -12,9 +15,9 @@ use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
 extern crate alloc;
 use alloc::{collections::VecDeque, ffi::CString};
-use x11::xlib::XSetWMProtocols;
 use core::{ptr::addr_of_mut, sync::atomic::AtomicUsize};
 use std::{collections::HashSet, sync::RwLock};
+use x11::xlib::XSetWMProtocols;
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u32 = 480;

@@ -3,8 +3,11 @@
 extern crate alloc;
 
 use crate::{
-    platform::{WindowHandle, os::linux::{WM_DELETE_WINDOW, WindowEventExtXlib, XlibContext}},
-    util::{EasierAtomicBool, SignalState, SmpEvent, EasierAtomic},
+    platform::{
+        os::linux::{WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW},
+        WindowHandle,
+    },
+    util::{EasierAtomic, EasierAtomicBool, SignalState, SmpEvent},
     *,
 };
 use num_derive::FromPrimitive;
@@ -13,7 +16,6 @@ pub mod gpu;
 
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
-use x11::xlib::{XEvent, XNextEvent, XPending, ClientMessage, XDestroyWindow};
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
@@ -23,10 +25,12 @@ use std::{
     fs::File,
     io::{Read, Write},
     path::PathBuf,
+    ptr::addr_of_mut,
     sync::{Mutex, RwLock},
     thread::{JoinHandle, ThreadId},
-    time::{SystemTime, UNIX_EPOCH}, ptr::addr_of_mut,
+    time::{SystemTime, UNIX_EPOCH},
 };
+use x11::xlib::{ClientMessage, XDestroyWindow, XEvent, XNextEvent, XPending};
 cfg_if! {
     if #[cfg(windows)] {
         use core::ffi::{CStr};
@@ -1660,7 +1664,7 @@ cfg_if! {
                 if unsafe { XPending(display) } == 0 {
                     return None;
                 }
-    
+
                 unsafe { XNextEvent(display, addr_of_mut!(ev)) };
                 let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as isize;
                 let any = unsafe { ev.any };
@@ -1681,7 +1685,7 @@ cfg_if! {
                             if let Some(n) = new_context {
                                 *XLIB_CONTEXT.write().unwrap() = n;
                             }
-                            
+
                             platform::set_msg_time(time);
                             let ev = evs.pop_front();
                             MAIN_WINDOW_EVENTS.lock().unwrap().append(&mut evs);
