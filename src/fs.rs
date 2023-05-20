@@ -106,7 +106,9 @@ cfg_if::cfg_if! {
 
 // TODO - Will panic if `path` contains invalid UTF-8 characters.
 // Fix at some point.
-pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
+pub fn create_path<P: AsRef<Path>>(
+    path: P
+) -> Result<PathBuf, std::io::Error> {
     let path = path.as_ref();
 
     if path.is_relative() {
