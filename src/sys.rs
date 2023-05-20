@@ -1470,6 +1470,7 @@ pub enum KeyboardScancode {
     RAlt,
     RSys,
     Fn,
+    Menu,
     RCtrl,
     ArrowLeft,
     ArrowDown,
@@ -1575,7 +1576,7 @@ pub enum WindowEvent {
     KillFocus,
     CloseRequested,
     DisplayChange {
-        bit_depth: u32,
+        bits_per_pixel: u32,
         horz_res: u32,
         vert_res: u32,
     },
