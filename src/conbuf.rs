@@ -3,6 +3,8 @@
 #![allow(unused_mut)]
 
 use cfg_if::cfg_if;
+
+use crate::util::EasierAtomic;
 cfg_if! {
     if #[cfg(not(target_arch = "wasm32"))] {
         use lazy_static::lazy_static;

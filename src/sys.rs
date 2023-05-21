@@ -4,7 +4,6 @@ extern crate alloc;
 
 use crate::{
     platform::{
-        os::linux::{WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW},
         WindowHandle,
     },
     util::{EasierAtomic, EasierAtomicBool, SignalState, SmpEvent},
@@ -30,11 +29,10 @@ use std::{
     thread::{JoinHandle, ThreadId},
     time::{SystemTime, UNIX_EPOCH},
 };
-use x11::xlib::{ClientMessage, XDestroyWindow, XEvent, XNextEvent, XPending};
 cfg_if! {
     if #[cfg(windows)] {
         use core::ffi::{CStr};
-        use core::ptr::{addr_of_mut, addr_of};
+        use core::ptr::{addr_of};
         use std::fs::OpenOptions;
         use std::os::windows::prelude::*;
         use windows::Win32::Foundation::MAX_PATH;
@@ -53,6 +51,8 @@ cfg_if! {
         use x11::xlib::{
             CurrentTime, RevertToParent, XMapWindow, XOpenDisplay, XSetInputFocus,
         };
+        use x11::xlib::{ClientMessage, XDestroyWindow, XEvent, XNextEvent, XPending};
+        platform::os::linux::{WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW},
     }
 }
 

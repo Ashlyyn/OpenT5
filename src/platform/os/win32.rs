@@ -207,7 +207,7 @@ impl TryFrom<MSG> for WindowEvent {
             WM_SETFOCUS => Ok(Self::SetFocus),
             WM_KILLFOCUS => Ok(Self::KillFocus),
             WM_DISPLAYCHANGE => Ok(Self::DisplayChange {
-                bit_depth: value.wParam.0 as _,
+                bits_per_pixel: value.wParam.0 as _,
                 horz_res: u32::from(value.lParam.low_word()),
                 vert_res: u32::from(value.lParam.high_word()),
             }),

@@ -3,7 +3,7 @@
 use crate::{
     gfx::{WindowTarget, R_GLOB},
     platform::{
-        os::{linux::WM_DELETE_WINDOW, target::MonitorHandle},
+        os::{target::MonitorHandle},
         WindowHandle,
     },
     sys::{gpu::Device, show_window},
@@ -17,7 +17,6 @@ extern crate alloc;
 use alloc::{collections::VecDeque, ffi::CString};
 use core::{ptr::addr_of_mut, sync::atomic::AtomicUsize};
 use std::{collections::HashSet, sync::RwLock};
-use x11::xlib::XSetWMProtocols;
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u32 = 480;
@@ -42,6 +41,8 @@ cfg_if! {
         use raw_window_handle::XlibDisplayHandle;
         use x11::xlib::{XDefaultScreen, XCreateSimpleWindow, XDefaultVisual, XScreenCount, XRootWindow, XScreenOfDisplay, XWhitePixel, XWidthOfScreen, XHeightOfScreen, XDestroyWindow, XDefaultDepth, XSetInputFocus, RevertToParent, CurrentTime, XVisualIDFromVisual};
         use x11::xrandr::{XRRGetMonitors, XRRFreeMonitors, XRRConfigCurrentRate, XRRGetScreenInfo, XRRFreeScreenConfigInfo, XRRConfigSizes, XRRConfigRates};
+        use platform::os::linux::WM_DELETE_WINDOW;
+        use x11::xlib::XSetWMProtocols;
     }
 }
 
