@@ -1,11 +1,10 @@
-use raw_window_handle::RawWindowHandle;
-use raw_window_handle::AppKitWindowHandle;
-use raw_window_handle::XlibWindowHandle;
-use raw_window_handle::RawDisplayHandle;
-use raw_window_handle::XlibDisplayHandle;
-use core::ffi::c_void;
-use cfg_if::cfg_if;
 use crate::platform::WindowHandle;
+use cfg_if::cfg_if;
+use core::ffi::c_void;
+use raw_window_handle::{
+    AppKitWindowHandle, RawDisplayHandle, RawWindowHandle, XlibDisplayHandle,
+    XlibWindowHandle,
+};
 
 pub fn main() {}
 

@@ -10,8 +10,8 @@ use crate::{
 use pollster::block_on;
 use sscanf::scanf;
 extern crate alloc;
-use alloc::{collections::VecDeque};
-use core::{sync::atomic::AtomicUsize};
+use alloc::collections::VecDeque;
+use core::sync::atomic::AtomicUsize;
 use std::{collections::HashSet, sync::RwLock};
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;

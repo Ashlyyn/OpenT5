@@ -6,13 +6,11 @@ extern crate alloc;
 use cfg_if::cfg_if;
 
 use raw_window_handle::{
-    RawDisplayHandle, RawWindowHandle, WaylandWindowHandle, XlibDisplayHandle,
-    XlibWindowHandle, WaylandDisplayHandle,
+    RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle,
+    WaylandWindowHandle, XlibDisplayHandle, XlibWindowHandle,
 };
 
-use crate::{
-    platform::WindowHandle,
-};
+use crate::platform::WindowHandle;
 
 // All uses of unsafe in the following function are just for FFI,
 // and all of those functions should be safe as called.
@@ -63,7 +61,9 @@ impl Ord for MonitorHandle {
                 .display
                 .cmp(&other.get_xlib().unwrap().display)
                 .then(handle.screen.cmp(&other.get_xlib().unwrap().screen)),
-            Self::Wayland(handle) => handle.display.cmp(&other.get_wayland().unwrap().display),
+            Self::Wayland(handle) => {
+                handle.display.cmp(&other.get_wayland().unwrap().display)
+            }
         }
     }
 }

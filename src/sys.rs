@@ -60,7 +60,7 @@ cfg_if! {
         };
         use util::EasierAtomic;
         use core::ptr::addr_of_mut;
-    }   
+    }
 }
 
 cfg_if! {
