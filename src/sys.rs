@@ -55,7 +55,7 @@ cfg_if! {
             XSetInputFocus, XCloseDisplay, ClientMessage, XDestroyWindow, 
             XEvent, XNextEvent, XPending,
         };
-        use platform::os::linux::{
+        use platform::display_server::target::{
             WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW
         };
         use util::EasierAtomic;
@@ -85,7 +85,6 @@ cfg_if! {
         use core::cell::RefCell;
         use std::ffi::OsStr;
     } else if #[cfg(target_os = "macos")] {
-        use core::ptr::addr_of_mut;
         use std::ffi::CString;
     }
 }

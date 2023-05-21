@@ -42,7 +42,7 @@ cfg_if! {
         use raw_window_handle::XlibDisplayHandle;
         use x11::xlib::{XDefaultScreen, XCreateSimpleWindow, XDefaultVisual, XScreenCount, XRootWindow, XScreenOfDisplay, XWhitePixel, XWidthOfScreen, XHeightOfScreen, XDestroyWindow, XDefaultDepth, XSetInputFocus, RevertToParent, CurrentTime, XVisualIDFromVisual};
         use x11::xrandr::{XRRGetMonitors, XRRFreeMonitors, XRRConfigCurrentRate, XRRGetScreenInfo, XRRFreeScreenConfigInfo, XRRConfigSizes, XRRConfigRates};
-        use platform::os::linux::WM_DELETE_WINDOW;
+        use platform::display_server::target::WM_DELETE_WINDOW;
         use x11::xlib::XSetWMProtocols;
         use x11::xlib::{XCloseDisplay, _XDisplay};
     }

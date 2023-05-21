@@ -3,7 +3,6 @@
 #![feature(const_option)]
 #![feature(int_roundings)]
 #![feature(const_fn_floating_point_arithmetic)]
-#![feature(impl_trait_in_assoc_type)]
 #![warn(
     clippy::all,
     clippy::restriction,
@@ -120,6 +119,7 @@ lazy_static! {
 )]
 pub fn run() {
     platform::os::target::main();
+    platform::display_server::target::init();
     let cmdline = sys::get_cmdline();
     if cmdline.contains("autominidump") {
         sys::start_minidump(false);

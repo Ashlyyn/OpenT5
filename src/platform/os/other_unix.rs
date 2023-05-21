@@ -37,16 +37,3 @@ impl MonitorHandle {
         }
     }
 }
-
-pub fn show_window(handle: WindowHandle) {
-    let handle = handle.as_xlib().unwrap();
-    todo!()
-}
-
-pub fn focus_window(handle: WindowHandle) {
-    let handle = handle.get_xlib().unwrap();
-    let display = unsafe { XOpenDisplay(core::ptr::null()) };
-    unsafe {
-        XSetInputFocus(display, handle.window, RevertToParent, CurrentTime)
-    };
-}
