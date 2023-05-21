@@ -1,3 +1,7 @@
+// Linux and macOS use Xlib by default, but Wayland and AppKit support can be
+// enabled respectively. Other Unix and Unix-like OSes (BSDs, most probably)
+// will only use Xlib.
+
 // have to do this to deal with warnings created from x11 constants
 #![allow(non_upper_case_globals)]
 

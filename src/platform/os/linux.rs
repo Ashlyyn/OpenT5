@@ -12,13 +12,6 @@ use raw_window_handle::{
 
 use crate::platform::WindowHandle;
 
-// All uses of unsafe in the following function are just for FFI,
-// and all of those functions should be safe as called.
-// No reason to comment them individually.
-#[allow(
-    clippy::undocumented_unsafe_blocks,
-    clippy::multiple_unsafe_ops_per_block
-)]
 pub fn main() {
     gtk4::init().unwrap();
 }

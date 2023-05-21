@@ -1,5 +1,6 @@
-// This file exports the platform-specific modules as module "target"
-// to allow for easy execution in main()
+// Windows, Linux, macOS, other Unix and Unix-like OSes (e.g., the BSDs) are 
+// currently supported, in addition to wasm. Other OSes might be supported in 
+// the future, but these are the ones we're supporting right now.
 
 #![allow(clippy::pub_use)]
 
