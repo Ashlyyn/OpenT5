@@ -7,7 +7,7 @@ use cfg_if::cfg_if;
 
 use raw_window_handle::{
     RawDisplayHandle, RawWindowHandle, WaylandWindowHandle, XlibDisplayHandle,
-    XlibWindowHandle,
+    XlibWindowHandle, WaylandDisplayHandle,
 };
 
 use crate::{
@@ -52,7 +52,7 @@ impl WindowHandle {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MonitorHandle {
     Xlib(XlibDisplayHandle),
-    Wayland(()),
+    Wayland(WaylandDisplayHandle),
 }
 
 #[allow(clippy::missing_trait_methods)]
@@ -63,7 +63,7 @@ impl Ord for MonitorHandle {
                 .display
                 .cmp(&other.get_xlib().unwrap().display)
                 .then(handle.screen.cmp(&other.get_xlib().unwrap().screen)),
-            Self::Wayland(()) => ().cmp(&()),
+            Self::Wayland(handle) => handle.display.cmp(&other.get_wayland().unwrap().display),
         }
     }
 }
@@ -101,9 +101,9 @@ impl MonitorHandle {
         }
     }
 
-    pub const fn get_wayland(&self) -> Option<()> {
+    pub const fn get_wayland(&self) -> Option<WaylandDisplayHandle> {
         match *self {
-            Self::Wayland(_) => Some(()),
+            Self::Wayland(handle) => Some(handle),
             _ => None,
         }
     }

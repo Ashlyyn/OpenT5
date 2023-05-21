@@ -8,11 +8,10 @@ use crate::{
     *,
 };
 use pollster::block_on;
-use raw_window_handle::RawWindowHandle;
 use sscanf::scanf;
 extern crate alloc;
-use alloc::{collections::VecDeque, ffi::CString};
-use core::{ptr::addr_of_mut, sync::atomic::AtomicUsize};
+use alloc::{collections::VecDeque};
+use core::{sync::atomic::AtomicUsize};
 use std::{collections::HashSet, sync::RwLock};
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
@@ -31,6 +30,9 @@ cfg_if! {
         use core::mem::size_of_val;
         use alloc::collections::BTreeSet;
         use raw_window_handle::Win32WindowHandle;
+        use raw_window_handle::RawWindowHandle;
+        use alloc::ffi::CString;
+        use core::ptr::addr_of_mut;
     } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
 
     } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
@@ -45,6 +47,9 @@ cfg_if! {
         use platform::display_server::target::WM_DELETE_WINDOW;
         use x11::xlib::XSetWMProtocols;
         use x11::xlib::{XCloseDisplay, _XDisplay};
+        use raw_window_handle::RawWindowHandle;
+        use alloc::ffi::CString;
+        use core::ptr::addr_of_mut;
     }
 }
 
@@ -920,7 +925,7 @@ cfg_if! {
         pub fn create_window_2(
             _wnd_parms: &mut gfx::WindowParms
         ) -> Result<(), ()> {
-            assert!(wnd_parms.window_handle.is_none());
+            assert!(_wnd_parms.window_handle.is_none());
 
             todo!()
         }

@@ -15,7 +15,6 @@ use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
 use core::{
     fmt::Display,
-    ptr::addr_of_mut,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
 };
 use lazy_static::lazy_static;
@@ -45,6 +44,7 @@ cfg_if! {
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
         use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
+        use core::ptr::addr_of_mut;
     } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
 
     } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
@@ -59,7 +59,8 @@ cfg_if! {
             WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW
         };
         use util::EasierAtomic;
-    }
+        use core::ptr::addr_of_mut;
+    }   
 }
 
 cfg_if! {
