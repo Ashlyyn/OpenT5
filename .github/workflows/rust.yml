@@ -37,6 +37,6 @@ jobs:
     - name: Install Nightly
       run: rustup toolchain add nightly
     - name: Install Dependencies
-      run: brew install --cask xquartz libxrandr
+      run: brew install --cask xquartz
     - name: Build
       run: cargo +nightly build --verbose
