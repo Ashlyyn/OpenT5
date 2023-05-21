@@ -31,6 +31,10 @@ cfg_if! {
         use core::mem::size_of_val;
         use alloc::collections::BTreeSet;
         use raw_window_handle::Win32WindowHandle;
+    } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
+
+    } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
+
     } else if #[cfg(unix)] {
         use x11::xlib::XStoreName;
         use x11::xlib::{XOpenDisplay};
@@ -887,6 +891,10 @@ cfg_if! {
                 Ok(())
             }
         }
+    } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
+
+    } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
+
     } else if #[cfg(unix)] {
         #[allow(clippy::undocumented_unsafe_blocks)]
         fn available_monitors() -> VecDeque<MonitorHandle> {

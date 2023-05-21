@@ -13,7 +13,6 @@ pub mod gpu;
 
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
-use x11::xlib::XCloseDisplay;
 use core::{
     fmt::Display,
     ptr::addr_of_mut,
@@ -46,13 +45,15 @@ cfg_if! {
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
         use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
+    } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
+
+    } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
+
     } else if #[cfg(unix)] {
         use x11::xlib::{
-            CurrentTime, RevertToParent, XMapWindow, 
-            XOpenDisplay, XSetInputFocus,
-        };
-        use x11::xlib::{
-            ClientMessage, XDestroyWindow, XEvent, XNextEvent, XPending
+            CurrentTime, RevertToParent, XMapWindow, XOpenDisplay, 
+            XSetInputFocus, XCloseDisplay, ClientMessage, XDestroyWindow, 
+            XEvent, XNextEvent, XPending,
         };
         use platform::os::linux::{
             WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW
@@ -1650,6 +1651,10 @@ cfg_if! {
                 MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
             }
         }
+    } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
+
+    } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
+
     } else if #[cfg(unix)] {
         lazy_static! {
             static ref XLIB_CONTEXT: RwLock<XlibContext> 

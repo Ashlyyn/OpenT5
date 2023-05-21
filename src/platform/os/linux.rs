@@ -14,43 +14,53 @@ use raw_window_handle::{
     RawDisplayHandle, RawWindowHandle, WaylandWindowHandle, XlibDisplayHandle,
     XlibWindowHandle,
 };
-use x11::{
-    keysym::{
-        XK_Alt_L, XK_Alt_R, XK_BackSpace, XK_Break, XK_Caps_Lock, XK_Control_L,
-        XK_Control_R, XK_Delete, XK_End, XK_Escape, XK_Home, XK_Insert,
-        XK_KP_Add, XK_KP_Begin, XK_KP_Decimal, XK_KP_Delete, XK_KP_Divide,
-        XK_KP_Down, XK_KP_End, XK_KP_Enter, XK_KP_Home, XK_KP_Insert,
-        XK_KP_Left, XK_KP_Multiply, XK_KP_Page_Down, XK_KP_Page_Up,
-        XK_KP_Right, XK_KP_Subtract, XK_KP_Up, XK_Menu, XK_Num_Lock,
-        XK_Page_Down, XK_Page_Up, XK_Pause, XK_Print, XK_Return,
-        XK_Scroll_Lock, XK_Shift_L, XK_Shift_R, XK_Sys_Req, XK_Tab, XK_Win_L,
-        XK_a, XK_ampersand, XK_apostrophe, XK_asciicircum, XK_asciitilde,
-        XK_asterisk, XK_at, XK_b, XK_backslash, XK_bar, XK_braceleft,
-        XK_braceright, XK_bracketleft, XK_bracketright, XK_c, XK_colon,
-        XK_comma, XK_d, XK_dollar, XK_downarrow, XK_e, XK_equal, XK_exclam,
-        XK_f, XK_function, XK_g, XK_grave, XK_greater, XK_h, XK_hyphen, XK_i,
-        XK_j, XK_k, XK_l, XK_leftarrow, XK_less, XK_m, XK_n, XK_numbersign,
-        XK_o, XK_p, XK_parenleft, XK_parenright, XK_percent, XK_period,
-        XK_plus, XK_q, XK_question, XK_quotedbl, XK_r, XK_rightarrow, XK_s,
-        XK_semicolon, XK_slash, XK_space, XK_t, XK_u, XK_underscore,
-        XK_uparrow, XK_v, XK_w, XK_x, XK_y, XK_z, XK_0, XK_1, XK_2, XK_3, XK_4,
-        XK_5, XK_6, XK_7, XK_8, XK_9, XK_A, XK_B, XK_C, XK_D, XK_E, XK_F,
-        XK_F1, XK_F10, XK_F11, XK_F12, XK_F2, XK_F3, XK_F4, XK_F5, XK_F6,
-        XK_F7, XK_F8, XK_F9, XK_G, XK_H, XK_I, XK_J, XK_K, XK_KP_0, XK_KP_1,
-        XK_KP_2, XK_KP_3, XK_KP_4, XK_KP_5, XK_KP_6, XK_KP_7, XK_KP_8, XK_KP_9,
-        XK_L, XK_M, XK_N, XK_O, XK_P, XK_Q, XK_R, XK_S, XK_T, XK_U, XK_V, XK_W,
-        XK_X, XK_Y, XK_Z,
-    },
-    xlib::{
-        Button1, Button2, Button3, Button4, Button5, ButtonPress,
-        ButtonRelease, ConfigureNotify, ControlMask, CreateNotify,
-        DestroyNotify, FocusIn, FocusOut, KeyPress, KeyRelease, LockMask,
-        Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask, ShiftMask,
-        XDefaultDepth, XDefaultScreen, XDefaultVisual, XEvent, XInternAtom,
-        XKeycodeToKeysym, XLookupString, XOpenDisplay, XVisualIDFromVisual, XCloseDisplay,
-    },
-    xrandr::RRScreenChangeNotify,
-};
+
+cfg_if! {
+    if #[cfg(feature = "linux_use_wayland")] {
+
+    } else {
+        use x11::{
+            keysym::{
+                XK_Alt_L, XK_Alt_R, XK_BackSpace, XK_Break, XK_Caps_Lock, 
+                XK_Control_L, XK_Control_R, XK_Delete, XK_End, XK_Escape, 
+                XK_Home, XK_Insert, XK_KP_Add, XK_KP_Begin, XK_KP_Decimal, 
+                XK_KP_Delete, XK_KP_Divide, XK_KP_Down, XK_KP_End, XK_KP_Enter,
+                XK_KP_Home, XK_KP_Insert, XK_KP_Left, XK_KP_Multiply, 
+                XK_KP_Page_Down, XK_KP_Page_Up, XK_KP_Right, XK_KP_Subtract, 
+                XK_KP_Up, XK_Menu, XK_Num_Lock, XK_Page_Down, XK_Page_Up, 
+                XK_Pause, XK_Print, XK_Return, XK_Scroll_Lock, XK_Shift_L, 
+                XK_Shift_R, XK_Sys_Req, XK_Tab, XK_Win_L, XK_a, XK_ampersand, 
+                XK_apostrophe, XK_asciicircum, XK_asciitilde, XK_asterisk, 
+                XK_at, XK_b, XK_backslash, XK_bar, XK_braceleft, XK_braceright,
+                XK_bracketleft, XK_bracketright, XK_c, XK_colon, XK_comma, 
+                XK_d, XK_dollar, XK_downarrow, XK_e, XK_equal, XK_exclam, XK_f,
+                XK_function, XK_g, XK_grave, XK_greater, XK_h, XK_hyphen, XK_i,
+                XK_j, XK_k, XK_l, XK_leftarrow, XK_less, XK_m, XK_n, 
+                XK_numbersign, XK_o, XK_p, XK_parenleft, XK_parenright, 
+                XK_percent, XK_period, XK_plus, XK_q, XK_question, XK_quotedbl,
+                XK_r, XK_rightarrow, XK_s, XK_semicolon, XK_slash, XK_space, 
+                XK_t, XK_u, XK_underscore, XK_uparrow, XK_v, XK_w, XK_x, XK_y,
+                XK_z, XK_0, XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8,
+                XK_9, XK_A, XK_B, XK_C, XK_D, XK_E, XK_F, XK_F1, XK_F10, 
+                XK_F11, XK_F12, XK_F2, XK_F3, XK_F4, XK_F5, XK_F6, XK_F7, 
+                XK_F8, XK_F9, XK_G, XK_H, XK_I, XK_J, XK_K, XK_KP_0, XK_KP_1,
+                XK_KP_2, XK_KP_3, XK_KP_4, XK_KP_5, XK_KP_6, XK_KP_7, XK_KP_8,
+                XK_KP_9, XK_L, XK_M, XK_N, XK_O, XK_P, XK_Q, XK_R, XK_S, XK_T,
+                XK_U, XK_V, XK_W, XK_X, XK_Y, XK_Z,
+            },
+            xlib::{
+                Button1, Button2, Button3, Button4, Button5, ButtonPress,
+                ButtonRelease, ConfigureNotify, ControlMask, CreateNotify,
+                DestroyNotify, FocusIn, FocusOut, KeyPress, KeyRelease, 
+                LockMask, Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask, 
+                ShiftMask, XDefaultDepth, XDefaultScreen, XDefaultVisual, 
+                XEvent, XInternAtom, XKeycodeToKeysym, XLookupString, 
+                XOpenDisplay, XVisualIDFromVisual, XCloseDisplay,
+            },
+            xrandr::RRScreenChangeNotify,
+        };
+    }
+}
 
 use cstr::cstr;
 
