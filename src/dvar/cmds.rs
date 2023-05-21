@@ -1,31 +1,16 @@
-use core::sync::atomic::AtomicBool;
-use core::sync::atomic::AtomicIsize;
-use core::sync::atomic::Ordering;
+use core::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 
-use crate::cmd;
-use crate::com;
-use crate::sys;
+use crate::{cmd, com, sys};
 
-use super::add_flags;
-use super::get_bool;
-use super::get_enumeration;
-use super::global_fns::exists;
-use super::global_fns::find;
-use super::name_is_valid;
-use super::register_bool;
-use super::register_color;
-use super::register_float;
-use super::register_int;
-use super::set_bool_from_source;
-use super::set_float_from_source;
-use super::set_int64_from_source;
-use super::set_int_from_source;
-use super::set_string_from_source;
-use super::value::DvarValue;
-use super::Dvar;
-use super::DvarFlags;
-use super::SetSource;
-use super::DVARS;
+use super::{
+    add_flags, get_bool, get_enumeration,
+    global_fns::{exists, find},
+    name_is_valid, register_bool, register_color, register_float, register_int,
+    set_bool_from_source, set_float_from_source, set_int64_from_source,
+    set_int_from_source, set_string_from_source,
+    value::DvarValue,
+    Dvar, DvarFlags, SetSource, DVARS,
+};
 
 use lazy_static::lazy_static;
 
@@ -808,8 +793,8 @@ fn register_color_f() {
             .unwrap();
         }
         Some(d) => {
-            // Else if it does exist, the type is String, and the External flag is
-            // set, register it
+            // Else if it does exist, the type is String, and the External flag
+            // is set, register it
             if let DvarValue::String(_) = d.current {
                 if d.flags.contains(DvarFlags::EXTERNAL) {
                     register_color(

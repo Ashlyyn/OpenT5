@@ -38,8 +38,8 @@ pub fn get_bool(name: &str) -> Option<bool> {
 }
 
 /// Retrieves a [`bool`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::Bool`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::Bool`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -107,8 +107,8 @@ pub fn get_float(name: &str) -> Option<f32> {
 }
 
 /// Retrieves an [`f32`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::Float`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::Float`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -183,8 +183,8 @@ pub fn get_vector2(name: &str) -> Option<Vec2f32> {
 }
 
 /// Retrieves a [`Vec2f32`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::Vector2`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::Vector2`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -267,8 +267,8 @@ pub fn get_vector3(name: &str) -> Option<Vec3f32> {
 }
 
 /// Retrieves a [`Vec3f32`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::Vector3`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::Vector3`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -343,8 +343,8 @@ pub fn get_vector4(name: &str) -> Option<Vec4f32> {
 }
 
 /// Retrieves a [`Vec4f32`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::Vector4`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::Vector4`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -502,8 +502,8 @@ pub fn get_string(name: &str) -> Option<String> {
 }
 
 /// Retrieves a [`String`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::String`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::String`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -571,8 +571,8 @@ pub fn get_enumeration(name: &str) -> Option<String> {
 }
 
 /// Retrieves an [`String`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::Enumeration`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::Enumeration`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -646,19 +646,23 @@ pub fn get_color(name: &str) -> Option<Vec4f32> {
 }
 
 /// Retrieves a [`Vec4f32`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::Color`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::Color`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
 /// to be retrieved or registered.
-/// * `red` - The red component of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `red` - The red component of the [`Dvar`]'s value to register the [`Dvar`]
+///   with if it doesn't
 /// already exist.
-/// * `green` - The red component of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `green` - The red component of the [`Dvar`]'s value to register the
+///   [`Dvar`] with if it doesn't
 /// already exist.
-/// * `blue` - The red component of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `blue` - The red component of the [`Dvar`]'s value to register the
+///   [`Dvar`] with if it doesn't
 /// already exist.
-/// * `alpha` - The red component of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `alpha` - The red component of the [`Dvar`]'s value to register the
+///   [`Dvar`] with if it doesn't
 /// already exist.
 /// * `flags` - Optional flags to register the [`Dvar`] with if it
 /// doesn't already exist.
@@ -728,8 +732,8 @@ pub fn get_int64(name: &str) -> Option<i64> {
 }
 
 /// Retrieves a [`i64`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::Int64`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::Int64`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -805,17 +809,20 @@ pub fn get_linear_color_rgb(name: &str) -> Option<Vec3f32> {
 }
 
 /// Retrieves a [`Vec3f32`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::LinearColorRGB`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::LinearColorRGB`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
 /// to be retrieved or registered.
-/// * `red` - The red component of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `red` - The red component of the [`Dvar`]'s value to register the [`Dvar`]
+///   with if it doesn't
 /// already exist.
-/// * `green` - The red component of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `green` - The red component of the [`Dvar`]'s value to register the
+///   [`Dvar`] with if it doesn't
 /// already exist.
-/// * `blue` - The red component of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `blue` - The red component of the [`Dvar`]'s value to register the
+///   [`Dvar`] with if it doesn't
 /// already exist.
 /// * `min` - An optional minimum value to supply for the [`Dvar`]'s domain
 /// if it doesn't already exist.
@@ -898,17 +905,20 @@ pub fn get_color_xyz(name: &str) -> Option<Vec3f32> {
 }
 
 /// Retrieves a [`Vec3f32`] value from a [`Dvar`] if said [`Dvar`] exists,
-/// registers a [`Dvar`] of type [`DvarValue::ColorXYZ`] with the supplied parameters
-/// otherwise.
+/// registers a [`Dvar`] of type [`DvarValue::ColorXYZ`] with the supplied
+/// parameters otherwise.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
 /// to be retrieved or registered.
-/// * `x` - The `x` of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `x` - The `x` of the [`Dvar`]'s value to register the [`Dvar`] with if it
+///   doesn't
 /// already exist.
-/// * `y` - The `y` component of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `y` - The `y` component of the [`Dvar`]'s value to register the [`Dvar`]
+///   with if it doesn't
 /// already exist.
-/// * `z` - The `z` component of the [`Dvar`]'s value to register the [`Dvar`] with if it doesn't
+/// * `z` - The `z` component of the [`Dvar`]'s value to register the [`Dvar`]
+///   with if it doesn't
 /// already exist.
 /// * `min` - An optional minimum value to supply for the [`Dvar`]'s domain
 /// if it doesn't already exist.

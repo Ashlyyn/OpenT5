@@ -105,8 +105,8 @@ pub fn set_bool_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -139,8 +139,8 @@ pub fn set_bool_internal(name: &str, value: bool) -> Result<(), ()> {
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -259,8 +259,8 @@ pub fn set_float_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -293,8 +293,8 @@ pub fn set_float_internal(name: &str, value: f32) -> Result<(), ()> {
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -424,8 +424,8 @@ pub fn set_vector2_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -458,8 +458,8 @@ pub fn set_vector2_internal(name: &str, value: Vec2f32) -> Result<(), ()> {
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -589,8 +589,8 @@ pub fn set_vector3_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -623,8 +623,8 @@ pub fn set_vector3_internal(name: &str, value: Vec3f32) -> Result<(), ()> {
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -754,8 +754,8 @@ pub fn set_vector4_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -788,8 +788,8 @@ pub fn set_vector4_internal(name: &str, value: Vec4f32) -> Result<(), ()> {
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -919,8 +919,8 @@ pub fn set_int_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -953,8 +953,8 @@ pub fn set_int_internal(name: &str, value: i32) -> Result<(), ()> {
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1077,8 +1077,8 @@ pub fn set_string_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1111,8 +1111,8 @@ pub fn set_string_internal(name: &str, value: &str) -> Result<(), ()> {
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1253,8 +1253,8 @@ pub fn set_enumeration_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1287,8 +1287,8 @@ pub fn set_enumeration_internal(name: &str, value: &str) -> Result<(), ()> {
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1579,8 +1579,8 @@ pub fn set_color_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1619,8 +1619,8 @@ pub fn set_color_internal(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1748,8 +1748,8 @@ pub fn set_int64_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1782,8 +1782,8 @@ pub fn set_int64_internal(name: &str, value: i64) -> Result<(), ()> {
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1919,8 +1919,8 @@ pub fn set_linear_color_rgb_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1964,8 +1964,8 @@ pub fn set_linear_color_rgb_internal(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -2120,8 +2120,8 @@ pub fn set_color_xyz_from_source(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::Internal`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -2159,8 +2159,8 @@ pub fn set_color_xyz_internal(
 /// Sets the value of an existing [`Dvar`].
 ///
 /// Uses the supplied parameters to update an existing [`Dvar`] with name
-/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with `name`
-/// doesn't exist.
+/// `name` from source [`SetSource::External`]. Does nothing if a [`Dvar`] with
+/// `name` doesn't exist.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]

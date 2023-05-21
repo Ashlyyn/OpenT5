@@ -24,16 +24,19 @@ lazy_static! {
         RwLock::new(HashMap::new());
 }
 
-/// Finds a previously-registered [`Dvar`] by name and returns a copy if present.
+/// Finds a previously-registered [`Dvar`] by name and returns a copy if
+/// present.
 ///
-/// Since this function returns a copy, it is not useful for modifying an existing [`Dvar`].
-/// (See [`register_variant`] or [`reregister`] for modification purposes).
-/// Instead, it may be used to query if a [`Dvar`] exists, or to query the
-/// state of said [`Dvar`] at the point in time at which the copy is made.
+/// Since this function returns a copy, it is not useful for modifying an
+/// existing [`Dvar`]. (See [`register_variant`] or [`reregister`] for
+/// modification purposes). Instead, it may be used to query if a [`Dvar`]
+/// exists, or to query the state of said [`Dvar`] at the point in time at which
+/// the copy is made.
 ///
 /// # Arguments
 ///
-/// * `name` - A [`String`] that holds the name of the [`Dvar`] to be searched for.
+/// * `name` - A [`String`] that holds the name of the [`Dvar`] to be searched
+///   for.
 ///
 /// # Return Value
 ///
@@ -67,7 +70,8 @@ pub(super) fn find(name: &str) -> Option<Dvar> {
 ///
 /// # Arguments
 ///
-/// * `name` - A [`String`] that holds the name of the [`Dvar`] to be searched for.
+/// * `name` - A [`String`] that holds the name of the [`Dvar`] to be searched
+///   for.
 ///
 /// # Return Value
 ///

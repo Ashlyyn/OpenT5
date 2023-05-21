@@ -15,8 +15,7 @@ use raw_window_handle::{
     HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
 
-use crate::platform::os::target::MonitorHandle;
-use crate::platform::WindowHandle;
+use crate::platform::{os::target::MonitorHandle, WindowHandle};
 
 use cfg_if::cfg_if;
 
@@ -133,8 +132,8 @@ impl Module {
             /// Returns [`Some`] if the library was successfully loaded,
             /// [`None`] if not.
             pub fn load(name: &Path) -> Option<Self> {
-                // [`OsStrExt::encode_wide`] doesn't add the null-terminator that
-                // LoadLibraryW is going to expect, so we have to add it
+                // [`OsStrExt::encode_wide`] doesn't add the null-terminator
+                // that LoadLibraryW is going to expect, so we have to add it
                 // manually
                 let mut name =
                     name.as_os_str().encode_wide().collect::<Vec<_>>();
@@ -146,7 +145,9 @@ impl Module {
                 // LoadLibraryW itself should never create UB, violate memory
                 // safety, etc., regardless of the name or path passed to it
                 // in any scenario.
-                unsafe { LoadLibraryW(PCWSTR(name)) }.ok().map(|h| Self { ptr: h.0 as *mut () })
+                unsafe {
+                    LoadLibraryW(PCWSTR(name))
+                }.ok().map(|h| Self { ptr: h.0 as *mut () })
             }
 
             /// Unloads the library loaded by [`Module::load`]. Should only be

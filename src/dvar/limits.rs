@@ -460,10 +460,12 @@ impl DvarLimitsEnumeration {
     ///
     /// # Parameters
     /// * `domain` - A slice of [`String`]s containing the valid values for
-    /// the [`Dvar`]. The [`Dvar`]'s initial value *must* be included in this domain.
+    /// the [`Dvar`]. The [`Dvar`]'s initial value *must* be included in this
+    /// domain.
     ///
     /// # Panics
-    /// Currently will panic if [`domain.is_empty()`]. Might be changed at some point.
+    /// Currently will panic if [`domain.is_empty()`]. Might be changed at some
+    /// point.
     ///
     /// # Example
     /// ```
@@ -587,8 +589,8 @@ pub struct DvarLimitsLinearColorRGB {
 }
 
 impl Default for DvarLimitsLinearColorRGB {
-    /// Returns a [`DvarLimitsLinearColorRGB`] with `min` field set to [`f32::MIN`]
-    /// and `max` field set to [`f32::MAX`].
+    /// Returns a [`DvarLimitsLinearColorRGB`] with `min` field set to
+    /// [`f32::MIN`] and `max` field set to [`f32::MAX`].
     fn default() -> Self {
         Self {
             min: f32::MIN,
@@ -649,9 +651,8 @@ impl DvarLimitsLinearColorRGB {
     pub fn new(min: f32, max: f32) -> Self {
         if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
             panic!(
-                "DvarLimitsLinearColorRGB::new(): \
-            supplied min is greater than max,\
-            or min and/or max are not within [0.0, 1.0]"
+                "DvarLimitsLinearColorRGB::new(): supplied min is greater \
+                 than max,or min and/or max are not within [0.0, 1.0]"
             );
         }
 
@@ -734,9 +735,8 @@ impl DvarLimitsColorXYZ {
     pub fn new(min: f32, max: f32) -> Self {
         if min < 0.0 || max < 0.0 || min > 1.0 || max > 1.0 || min > max {
             panic!(
-                "DvarLimitsLinearColorRGB::new(): \
-            supplied min is greater than max,\
-            or min and/or max are not within [0.0, 1.0]"
+                "DvarLimitsLinearColorRGB::new(): supplied min is greater \
+                 than max,or min and/or max are not within [0.0, 1.0]"
             );
         }
 

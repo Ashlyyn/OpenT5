@@ -1,16 +1,16 @@
 #![allow(dead_code, clippy::pub_use)]
 
-use crate::console::Channel;
-use crate::util::EasierAtomic;
-use crate::*;
+use crate::{console::Channel, util::EasierAtomic, *};
 use arrayvec::ArrayVec;
-use core::sync::atomic::AtomicU64;
-use core::sync::atomic::AtomicUsize;
-use core::time::Duration;
+use core::{
+    sync::atomic::{AtomicU64, AtomicUsize},
+    time::Duration,
+};
 use lazy_static::lazy_static;
-use std::fs::File;
-use std::sync::Mutex;
-use std::sync::RwLock;
+use std::{
+    fs::File,
+    sync::{Mutex, RwLock},
+};
 extern crate alloc;
 use alloc::sync::Arc;
 use cfg_if::cfg_if;
@@ -422,7 +422,8 @@ pub fn init() {
     let com_error = 0; // TODO - implement sys::get_value correctly
 
     if com_error != 0 {
-        //sys::error(&format!("Error during initialization:\n{}", *ERROR_MESSAGE.clone().read().unwrap()));
+        // sys::error(&format!("Error during initialization:\n{}",
+        // *ERROR_MESSAGE.clone().read().unwrap()));
     }
 
     init_try_block_function();
@@ -441,7 +442,10 @@ fn init_dvars() {
         "onlinegame",
         true,
         dvar::DvarFlags::READ_ONLY,
-        Some("Current game is an online game with stats, custom classes, unlocks"),
+        Some(
+            "Current game is an online game with stats, custom classes, \
+             unlocks",
+        ),
     )
     .unwrap();
 

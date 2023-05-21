@@ -63,7 +63,14 @@ pub fn register_bool(
         .is_some()
     {
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -118,7 +125,8 @@ pub fn register_new_bool(
 /// to be registered.
 /// * `value` - A [`bool`] representing the value to register the [`Dvar`] with.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -162,7 +170,8 @@ pub fn reregister_bool(
 /// * `max` - Optional [`f32`] representing the upper bound
 /// of the domain for the [`Dvar`].
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -213,7 +222,14 @@ pub fn register_float(
         .is_some()
     {
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -386,7 +402,14 @@ pub fn register_vector2(
         .is_some()
     {
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -559,7 +582,14 @@ pub fn register_vector3(
         .is_some()
     {
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -733,7 +763,14 @@ pub fn register_vector4(
         .is_some()
     {
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -907,7 +944,14 @@ pub fn register_int(
         .is_some()
     {
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -1020,7 +1064,8 @@ pub fn reregister_int(
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
 /// to be registered.
-/// * `value` - A [`String`] representing the value to register the [`Dvar`] with.
+/// * `value` - A [`String`] representing the value to register the [`Dvar`]
+///   with.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
 /// * `description` - Optional [`String`] containing a
 /// description for the [`Dvar`].
@@ -1069,7 +1114,14 @@ pub fn register_string(
         .is_some()
     {
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -1082,7 +1134,8 @@ pub fn register_string(
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
 /// to be registered.
-/// * `value` - A [`String`] representing the value to register the [`Dvar`] with.
+/// * `value` - A [`String`] representing the value to register the [`Dvar`]
+///   with.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
 /// * `description` - Optional [`String`] containing a
 /// description for the [`Dvar`].
@@ -1154,18 +1207,20 @@ pub fn reregister_string(
     register_string(name, value, flags, description)
 }
 
-/// Registers a new [`Dvar`] of type [`DvarValue::Enumeration`], using the provided name,
-/// value, flags, and description, if a [`Dvar`] with name `name` doesn't already
-/// exist, reregisters said [`Dvar`] if it does.
+/// Registers a new [`Dvar`] of type [`DvarValue::Enumeration`], using the
+/// provided name, value, flags, and description, if a [`Dvar`] with name `name`
+/// doesn't already exist, reregisters said [`Dvar`] if it does.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
 /// to be registered.
-/// * `value` - A [`String`] representing the value to register the [`Dvar`] with.
+/// * `value` - A [`String`] representing the value to register the [`Dvar`]
+///   with.
 /// * `domain` - Optional [`Vec<String>`] representing the domain
 /// to register the [`Dvar`] with.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -1215,7 +1270,14 @@ pub fn register_enumeration(
         .is_some()
     {
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -1228,7 +1290,8 @@ pub fn register_enumeration(
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
 /// to be registered.
-/// * `value` - A [`String`] representing the value to register the [`Dvar`] with.
+/// * `value` - A [`String`] representing the value to register the [`Dvar`]
+///   with.
 /// * `domain` - Optional [`Vec<String>`] representing the domain
 /// to register the [`Dvar`] with.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
@@ -1310,8 +1373,8 @@ pub fn reregister_enumeration(
 }
 
 /// Registers a [`Dvar`] of type [`DvarValue::Color`], using the provided name,
-/// value, flags, and description, if a [`Dvar`] with name `name` doesn't already
-/// exist, reregisters said [`Dvar`] if it does.
+/// value, flags, and description, if a [`Dvar`] with name `name` doesn't
+/// already exist, reregisters said [`Dvar`] if it does.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1325,7 +1388,8 @@ pub fn reregister_enumeration(
 /// * `alpha` - An [`f32`] representing the A component of an RGBA-format color.
 /// Must be within the domain (0.0, 1.0).
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -1384,7 +1448,14 @@ pub fn register_color(
         .is_some()
     {
         let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -1406,7 +1477,8 @@ pub fn register_color(
 /// * `alpha` - An [`f32`] representing the A component of an RGBA-format color.
 /// Must be within the domain (0.0, 1.0).
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -1457,7 +1529,8 @@ pub fn register_new_color(
 /// * `alpha` - An [`f32`] representing the A component of an RGBA-format color.
 /// Must be within the domain (0.0, 1.0).
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -1494,8 +1567,8 @@ pub fn reregister_color(
 }
 
 /// Registers a [`Dvar`] of type [`DvarValue::Int64`], using the provided name,
-/// value, flags, and description, if a [`Dvar`] with name `name` doesn't already
-/// exist, reregisters said [`Dvar`] if it does.
+/// value, flags, and description, if a [`Dvar`] with name `name` doesn't
+/// already exist, reregisters said [`Dvar`] if it does.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1506,7 +1579,8 @@ pub fn reregister_color(
 /// * `max` - Optional [`i64`] representing the upper bound
 /// for the domain for `value`
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -1557,7 +1631,14 @@ pub fn register_int64(
         .is_some()
     {
         let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -1660,9 +1741,9 @@ pub fn reregister_int64(
     register_int64(name, value, min, max, flags, description)
 }
 
-/// Registers a [`Dvar`] of type [`DvarValue::LinearColorRGB`], using the provided name,
-/// value, flags, and description, if a [`Dvar`] with name `name` doesn't already
-/// exist, reregisters said [`Dvar`] if it does.
+/// Registers a [`Dvar`] of type [`DvarValue::LinearColorRGB`], using the
+/// provided name, value, flags, and description, if a [`Dvar`] with name `name`
+/// doesn't already exist, reregisters said [`Dvar`] if it does.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1678,7 +1759,8 @@ pub fn reregister_int64(
 /// * `max` - Optional [`f32`] representing the upper bound
 /// of the domain for `red`, `green`, and `blue`.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -1736,7 +1818,14 @@ pub fn register_linear_color_rgb(
         .is_some()
     {
         let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -1760,7 +1849,8 @@ pub fn register_linear_color_rgb(
 /// * `max` - Optional [`f32`] representing the upper bound
 /// of the domain for `red`, `green`, and `blue`.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -1827,7 +1917,8 @@ pub fn register_new_linear_color_rgb(
 /// * `max` - Optional [`f32`] representing the upper bound
 /// of the domain for `red`, `green`, and `blue`.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -1876,9 +1967,9 @@ pub fn reregister_linear_color_rgb(
     )
 }
 
-/// Registers a [`Dvar`] of type [`DvarValue::ColorXYZ`], using the provided name,
-/// value, flags, and description, if a [`Dvar`] with name `name` doesn't already
-/// exist, reregisters said [`Dvar`] if it does.
+/// Registers a [`Dvar`] of type [`DvarValue::ColorXYZ`], using the provided
+/// name, value, flags, and description, if a [`Dvar`] with name `name` doesn't
+/// already exist, reregisters said [`Dvar`] if it does.
 ///
 /// # Arguments
 /// * `name` - A [`String`] that holds the name of the [`Dvar`]
@@ -1891,7 +1982,8 @@ pub fn reregister_linear_color_rgb(
 /// * `max` - Optional [`f32`] representing the upper bound
 /// of the domain for `red`, `green`, and `blue`.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -1946,7 +2038,14 @@ pub fn register_color_xyz(
         .is_some()
     {
         let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
-        com::errorln(com::ErrorParm::FATAL, format!("dvar name hash collision between \'{}\' and \'{}\' Please change one of these names to remove the hash collision", name, other_name));
+        com::errorln(
+            com::ErrorParm::FATAL,
+            format!(
+                "dvar name hash collision between \'{}\' and \'{}\' Please \
+                 change one of these names to remove the hash collision",
+                name, other_name
+            ),
+        );
         Err(())
     } else {
         Ok(())
@@ -1967,7 +2066,8 @@ pub fn register_color_xyz(
 /// * `max` - Optional [`f32`] representing the upper bound
 /// of the domain for `red`, `green`, and `blue`.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///
@@ -2020,7 +2120,8 @@ pub fn register_new_color_xyz(
 /// * `max` - Optional [`f32`] representing the upper bound
 /// of the domain for `red`, `green`, and `blue`.
 /// * `flags` - Optional [`DvarFlags`] to register the [`Dvar`] with.
-/// * `description` - Optional [`String`] containing a description for the [`Dvar`].
+/// * `description` - Optional [`String`] containing a description for the
+///   [`Dvar`].
 ///
 /// # Return Value
 ///

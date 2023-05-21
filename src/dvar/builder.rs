@@ -1,3 +1,5 @@
+#![allow(clippy::missing_const_for_fn)]
+
 use core::marker::PhantomData;
 
 use crate::common::{Vec2f32, Vec3f32, Vec4f32};
@@ -122,7 +124,7 @@ pub struct DvarBuilder<T> {
 }
 
 impl DvarBuilder<DvarBuilderStartState> {
-    pub(super) fn new() -> DvarBuilder<DvarBuilderDataState> {
+    pub(super) const fn new() -> DvarBuilder<DvarBuilderDataState> {
         DvarBuilder::<DvarBuilderDataState> {
             dvar: DvarInProgress {
                 name: None,
@@ -136,7 +138,7 @@ impl DvarBuilder<DvarBuilderStartState> {
                 reset: None,
                 saved: None,
             },
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -148,17 +150,17 @@ impl DvarBuilder<DvarBuilderDataState> {
     }
 
     pub(super) fn description(mut self, description: String) -> Self {
-        self.dvar.description = description.into();
+        self.dvar.description = Some(description);
         self
     }
 
     pub(super) fn flags(mut self, flags: DvarFlags) -> Self {
-        self.dvar.flags = flags.into();
+        self.dvar.flags = Some(flags);
         self
     }
 
     pub(super) fn loaded_from_save_game(mut self, b: bool) -> Self {
-        self.dvar.loaded_from_save_game = b.into();
+        self.dvar.loaded_from_save_game = Some(b);
         self
     }
 
@@ -167,7 +169,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeBoolCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeBoolCurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -176,7 +178,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeFloatDomainState> {
         DvarBuilder::<DvarBuilderTypeFloatDomainState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -185,7 +187,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeVector2DomainState> {
         DvarBuilder::<DvarBuilderTypeVector2DomainState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -194,7 +196,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeVector3DomainState> {
         DvarBuilder::<DvarBuilderTypeVector3DomainState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -203,14 +205,14 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeVector4DomainState> {
         DvarBuilder::<DvarBuilderTypeVector4DomainState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
     pub(super) fn type_int(self) -> DvarBuilder<DvarBuilderTypeIntDomainState> {
         DvarBuilder::<DvarBuilderTypeIntDomainState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -219,7 +221,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeStringCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeStringCurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -228,7 +230,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeEnumerationDomainState> {
         DvarBuilder::<DvarBuilderTypeEnumerationDomainState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -237,7 +239,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeColorCurrentValueState> {
         DvarBuilder::<DvarBuilderTypeColorCurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -246,7 +248,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeInt64DomainState> {
         DvarBuilder::<DvarBuilderTypeInt64DomainState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -255,7 +257,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeLinearColorRGBDomainState> {
         DvarBuilder::<DvarBuilderTypeLinearColorRGBDomainState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 
@@ -264,7 +266,7 @@ impl DvarBuilder<DvarBuilderDataState> {
     ) -> DvarBuilder<DvarBuilderTypeColorXYZDomainState> {
         DvarBuilder::<DvarBuilderTypeColorXYZDomainState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -279,7 +281,7 @@ impl DvarBuilder<DvarBuilderTypeFloatDomainState> {
             DvarLimits::Float(DvarLimitsFloat::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeFloatCurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -294,7 +296,7 @@ impl DvarBuilder<DvarBuilderTypeVector2DomainState> {
             DvarLimits::Vector2(DvarLimitsVector2::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeVector2CurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -309,7 +311,7 @@ impl DvarBuilder<DvarBuilderTypeVector3DomainState> {
             DvarLimits::Vector3(DvarLimitsVector3::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeVector3CurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -324,7 +326,7 @@ impl DvarBuilder<DvarBuilderTypeVector4DomainState> {
             DvarLimits::Vector4(DvarLimitsVector4::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeVector4CurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -338,7 +340,7 @@ impl DvarBuilder<DvarBuilderTypeIntDomainState> {
         self.dvar.domain = DvarLimits::Int(DvarLimitsInt::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeIntCurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -352,7 +354,7 @@ impl DvarBuilder<DvarBuilderTypeEnumerationDomainState> {
             DvarLimits::Enumeration(DvarLimitsEnumeration::new(domain)).into();
         DvarBuilder::<DvarBuilderTypeEnumerationCurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -367,7 +369,7 @@ impl DvarBuilder<DvarBuilderTypeInt64DomainState> {
             DvarLimits::Int64(DvarLimitsInt64::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeInt64CurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -383,7 +385,7 @@ impl DvarBuilder<DvarBuilderTypeLinearColorRGBDomainState> {
                 .into();
         DvarBuilder::<DvarBuilderTypeLinearColorRGBCurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -398,7 +400,7 @@ impl DvarBuilder<DvarBuilderTypeColorXYZDomainState> {
             DvarLimits::ColorXYZ(DvarLimitsColorXYZ::new(min, max)).into();
         DvarBuilder::<DvarBuilderTypeColorXYZCurrentValueState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -415,7 +417,7 @@ impl DvarBuilder<DvarBuilderTypeBoolCurrentValueState> {
         self.dvar.reset = DvarValue::Bool(value).into();
         DvarBuilder::<DvarBuilderTypeBoolOtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -431,7 +433,7 @@ impl DvarBuilder<DvarBuilderTypeFloatCurrentValueState> {
         self.dvar.reset = DvarValue::Float(value).into();
         DvarBuilder::<DvarBuilderTypeFloatOtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -447,7 +449,7 @@ impl DvarBuilder<DvarBuilderTypeVector2CurrentValueState> {
         self.dvar.reset = DvarValue::Vector2(value).into();
         DvarBuilder::<DvarBuilderTypeVector2OtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -463,7 +465,7 @@ impl DvarBuilder<DvarBuilderTypeVector3CurrentValueState> {
         self.dvar.reset = DvarValue::Vector3(value).into();
         DvarBuilder::<DvarBuilderTypeVector3OtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -479,7 +481,7 @@ impl DvarBuilder<DvarBuilderTypeVector4CurrentValueState> {
         self.dvar.reset = DvarValue::Vector4(value).into();
         DvarBuilder::<DvarBuilderTypeVector4OtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -495,7 +497,7 @@ impl DvarBuilder<DvarBuilderTypeIntCurrentValueState> {
         self.dvar.reset = DvarValue::Int(value).into();
         DvarBuilder::<DvarBuilderTypeIntOtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -512,7 +514,7 @@ impl DvarBuilder<DvarBuilderTypeStringCurrentValueState> {
         self.dvar.reset = DvarValue::String(value).into();
         DvarBuilder::<DvarBuilderTypeStringOtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -528,7 +530,7 @@ impl DvarBuilder<DvarBuilderTypeEnumerationCurrentValueState> {
         self.dvar.reset = DvarValue::Enumeration(value).into();
         DvarBuilder::<DvarBuilderTypeEnumerationOtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -545,7 +547,7 @@ impl DvarBuilder<DvarBuilderTypeColorCurrentValueState> {
         self.dvar.reset = DvarValue::Color(value).into();
         DvarBuilder::<DvarBuilderTypeColorOtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -561,7 +563,7 @@ impl DvarBuilder<DvarBuilderTypeInt64CurrentValueState> {
         self.dvar.reset = DvarValue::Int64(value).into();
         DvarBuilder::<DvarBuilderTypeInt64OtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -577,7 +579,7 @@ impl DvarBuilder<DvarBuilderTypeLinearColorRGBCurrentValueState> {
         self.dvar.reset = DvarValue::LinearColorRGB(value).into();
         DvarBuilder::<DvarBuilderTypeLinearColorRGBOtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
@@ -593,7 +595,7 @@ impl DvarBuilder<DvarBuilderTypeColorXYZCurrentValueState> {
         self.dvar.reset = DvarValue::ColorXYZ(value).into();
         DvarBuilder::<DvarBuilderTypeColorXYZOtherValuesState> {
             dvar: self.dvar,
-            extra: PhantomData::default(),
+            extra: PhantomData,
         }
     }
 }
