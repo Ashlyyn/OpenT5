@@ -53,6 +53,7 @@ cfg_if! {
         };
         use x11::xlib::{ClientMessage, XDestroyWindow, XEvent, XNextEvent, XPending};
         use platform::os::linux::{WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW};
+        use util::EasierAtomic;
     }
 }
 
