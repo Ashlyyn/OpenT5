@@ -201,7 +201,9 @@ cfg_if! {
 
         impl XlibModifiers {
             const fn contains_mod_masks(self) -> bool {
-                self.0 & (Mod1Mask | Mod2Mask | Mod3Mask | Mod4Mask | Mod5Mask) != 0
+                self.0 & (
+                    Mod1Mask | Mod2Mask | Mod3Mask | Mod4Mask | Mod5Mask
+                ) != 0
             }
         }
 
@@ -366,7 +368,9 @@ cfg_if! {
         }
 
         pub trait WindowEventExtXlib {
-            fn try_from_xevent(ev: XEvent, context: XlibContext) -> Result<(VecDeque<WindowEvent>, Option<XlibContext>), ()>;
+            fn try_from_xevent(
+                ev: XEvent, context: XlibContext
+            ) -> Result<(VecDeque<WindowEvent>, Option<XlibContext>), ()>;
         }
 
         impl WindowEventExtXlib for WindowEvent {
@@ -381,7 +385,9 @@ cfg_if! {
                 clippy::cast_possible_wrap,
                 clippy::cast_possible_truncation,
             )]
-            fn try_from_xevent(ev: XEvent, context: XlibContext) -> Result<(VecDeque<WindowEvent>, Option<XlibContext>),()> {
+            fn try_from_xevent(
+                ev: XEvent, context: XlibContext
+            ) -> Result<(VecDeque<WindowEvent>, Option<XlibContext>), ()> {
                 let any = unsafe { ev.any };
                 match any.type_ {
                     CreateNotify => {
@@ -389,10 +395,14 @@ cfg_if! {
                         let ev = unsafe { ev.any };
                         handle.window = ev.window;
                         let screen = unsafe { XDefaultScreen(ev.display) };
-                        let visual = unsafe { XDefaultVisual(ev.display, screen) };
+                        let visual = unsafe { 
+                            XDefaultVisual(ev.display, screen) 
+                        };
                         let visual_id = unsafe { XVisualIDFromVisual(visual) };
                         handle.visual_id = visual_id;
-                        Ok((vec![Self::Created(WindowHandle::new(RawWindowHandle::Xlib(handle)))].into(), None))
+                        Ok((vec![Self::Created(
+                            WindowHandle::new(RawWindowHandle::Xlib(handle))
+                        )].into(), None))
                     },
                     DestroyNotify => Ok((vec![Self::Destroyed].into(), None)),
                     ConfigureNotify => {
@@ -404,7 +414,10 @@ cfg_if! {
                         let new_context = XlibContext { width, height, x, y };
                         let mut evs = Vec::new();
                         if width != context.width || height != context.height {
-                            evs.push(Self::Resized { width: width as _, height: height as _ });
+                            evs.push(Self::Resized { 
+                                width: width as _, 
+                                height: height as _ 
+                            });
                         } else if x != context.x || y != context.y {
                             evs.push(Self::Moved { x: x as _, y: y as _ });
                         }
@@ -421,18 +434,31 @@ cfg_if! {
                         let ev = unsafe { ev.button };
                         let button = XlibMouseButton(ev.button);
 
-                        MouseScancode::try_from(button).map_or_else(|_| if button.0 == Button4 {
-                            Ok((vec![Self::MouseWheelScroll(120.0)].into(), None))
+                        MouseScancode::try_from(button)
+                            .map_or_else(|_| if button.0 == Button4 
+                        {
+                            Ok((
+                                vec![Self::MouseWheelScroll(120.0)].into(), 
+                                None
+                            ))
                         } else if button.0 == Button5 {
-                            Ok((vec![Self::MouseWheelScroll(-120.0)].into(), None))
+                            Ok((
+                                vec![Self::MouseWheelScroll(-120.0)].into(), 
+                                None
+                            ))
                         } else {
                             Err(())
-                        }, |b| Ok((vec![Self::MouseButtonDown(b)].into(), None)))
+                        }, |b| Ok((
+                            vec![Self::MouseButtonDown(b)].into(), None
+                        )))
                     },
                     ButtonRelease => {
                         let ev = unsafe { ev.button };
                         let button = XlibMouseButton(ev.button);
-                        MouseScancode::try_from(button).map_or(Err(()), |b| Ok((vec![Self::MouseButtonUp(b)].into(), None)))
+                        MouseScancode::try_from(button).map_or(
+                            Err(()), 
+                            |b| Ok((vec![Self::MouseButtonUp(b)].into(), None))
+                        )
                     },
                     KeyPress | KeyRelease => {
                         let down = any.type_ == KeyPress;
@@ -452,8 +478,11 @@ cfg_if! {
                             );
                         };
 
-                        let physical_scancode: Option<KeyboardScancode> = XlibKeysym(physical_keysym).try_into().ok();
-                        let Ok(logical_scancode) = XlibKeysym(logical_keysym).try_into() else {
+                        let physical_scancode: Option<KeyboardScancode> 
+                            = XlibKeysym(physical_keysym).try_into().ok();
+                        let Ok(logical_scancode) 
+                            = XlibKeysym(logical_keysym).try_into() else 
+                        {
                             return Err(())
                         };
 
@@ -472,7 +501,9 @@ cfg_if! {
                     RRScreenChangeNotify => {
                         let ev = unsafe { ev.xrr_screen_change_notify };
                         let screen = unsafe { XDefaultScreen(ev.display) };
-                        let depth = unsafe { XDefaultDepth(ev.display, screen) };
+                        let depth = unsafe { 
+                            XDefaultDepth(ev.display, screen) 
+                        };
                         Ok((vec![Self::DisplayChange {
                             bits_per_pixel: depth as _,
                             horz_res: ev.width as _,

@@ -47,10 +47,15 @@ cfg_if! {
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
     } else if #[cfg(unix)] {
         use x11::xlib::{
-            CurrentTime, RevertToParent, XMapWindow, XOpenDisplay, XSetInputFocus,
+            CurrentTime, RevertToParent, XMapWindow, 
+            XOpenDisplay, XSetInputFocus,
         };
-        use x11::xlib::{ClientMessage, XDestroyWindow, XEvent, XNextEvent, XPending};
-        use platform::os::linux::{WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW};
+        use x11::xlib::{
+            ClientMessage, XDestroyWindow, XEvent, XNextEvent, XPending
+        };
+        use platform::os::linux::{
+            WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW
+        };
         use util::EasierAtomic;
     }
 }
@@ -1203,7 +1208,8 @@ cfg_if! {
                 .buttons(gtk4::ButtonsType::None)
                 .destroy_with_parent(true)
                 .focusable(true)
-                //.message_type(msg_icon_type.unwrap_or(MessageBoxIcon::None).try_into().unwrap_or(gtk4::MessageType::Other))
+                //.message_type(msg_icon_type.unwrap_or(MessageBoxIcon::None)
+                //.try_into().unwrap_or(gtk4::MessageType::Other))
                 .message_type(msg_icon_type.unwrap().try_into().unwrap())
                 .modal(false)
                 .name(title)
@@ -1645,7 +1651,8 @@ cfg_if! {
         }
     } else if #[cfg(unix)] {
         lazy_static! {
-            static ref XLIB_CONTEXT: RwLock<XlibContext> = RwLock::new(XlibContext::default());
+            static ref XLIB_CONTEXT: RwLock<XlibContext> 
+                = RwLock::new(XlibContext::default());
         }
 
         // All uses of unsafe in the following function are either for FFI
@@ -1667,19 +1674,29 @@ cfg_if! {
             }
 
             if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
-                let mut ev = unsafe { core::mem::MaybeUninit::<XEvent>::zeroed().assume_init() };
+                let mut ev = unsafe { 
+                    core::mem::MaybeUninit::<XEvent>::zeroed().assume_init() 
+                };
                 let display = unsafe { XOpenDisplay(core::ptr::null()) };
                 if unsafe { XPending(display) } == 0 {
                     return None;
                 }
 
                 unsafe { XNextEvent(display, addr_of_mut!(ev)); }
-                let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as isize;
+                // Since XEvents don't have a timestamp associated with them
+                // like Windows MSGs do, we do the next best thing and acquire
+                // a timestamp immediately after retrieving the event.
+                let time = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as isize;
                 let any = unsafe { ev.any };
                 match any.type_ {
                     ClientMessage => {
                         let ev = unsafe { ev.client_message };
-                        if *ev.data.as_longs().get(0).unwrap() as u64 == WM_DELETE_WINDOW.load_relaxed() {
+                        if *ev.data.as_longs().get(0).unwrap() as u64 
+                            == WM_DELETE_WINDOW.load_relaxed() 
+                        {
                             unsafe { XDestroyWindow(ev.display, ev.window); }
                             platform::set_msg_time(time);
                             Some(WindowEvent::CloseRequested)
@@ -1689,7 +1706,9 @@ cfg_if! {
                     },
                     _ => {
                         let context = *XLIB_CONTEXT.read().unwrap();
-                        if let Ok((mut evs, new_context)) = WindowEvent::try_from_xevent(ev, context) {
+                        if let Ok((mut evs, new_context)) 
+                            = WindowEvent::try_from_xevent(ev, context) 
+                        {
                             if let Some(n) = new_context {
                                 *XLIB_CONTEXT.write().unwrap() = n;
                             }
