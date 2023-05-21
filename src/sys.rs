@@ -6,7 +6,7 @@ use crate::{
     platform::{
         WindowHandle,
     },
-    util::{EasierAtomic, EasierAtomicBool, SignalState, SmpEvent},
+    util::{EasierAtomicBool, SignalState, SmpEvent},
     *,
 };
 use num_derive::FromPrimitive;
@@ -173,14 +173,14 @@ pub fn milliseconds() -> isize {
     if BASE_TIME_ACQUIRED.load(SeqCst) == false {
         let now = SystemTime::now();
         let time = now
-            .duration_since(SystemTime::UNIX_EPOCH)
+            .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
         TIME_BASE.store(time.try_into().unwrap(), SeqCst);
     }
 
     let time: isize = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
+        .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_millis()
         .try_into()
