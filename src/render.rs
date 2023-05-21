@@ -892,9 +892,71 @@ cfg_if! {
             }
         }
     } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
+        fn available_monitors() -> VecDeque<MonitorHandle> {
+            todo!()
+        }
 
+        fn primary_monitor() -> Option<MonitorHandle> {
+            todo!()
+        }
+
+        fn current_monitor(_: Option<WindowHandle>) -> Option<MonitorHandle> {
+            todo!()
+        }
+
+        fn choose_monitor() -> MonitorHandle {
+            todo!()
+        }
+
+        fn get_monitor_dimensions(_monitor: MonitorHandle) -> Option<(u32, u32)>
+        {
+            todo!()
+        }
+
+        fn monitor_info(_monitor: MonitorHandle) -> Option<MonitorInfo> {
+            todo!()
+        }
+
+        pub fn create_window_2(
+            _wnd_parms: &mut gfx::WindowParms
+        ) -> Result<(), ()> {
+            assert!(wnd_parms.window_handle.is_none());
+
+            todo!()
+        }
     } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
+        fn available_monitors() -> VecDeque<MonitorHandle> {
+            todo!()
+        }
 
+        fn primary_monitor() -> Option<MonitorHandle> {
+            todo!()
+        }
+
+        fn current_monitor(_: Option<WindowHandle>) -> Option<MonitorHandle> {
+            todo!()
+        }
+
+        fn choose_monitor() -> MonitorHandle {
+            todo!()
+        }
+
+        fn get_monitor_dimensions(_monitor: MonitorHandle) -> Option<(u32, u32)>
+        {
+            todo!()
+        }
+
+        fn monitor_info(_monitor: MonitorHandle) -> Option<MonitorInfo> {
+            todo!()
+        }
+
+        pub fn create_window_2(
+            _wnd_parms: &mut gfx::WindowParms
+        ) -> Result<(), ()> {
+            assert!(wnd_parms.window_handle.is_none());
+
+            todo!()
+        }
     } else if #[cfg(unix)] {
         #[allow(clippy::undocumented_unsafe_blocks)]
         fn available_monitors() -> VecDeque<MonitorHandle> {

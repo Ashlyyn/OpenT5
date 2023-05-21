@@ -1652,9 +1652,13 @@ cfg_if! {
             }
         }
     } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
-
+        pub fn next_window_event() -> Option<WindowEvent> {
+            None
+        }
     } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
-
+        pub fn next_window_event() -> Option<WindowEvent> {
+            None
+        }
     } else if #[cfg(unix)] {
         lazy_static! {
             static ref XLIB_CONTEXT: RwLock<XlibContext> 
