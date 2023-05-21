@@ -52,7 +52,7 @@ cfg_if! {
             CurrentTime, RevertToParent, XMapWindow, XOpenDisplay, XSetInputFocus,
         };
         use x11::xlib::{ClientMessage, XDestroyWindow, XEvent, XNextEvent, XPending};
-        platform::os::linux::{WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW},
+        use platform::os::linux::{WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW};
     }
 }
 

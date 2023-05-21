@@ -4,7 +4,6 @@
 
 use cfg_if::cfg_if;
 
-use crate::util::EasierAtomic;
 cfg_if! {
     if #[cfg(not(target_arch = "wasm32"))] {
         use lazy_static::lazy_static;
@@ -35,7 +34,9 @@ cfg_if! {
                     EM_SETSEL, EM_LINESCROLL, EM_SCROLLCARET, EM_REPLACESEL
                 }
             },
-            Foundation::{WPARAM, LPARAM, HWND}};
+            Foundation::{WPARAM, LPARAM, HWND}
+        };
+        use crate::util::EasierAtomic;
     }
 }
 
