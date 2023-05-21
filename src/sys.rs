@@ -13,6 +13,7 @@ pub mod gpu;
 
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
+use x11::xlib::XCloseDisplay;
 use core::{
     fmt::Display,
     ptr::addr_of_mut,
@@ -1683,6 +1684,8 @@ cfg_if! {
                 }
 
                 unsafe { XNextEvent(display, addr_of_mut!(ev)); }
+                unsafe { XCloseDisplay(display); }
+
                 // Since XEvents don't have a timestamp associated with them
                 // like Windows MSGs do, we do the next best thing and acquire
                 // a timestamp immediately after retrieving the event.

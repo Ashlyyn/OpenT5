@@ -40,6 +40,7 @@ cfg_if! {
         use x11::xrandr::{XRRGetMonitors, XRRFreeMonitors, XRRConfigCurrentRate, XRRGetScreenInfo, XRRFreeScreenConfigInfo, XRRConfigSizes, XRRConfigRates};
         use platform::os::linux::WM_DELETE_WINDOW;
         use x11::xlib::XSetWMProtocols;
+        use x11::xlib::{XCloseDisplay, _XDisplay};
     }
 }
 
@@ -891,6 +892,7 @@ cfg_if! {
         fn available_monitors() -> VecDeque<MonitorHandle> {
             let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
             let num_screens = unsafe { XScreenCount(display) };
+            unsafe { XCloseDisplay(display) };
             let mut monitors = VecDeque::new();
             for i in 0..num_screens {
                 let mut handle = XlibDisplayHandle::empty();
@@ -970,7 +972,7 @@ cfg_if! {
         #[allow(clippy::undocumented_unsafe_blocks, clippy::cast_sign_loss)]
         fn get_monitor_dimensions(monitor: MonitorHandle) -> Option<(u32, u32)>
         {
-            let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
+            let display = monitor.get_xlib().unwrap().display as *mut _XDisplay;
             let screen_num = monitor.get_xlib().unwrap().screen;
             let screen = unsafe { XScreenOfDisplay(display, screen_num) };
             if screen.is_null() {

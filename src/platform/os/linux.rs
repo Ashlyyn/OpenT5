@@ -47,7 +47,7 @@ use x11::{
         DestroyNotify, FocusIn, FocusOut, KeyPress, KeyRelease, LockMask,
         Mod1Mask, Mod2Mask, Mod3Mask, Mod4Mask, Mod5Mask, ShiftMask,
         XDefaultDepth, XDefaultScreen, XDefaultVisual, XEvent, XInternAtom,
-        XKeycodeToKeysym, XLookupString, XOpenDisplay, XVisualIDFromVisual,
+        XKeycodeToKeysym, XLookupString, XOpenDisplay, XVisualIDFromVisual, XCloseDisplay,
     },
     xrandr::RRScreenChangeNotify,
 };
@@ -81,6 +81,7 @@ pub fn main() {
             x11::xlib::False,
         )
     };
+    unsafe { XCloseDisplay(display); }
     assert_ne!(atom, 0);
     WM_DELETE_WINDOW.store_relaxed(atom);
 }
