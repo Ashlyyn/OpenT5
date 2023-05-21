@@ -1,7 +1,10 @@
 use raw_window_handle::RawWindowHandle;
 use raw_window_handle::AppKitWindowHandle;
 use raw_window_handle::XlibWindowHandle;
+use raw_window_handle::XlibDisplayHandle;
 use core::ffi::c_void;
+use cfg_if::cfg_if;
+use crate::platform::WindowHandle;
 
 pub fn main() {}
 
@@ -29,7 +32,7 @@ impl WindowHandle {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MonitorHandle {
     Xlib { display: *mut c_void, screen: i32 },
     AppKit(()),
