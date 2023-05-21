@@ -3,9 +3,7 @@
 extern crate alloc;
 
 use crate::{
-    platform::{
-        WindowHandle,
-    },
+    platform::WindowHandle,
     util::{EasierAtomicBool, SignalState, SmpEvent},
     *,
 };
@@ -173,10 +171,7 @@ lazy_static! {
 pub fn milliseconds() -> isize {
     if BASE_TIME_ACQUIRED.load(SeqCst) == false {
         let now = SystemTime::now();
-        let time = now
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
+        let time = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
         TIME_BASE.store(time.try_into().unwrap(), SeqCst);
     }
 

@@ -2,10 +2,7 @@
 
 use crate::{
     gfx::{WindowTarget, R_GLOB},
-    platform::{
-        os::{target::MonitorHandle},
-        WindowHandle,
-    },
+    platform::{os::target::MonitorHandle, WindowHandle},
     sys::{gpu::Device, show_window},
     util::{EasierAtomic, SignalState},
     *,
