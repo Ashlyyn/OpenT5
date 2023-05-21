@@ -20,7 +20,7 @@ Right now, building is as simple as:
     $ cd OpenT5
     $ cargo +nightly build
 ```
-Or you can set your default toolchain to nightly and just run `cargo build`.
+Or you can set your default toolchain to nightly and just run `cargo build` without the `+nightly`.
 
 None of the game files are required yet (you will get some weird-looking localization references if `localization.txt` isn't present though).
 
