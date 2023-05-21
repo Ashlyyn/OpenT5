@@ -5,7 +5,6 @@ extern crate alloc;
 
 use cfg_if::cfg_if;
 
-
 use raw_window_handle::{
     RawDisplayHandle, RawWindowHandle, WaylandWindowHandle, XlibDisplayHandle,
     XlibWindowHandle,
@@ -32,17 +31,6 @@ use crate::{
 )]
 pub fn main() {
     gtk4::init().unwrap();
-    // let display = unsafe { XOpenDisplay(core::ptr::null()) };
-    // let atom = unsafe {
-    //     XInternAtom(
-    //         display,
-    //         cstr!("WM_DELETE_WINDOW").as_ptr(),
-    //         x11::xlib::False,
-    //     )
-    // };
-    // unsafe { XCloseDisplay(display); }
-    // assert_ne!(atom, 0);
-    // WM_DELETE_WINDOW.store_relaxed(atom);
 }
 
 impl WindowHandle {
@@ -130,13 +118,5 @@ impl MonitorHandle {
             Self::Wayland(_) => Some(()),
             _ => None,
         }
-    }
-}
-
-cfg_if! {
-    if #[cfg(feature = "linux_use_wayland")] {
-
-    } else {
-        
     }
 }

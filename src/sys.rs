@@ -51,8 +51,8 @@ cfg_if! {
 
     } else if #[cfg(unix)] {
         use x11::xlib::{
-            CurrentTime, RevertToParent, XMapWindow, XOpenDisplay, 
-            XSetInputFocus, XCloseDisplay, ClientMessage, XDestroyWindow, 
+            CurrentTime, RevertToParent, XMapWindow, XOpenDisplay,
+            XSetInputFocus, XCloseDisplay, ClientMessage, XDestroyWindow,
             XEvent, XNextEvent, XPending,
         };
         use platform::display_server::target::{
@@ -1259,7 +1259,7 @@ cfg_if! {
     } else {
         #[allow(clippy::print_stdout, clippy::use_debug)]
         pub fn message_box(
-            _handle: Option<WindowHandle>,
+            handle: Option<WindowHandle>,
             text: &str,
             title: &str,
             msg_box_type: MessageBoxType,
@@ -1660,7 +1660,7 @@ cfg_if! {
         }
     } else if #[cfg(unix)] {
         lazy_static! {
-            static ref XLIB_CONTEXT: RwLock<XlibContext> 
+            static ref XLIB_CONTEXT: RwLock<XlibContext>
                 = RwLock::new(XlibContext::default());
         }
 
@@ -1683,8 +1683,8 @@ cfg_if! {
             }
 
             if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
-                let mut ev = unsafe { 
-                    core::mem::MaybeUninit::<XEvent>::zeroed().assume_init() 
+                let mut ev = unsafe {
+                    core::mem::MaybeUninit::<XEvent>::zeroed().assume_init()
                 };
                 let display = unsafe { XOpenDisplay(core::ptr::null()) };
                 if unsafe { XPending(display) } == 0 {
@@ -1705,8 +1705,8 @@ cfg_if! {
                 match any.type_ {
                     ClientMessage => {
                         let ev = unsafe { ev.client_message };
-                        if *ev.data.as_longs().get(0).unwrap() as u64 
-                            == WM_DELETE_WINDOW.load_relaxed() 
+                        if *ev.data.as_longs().get(0).unwrap() as u64
+                            == WM_DELETE_WINDOW.load_relaxed()
                         {
                             unsafe { XDestroyWindow(ev.display, ev.window); }
                             platform::set_msg_time(time);
@@ -1717,8 +1717,8 @@ cfg_if! {
                     },
                     _ => {
                         let context = *XLIB_CONTEXT.read().unwrap();
-                        if let Ok((mut evs, new_context)) 
-                            = WindowEvent::try_from_xevent(ev, context) 
+                        if let Ok((mut evs, new_context))
+                            = WindowEvent::try_from_xevent(ev, context)
                         {
                             if let Some(n) = new_context {
                                 *XLIB_CONTEXT.write().unwrap() = n;

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 pub mod arch;
-pub mod os;
 pub mod display_server;
+pub mod os;
 
 use std::sync::RwLock;
 extern crate alloc;

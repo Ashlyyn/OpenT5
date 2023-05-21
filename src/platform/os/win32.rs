@@ -708,9 +708,7 @@ fn WinMain(
         unsafe {
             MessageBoxA(
                 None,
-                s!(
-                    "The game can not be run over a remote desktop connection."
-                ),
+                s!("The game can not be run over a remote desktop connection."),
                 None,
                 MB_OK,
             );
