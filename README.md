@@ -18,11 +18,13 @@ Right now, building is as simple as:
 ```bash
     $ git clone https://github.com/Fingerlingus/OpenT5.git
     $ cd OpenT5
-    $ cargo build
+    $ cargo +nightly build
 ```
+Or you can set your default toolchain to nightly and just run `cargo build`.
+
 None of the game files are required yet (you will get some weird-looking localization references if `localization.txt` isn't present though).
 
-Linux and macOS builds currently require libgtk4, so you'll want to grab that from your package manager if you don't have it installed (might swap it out for something else or implement the necessary functionality from scratch later). Windows doesn't require anything special.
+Linux and macOS builds currently require `libgtk4`, so you'll want to grab that from your package manager if you don't have it installed (might swap it out for something else or implement the necessary functionality from scratch later). Windows doesn't require anything special.
 
 Unix and Unix-like OSes will use Xlib by default. Wayland support can be enabled on Linux with the `linux_use_wayland` feature, and AppKit support can be enabled on macOS with the `macos_use_appkit` feature. The rest will only use Xlib. *Technically*, then, Xlib/Wayland/AppKit could be considered dependencies you'll need to install, but you probably wouldn't be reading this without having a display server installed, so there's not really a need to state them explicitly. If you're running Wayland without having Xorg installed or you're on macOS without XQuartz installed, you'll get build errors since both platforms default to using Xlib by default, so you'll either need to install Xorg/XQuartz or enable the features to use Wayland/AppKit.
 
