@@ -1,6 +1,7 @@
 use raw_window_handle::RawWindowHandle;
 use raw_window_handle::AppKitWindowHandle;
 use raw_window_handle::XlibWindowHandle;
+use raw_window_handle::RawDisplayHandle;
 use raw_window_handle::XlibDisplayHandle;
 use core::ffi::c_void;
 use cfg_if::cfg_if;
@@ -34,7 +35,7 @@ impl WindowHandle {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MonitorHandle {
-    Xlib { display: *mut c_void, screen: i32 },
+    Xlib(XlibDisplayHandle),
     AppKit(()),
 }
 
@@ -58,10 +59,6 @@ impl PartialOrd for MonitorHandle {
     }
 }
 
-// Win32 => Win32
-// Linux => Xlib, Wayland
-// macOS => Xlib, AppKit, UiKit
-// Other Unix => Xlib
 impl MonitorHandle {
     cfg_if! {
         if #[cfg(feature = "macos_use_appkit")] {
