@@ -1540,7 +1540,6 @@ bitflags! {
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum WindowEvent {
-    MouseWheel(u32),
     Created(WindowHandle),
     Destroyed,
     Moved {
