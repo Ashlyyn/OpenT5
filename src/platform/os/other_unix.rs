@@ -25,10 +25,6 @@ pub enum MonitorHandle {
     Xlib { display: *mut c_void, screen: i32 },
 }
 
-// Win32 => Win32
-// Linux => Xlib, Wayland
-// macOS => Xlib, AppKit
-// Other Unix => Xlib
 impl MonitorHandle {
     pub const fn get_xlib(&self) -> Option<(*mut c_void, i32)> {
         match *self {
