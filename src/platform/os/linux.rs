@@ -10,14 +10,6 @@ use raw_window_handle::{
     XlibWindowHandle,
 };
 
-cfg_if! {
-    if #[cfg(feature = "linux_use_wayland")] {
-
-    } else {
-        
-    }
-}
-
 use crate::{
     platform::WindowHandle,
 };
@@ -83,10 +75,6 @@ impl PartialOrd for MonitorHandle {
     }
 }
 
-// Win32 => Win32
-// Linux => Xlib, Wayland
-// macOS => Xlib, AppKit, UiKit
-// Other Unix => Xlib
 impl MonitorHandle {
     cfg_if! {
         if #[cfg(feature = "linux_use_wayland")] {
