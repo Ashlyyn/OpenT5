@@ -16,7 +16,7 @@ If, after reading all of the above, you're actually interested in contributing, 
 ## Building
 Right now, building is as simple as:
 ```bash
-    $ git clone https://github.com/Fingerlingus/OpenT5.git
+    $ git clone https://github.com/Ashlyyn/OpenT5.git
     $ cd OpenT5
     $ cargo +nightly build
 ```
