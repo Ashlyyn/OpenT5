@@ -20,10 +20,22 @@ pub const MIN_VERTICAL_RESOLUTION: u32 = 480;
 cfg_if! {
     if #[cfg(windows)] {
         use windows::Win32::Foundation::{RECT, HWND, LPARAM, POINT, BOOL};
-        use windows::Win32::Graphics::Gdi::{DEVMODEW, EnumDisplayMonitors, MONITOR_DEFAULTTOPRIMARY, MONITOR_DEFAULTTONEAREST, MonitorFromPoint, MonitorFromWindow, GetMonitorInfoW, MONITORINFOEXW, EnumDisplaySettingsExW, ENUM_CURRENT_SETTINGS, ENUM_DISPLAY_SETTINGS_FLAGS, ENUM_DISPLAY_SETTINGS_MODE, DEVMODE_FIELD_FLAGS, DM_BITSPERPEL, DM_PELSWIDTH, DM_PELSHEIGHT, DM_DISPLAYFREQUENCY, HMONITOR, HDC};
+        use windows::Win32::Graphics::Gdi::{
+            DEVMODEW, EnumDisplayMonitors, MONITOR_DEFAULTTOPRIMARY, 
+            MONITOR_DEFAULTTONEAREST, MonitorFromPoint, MonitorFromWindow, 
+            GetMonitorInfoW, MONITORINFOEXW, EnumDisplaySettingsExW, 
+            ENUM_CURRENT_SETTINGS, ENUM_DISPLAY_SETTINGS_FLAGS, 
+            ENUM_DISPLAY_SETTINGS_MODE, DEVMODE_FIELD_FLAGS, DM_BITSPERPEL,
+            DM_PELSWIDTH, DM_PELSHEIGHT, DM_DISPLAYFREQUENCY, HMONITOR, HDC
+        };
         use windows::Win32::System::LibraryLoader::GetModuleHandleA;
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
-        use windows::Win32::UI::WindowsAndMessaging::{WS_EX_LEFT, WS_SYSMENU, WS_CAPTION, WS_VISIBLE, WS_EX_TOPMOST, WS_POPUP, AdjustWindowRectEx, CreateWindowExA, SetWindowPos, HWND_NOTOPMOST, SWP_NOSIZE, SWP_NOMOVE, GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
+        use windows::Win32::UI::WindowsAndMessaging::{
+            WS_EX_LEFT, WS_SYSMENU, WS_CAPTION, WS_VISIBLE, WS_EX_TOPMOST,
+            WS_POPUP, AdjustWindowRectEx, CreateWindowExA, SetWindowPos, 
+            HWND_NOTOPMOST, SWP_NOSIZE, SWP_NOMOVE, GetSystemMetrics, 
+            SM_CXSCREEN, SM_CYSCREEN
+        };
         use windows::core::{PCSTR, PCWSTR};
         use windows::s;
         use crate::platform::os::target::monitor_enum_proc;
@@ -38,16 +50,22 @@ cfg_if! {
     } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
 
     } else if #[cfg(unix)] {
-        use x11::xlib::XStoreName;
-        use x11::xlib::{XOpenDisplay};
-        use raw_window_handle::XlibWindowHandle;
-        use raw_window_handle::XlibDisplayHandle;
-        use x11::xlib::{XDefaultScreen, XCreateSimpleWindow, XDefaultVisual, XScreenCount, XRootWindow, XScreenOfDisplay, XWhitePixel, XWidthOfScreen, XHeightOfScreen, XDestroyWindow, XDefaultDepth, XSetInputFocus, RevertToParent, CurrentTime, XVisualIDFromVisual};
-        use x11::xrandr::{XRRGetMonitors, XRRFreeMonitors, XRRConfigCurrentRate, XRRGetScreenInfo, XRRFreeScreenConfigInfo, XRRConfigSizes, XRRConfigRates};
+        use raw_window_handle::{
+            RawWindowHandle, XlibWindowHandle, XlibDisplayHandle
+        };
+        use x11::xlib::{
+            XStoreName, XOpenDisplay, XSetWMProtocols, XCloseDisplay,
+            XDefaultScreen, XCreateSimpleWindow, XDefaultVisual, XScreenCount,
+            XRootWindow, XScreenOfDisplay, XWhitePixel, XWidthOfScreen, 
+            XHeightOfScreen, XDestroyWindow, XDefaultDepth, XSetInputFocus, 
+            RevertToParent, CurrentTime, XVisualIDFromVisual, _XDisplay,
+        };
+        use x11::xrandr::{
+            XRRGetMonitors, XRRFreeMonitors, XRRConfigCurrentRate, 
+            XRRGetScreenInfo, XRRFreeScreenConfigInfo, XRRConfigSizes, 
+            XRRConfigRates,
+        };
         use platform::display_server::target::WM_DELETE_WINDOW;
-        use x11::xlib::XSetWMProtocols;
-        use x11::xlib::{XCloseDisplay, _XDisplay};
-        use raw_window_handle::RawWindowHandle;
         use alloc::ffi::CString;
         use core::ptr::addr_of_mut;
     }
