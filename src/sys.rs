@@ -1687,7 +1687,9 @@ cfg_if! {
                 let mut ev = unsafe {
                     core::mem::MaybeUninit::<XEvent>::zeroed().assume_init()
                 };
-                let display = unsafe { XOpenDisplay(core::ptr::null()) };
+                let display = unsafe { XOpenDisplay(
+                    platform::display_server::xlib::display_name()
+                ) };
                 if unsafe { XPending(display) } == 0 {
                     return None;
                 }
@@ -1783,14 +1785,18 @@ cfg_if! {
         #[allow(clippy::undocumented_unsafe_blocks)]
         pub fn show_window(handle: WindowHandle) {
             let handle = handle.get_xlib().unwrap();
-            let display = unsafe { XOpenDisplay(core::ptr::null()) };
+            let display = unsafe { XOpenDisplay(
+                platform::display_server::xlib::display_name()
+            ) };
             unsafe { XMapWindow(display, handle.window); }
         }
 
         #[allow(clippy::undocumented_unsafe_blocks)]
         pub fn focus_window(handle: WindowHandle) {
             let handle = handle.get_xlib().unwrap();
-            let display = unsafe { XOpenDisplay(core::ptr::null()) };
+            let display = unsafe { XOpenDisplay(
+                platform::display_server::xlib::display_name()
+            ) };
             unsafe { XSetInputFocus(
                 display, handle.window, RevertToParent, CurrentTime
             ); }

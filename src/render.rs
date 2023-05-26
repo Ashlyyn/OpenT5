@@ -965,7 +965,9 @@ cfg_if! {
     } else if #[cfg(unix)] {
         #[allow(clippy::undocumented_unsafe_blocks)]
         fn available_monitors() -> VecDeque<MonitorHandle> {
-            let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
+            let display = unsafe { XOpenDisplay(
+                platform::display_server::xlib::display_name()
+            ) };
             let num_screens = unsafe { XScreenCount(display) };
             unsafe { XCloseDisplay(display) };
             let mut monitors = VecDeque::new();
@@ -985,7 +987,9 @@ cfg_if! {
             clippy::cast_sign_loss,
         )]
         fn primary_monitor() -> Option<MonitorHandle> {
-            let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
+            let display = unsafe { XOpenDisplay(
+                platform::display_server::xlib::display_name()
+            ) };
             let screen = unsafe { XDefaultScreen(display) };
             let root_window = unsafe { XRootWindow(display, screen) };
             let white_pixel = unsafe { XWhitePixel(display, screen) };
@@ -1018,7 +1022,9 @@ cfg_if! {
 
         #[allow(clippy::undocumented_unsafe_blocks, clippy::unnecessary_wraps)]
         fn current_monitor(_: Option<WindowHandle>) -> Option<MonitorHandle> {
-            let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
+            let display = unsafe { XOpenDisplay(
+                platform::display_server::xlib::display_name()
+            ) };
             let screen = unsafe { XDefaultScreen(display) };
             let mut handle = XlibDisplayHandle::empty();
             handle.display = display.cast();
@@ -1029,7 +1035,9 @@ cfg_if! {
         #[allow(clippy::undocumented_unsafe_blocks)]
         fn choose_monitor() -> MonitorHandle {
             let monitor = dvar::get_int("r_monitor").unwrap();
-            let display = unsafe { XOpenDisplay(core::ptr::null_mut()) };
+            let display = unsafe { XOpenDisplay(
+                platform::display_server::xlib::display_name()
+            ) };
 
             let mut handle = XlibDisplayHandle::empty();
             handle.display = display.cast();
@@ -1162,7 +1170,9 @@ cfg_if! {
         ) -> Result<(), ()> {
             assert!(wnd_parms.window_handle.is_none());
 
-            let display = unsafe { XOpenDisplay(core::ptr::null()) };
+            let display = unsafe { XOpenDisplay(
+                platform::display_server::xlib::display_name()
+            ) };
             let screen = unsafe { XDefaultScreen(display) };
             let root_window = unsafe { XRootWindow(display, screen) };
             let white_pixel = unsafe { XWhitePixel(display, screen) };

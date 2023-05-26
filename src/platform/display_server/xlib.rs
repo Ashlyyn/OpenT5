@@ -6,7 +6,7 @@
 #![allow(non_upper_case_globals)]
 
 use core::sync::atomic::AtomicU64;
-use std::{collections::VecDeque, ptr::addr_of_mut};
+use std::{collections::VecDeque, ptr::addr_of_mut, sync::RwLock, ffi::{OsString, c_char}, os::unix::prelude::OsStrExt};
 
 use lazy_static::lazy_static;
 
@@ -57,8 +57,22 @@ use crate::{
     util::EasierAtomic,
 };
 
+lazy_static! {
+    static ref DISPLAY: RwLock<Option<OsString>> = RwLock::new(None);
+}
+
+pub fn display_name() -> *const c_char {
+    if let Some(d) = DISPLAY.read().unwrap().as_ref() {
+        d.as_os_str().as_bytes().as_ptr() as _
+    } else {
+        core::ptr::null()
+    }
+}
+
 pub fn init() {
-    let display = unsafe { XOpenDisplay(core::ptr::null()) };
+    let display_env = std::env::var_os("DISPLAY");
+    *DISPLAY.write().unwrap() = display_env;
+    let display = unsafe { XOpenDisplay(display_name()) };
     let atom = unsafe {
         XInternAtom(
             display,
@@ -80,7 +94,7 @@ pub fn show_window(handle: WindowHandle) {
 
 pub fn focus_window(handle: WindowHandle) {
     let handle = handle.get_xlib().unwrap();
-    let display = unsafe { XOpenDisplay(core::ptr::null()) };
+    let display = unsafe { XOpenDisplay(display_name()) };
     unsafe {
         XSetInputFocus(display, handle.window, RevertToParent, CurrentTime)
     };
