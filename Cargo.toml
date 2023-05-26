@@ -71,6 +71,5 @@ discord-rich-presence = "0.2.3"
 
 [features]
 default = [ "x11" ]
-windows_force_egui = [ "eframe" ]
 linux_use_wayland = [ "wayland-client" ]
 macos_use_appkit = []

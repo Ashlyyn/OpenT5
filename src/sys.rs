@@ -28,8 +28,8 @@ use std::{
 };
 cfg_if! {
     if #[cfg(windows)] {
-        use core::ffi::{CStr};
-        use core::ptr::{addr_of};
+        use core::ffi::{CStr, CString};
+        use core::ptr::{addr_of, addr_of_mut};
         use std::fs::OpenOptions;
         use std::os::windows::prelude::*;
         use windows::Win32::Foundation::MAX_PATH;
@@ -44,7 +44,12 @@ cfg_if! {
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
         use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
-        use core::ptr::addr_of_mut;
+        use windows::Win32::Foundation::HWND;
+        use windows::Win32::UI::WindowsAndMessaging::{
+            MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
+            MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
+            MESSAGEBOX_STYLE,
+        };
     } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
 
     } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
@@ -70,17 +75,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
-        use windows::Win32::Foundation::HWND;
-        use windows::Win32::UI::WindowsAndMessaging::{
-            MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
-            MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
-            MESSAGEBOX_STYLE,
-        };
-        use alloc::ffi::CString;
-    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
-        use core::cell::RefCell;
-    } else if #[cfg(target_os = "linux")] {
+    if #[cfg(target_os = "linux")] {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
         use core::cell::RefCell;
@@ -981,7 +976,7 @@ fn should_update_for_info_change() -> bool {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
+    if #[cfg(windows)] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxType {
@@ -991,7 +986,7 @@ cfg_if! {
             YesNo = MB_YESNO.0,
             // TODO - maybe implement Help?
         }
-    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
+    } else if #[cfg(windows)] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxType {
@@ -1034,7 +1029,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
+    if #[cfg(windows)] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxIcon {
@@ -1042,15 +1037,6 @@ cfg_if! {
             None = 0x0000_0000,
             Stop = MB_ICONSTOP.0,
             Information = MB_ICONINFORMATION.0,
-        }
-    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
-        #[derive(Copy, Clone, Default, Debug)]
-        #[repr(u32)]
-        pub enum MessageBoxIcon {
-            #[default]
-            None,
-            Stop,
-            Information,
         }
     } else if #[cfg(target_os = "linux")]  {
         #[derive(Copy, Clone, Default, Debug)]
@@ -1086,7 +1072,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
+    if #[cfg(windows)] {
         #[derive(Copy, Clone, FromPrimitive)]
         #[repr(i32)]
         pub enum MessageBoxResult {
@@ -1094,16 +1080,6 @@ cfg_if! {
             Cancel = IDCANCEL.0,
             Yes = IDYES.0,
             No = IDNO.0,
-            Unknown,
-        }
-    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
-        #[derive(Copy, Clone, FromPrimitive, Debug)]
-        #[repr(i32)]
-        pub enum MessageBoxResult {
-            Ok,
-            Cancel,
-            Yes,
-            No,
             Unknown,
         }
     } else if #[cfg(target_os = "linux")] {
@@ -1142,7 +1118,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
+    if #[cfg(windows)] {
         pub fn message_box(
             handle: Option<WindowHandle>,
             title: &str,
