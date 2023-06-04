@@ -34,7 +34,6 @@ cstr = "0.2.11"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk4 = "0.5.0"
-wayland-client = { version = "0.30.1", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 windows =  { version = "0.48.0", features = [
@@ -70,5 +69,5 @@ discord-rich-presence = "0.2.3"
 
 [features]
 default = [ "x11" ]
-linux_use_wayland = [ "wayland-client" ]
+linux_use_wayland = []
 macos_use_appkit = []
