@@ -1,7 +1,7 @@
 // There's only a slight bit of ISA-specific code currently present in the
 // codebase. We might have some odd issues pop up in regards to pointer size,
-// endianness, etc., things we can't account for by only (currently) testing 
-// one ISA on three OSes, but they should be minor. 
+// endianness, etc., things we can't account for by only (currently) testing
+// one ISA on three OSes, but they should be minor.
 
 #![allow(clippy::pub_use)]
 use cfg_if::cfg_if;

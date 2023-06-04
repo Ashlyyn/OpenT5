@@ -6,7 +6,13 @@
 #![allow(non_upper_case_globals)]
 
 use core::sync::atomic::AtomicU64;
-use std::{collections::VecDeque, ptr::addr_of_mut, sync::RwLock, ffi::{OsString, c_char}, os::unix::prelude::OsStrExt};
+use std::{
+    collections::VecDeque,
+    ffi::{c_char, OsString},
+    os::unix::prelude::OsStrExt,
+    ptr::addr_of_mut,
+    sync::RwLock,
+};
 
 use lazy_static::lazy_static;
 
