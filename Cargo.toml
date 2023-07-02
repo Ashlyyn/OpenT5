@@ -29,7 +29,7 @@ pollster = "0.2"
 cfg-if = "1.0.0"
 raw-window-handle = "0.5.0"
 sscanf = "0.4.0"
-gilrs = { version = "0.10.0" }
+gilrs = "0.10.0"
 cstr = "0.2.11"
 
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -44,8 +44,7 @@ windows =  { version = "0.48.0", features = [
             "Win32_UI_Input_KeyboardAndMouse", 
             "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", 
             "Win32_System_Memory", "Win32_Storage_FileSystem", 
-            "Win32_UI_Shell"] }
-winapi = "0.3.9"
+            "Win32_UI_Shell", "Win32_Graphics_Direct3D9"] }
 thindx-xaudio2-sys = "0.0.0-2022-11-19"
 
 [target.'cfg(unix)'.dependencies]
