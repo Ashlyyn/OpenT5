@@ -28,7 +28,8 @@ use std::{
 };
 cfg_if! {
     if #[cfg(windows)] {
-        use core::ffi::{CStr, CString};
+        use core::ffi::{CStr};
+        use alloc::ffi::CString;
         use core::ptr::{addr_of, addr_of_mut};
         use std::fs::OpenOptions;
         use std::os::windows::prelude::*;
@@ -75,15 +76,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(windows)] {
-        use windows::Win32::Foundation::HWND;
-        use windows::Win32::UI::WindowsAndMessaging::{
-            MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
-            MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
-            MESSAGEBOX_STYLE,
-        };
-        use alloc::ffi::CString;
-    } else if #[cfg(target_os = "linux")] {
+    if #[cfg(target_os = "linux")] {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
         use core::cell::RefCell;
@@ -985,7 +978,6 @@ fn should_update_for_info_change() -> bool {
 
 cfg_if! {
     if #[cfg(windows)] {
-    if #[cfg(windows)] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxType {
@@ -1030,7 +1022,6 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(windows)] {
-    if #[cfg(windows)] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxIcon {
@@ -1073,7 +1064,6 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(windows)] {
     if #[cfg(windows)] {
         #[derive(Copy, Clone, FromPrimitive)]
         #[repr(i32)]
@@ -1120,7 +1110,6 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(windows)] {
     if #[cfg(windows)] {
         pub fn message_box(
             handle: Option<WindowHandle>,
