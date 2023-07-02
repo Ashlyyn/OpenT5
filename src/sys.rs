@@ -70,7 +70,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
+    if #[cfg(windows)] {
         use windows::Win32::Foundation::HWND;
         use windows::Win32::UI::WindowsAndMessaging::{
             MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
@@ -78,8 +78,6 @@ cfg_if! {
             MESSAGEBOX_STYLE,
         };
         use alloc::ffi::CString;
-    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
-        use core::cell::RefCell;
     } else if #[cfg(target_os = "linux")] {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
@@ -981,7 +979,7 @@ fn should_update_for_info_change() -> bool {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
+    if #[cfg(windows)] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxType {
@@ -990,15 +988,6 @@ cfg_if! {
             YesNoCancel = MB_YESNOCANCEL.0,
             YesNo = MB_YESNO.0,
             // TODO - maybe implement Help?
-        }
-    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
-        #[derive(Copy, Clone, Default, Debug)]
-        #[repr(u32)]
-        pub enum MessageBoxType {
-            #[default]
-            Ok,
-            YesNoCancel,
-            YesNo,
         }
     } else if #[cfg(target_os = "linux")] {
         #[derive(Copy, Clone, Default, Debug)]
@@ -1034,7 +1023,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
+    if #[cfg(windows)] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxIcon {
@@ -1042,15 +1031,6 @@ cfg_if! {
             None = 0x0000_0000,
             Stop = MB_ICONSTOP.0,
             Information = MB_ICONINFORMATION.0,
-        }
-    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
-        #[derive(Copy, Clone, Default, Debug)]
-        #[repr(u32)]
-        pub enum MessageBoxIcon {
-            #[default]
-            None,
-            Stop,
-            Information,
         }
     } else if #[cfg(target_os = "linux")]  {
         #[derive(Copy, Clone, Default, Debug)]
@@ -1086,7 +1066,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
+    if #[cfg(windows)] {
         #[derive(Copy, Clone, FromPrimitive)]
         #[repr(i32)]
         pub enum MessageBoxResult {
@@ -1094,16 +1074,6 @@ cfg_if! {
             Cancel = IDCANCEL.0,
             Yes = IDYES.0,
             No = IDNO.0,
-            Unknown,
-        }
-    } else if #[cfg(all(windows, feature = "windows_force_egui"))] {
-        #[derive(Copy, Clone, FromPrimitive, Debug)]
-        #[repr(i32)]
-        pub enum MessageBoxResult {
-            Ok,
-            Cancel,
-            Yes,
-            No,
             Unknown,
         }
     } else if #[cfg(target_os = "linux")] {
@@ -1142,7 +1112,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(all(windows, not(feature = "windows_force_egui")))] {
+    if #[cfg(windows)] {
         pub fn message_box(
             handle: Option<WindowHandle>,
             title: &str,
