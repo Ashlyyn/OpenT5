@@ -4,9 +4,10 @@
 //
 // macOS can use Xlib or AppKit (default is Xlib).
 //
-// Other Unix and Unix-like OSes will only use Xlib.
+// Other Unix and Unix-like OSes will only use Xlib
+// (maybe add Wayland support for them later).
 //
-// Other display servers might be supported in the future 
+// Other display servers might be supported in the future
 // (e.g. Redox's Orbital), but they definitely aren't supported right now.
 //
 // We'll also have to figure something out for wasm.

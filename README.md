@@ -16,7 +16,7 @@ If, after reading all of the above, you're actually interested in contributing, 
 ## Building
 Right now, building is as simple as:
 ```bash
-    $ git clone https://github.com/Fingerlingus/OpenT5.git
+    $ git clone https://github.com/Ashlyyn/OpenT5.git
     $ cd OpenT5
     $ cargo +nightly build
 ```
@@ -26,6 +26,6 @@ None of the game files are required yet (you will get some weird-looking localiz
 
 Linux and macOS builds currently require `libgtk4`, so you'll want to grab that from your package manager if you don't have it installed (might swap it out for something else or implement the necessary functionality from scratch later). Windows doesn't require anything special.
 
-Unix and Unix-like OSes will use Xlib by default. Wayland support can be enabled on Linux with the `linux_use_wayland` feature, and AppKit support can be enabled on macOS with the `macos_use_appkit` feature. The rest will only use Xlib. *Technically*, then, Xlib/Wayland/AppKit could be considered dependencies you'll need to install, but you probably wouldn't be reading this without having a display server installed, so there's not really a need to state them explicitly. If you're running Wayland without having Xorg installed or you're on macOS without XQuartz installed, you'll get build errors since both platforms default to using Xlib by default, so you'll either need to install Xorg/XQuartz or enable the features to use Wayland/AppKit.
+Unix and Unix-like OSes will use Xlib by default. Wayland support can be enabled on Linux with the `linux_use_wayland` feature, and AppKit support can be enabled on macOS with the `macos_use_appkit` feature. The rest will only use Xlib. *Technically*, then, Xlib/Wayland/AppKit could be considered dependencies you'll need to install, but you probably wouldn't be reading this without having a display server installed, so there's not really a need to state them explicitly. If you're running Wayland without having Xorg installed or you're on macOS without XQuartz installed, you'll get build errors since both platforms default to using Xlib by default, so you'll either need to install Xorg/XQuartz or enable the features to use Wayland/AppKit. Wayland/AppKit builds will currently pull in the `x11` crate since it's a default feature. It won't harm anything by being there, and it won't get compiled in if building for Wayland/AppKit, but if you *really* want to cut down on bandwidth or disk space or whatever, you can disable default features (pass `--no-default-features` to `cargo`).
 
 The project will currently *build* for WASM, but it's entirely untested, and there are some things that will *definitely* need to be changed (e.g. use of stdlib threads, blocking the main thread, etc.) to get it to work correctly in the browser, so it's by no means functional.

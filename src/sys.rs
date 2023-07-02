@@ -28,8 +28,8 @@ use std::{
 };
 cfg_if! {
     if #[cfg(windows)] {
-        use core::ffi::{CStr};
-        use core::ptr::{addr_of};
+        use core::ffi::{CStr, CString};
+        use core::ptr::{addr_of, addr_of_mut};
         use std::fs::OpenOptions;
         use std::os::windows::prelude::*;
         use windows::Win32::Foundation::MAX_PATH;
@@ -44,7 +44,12 @@ cfg_if! {
         use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
         use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
-        use core::ptr::addr_of_mut;
+        use windows::Win32::Foundation::HWND;
+        use windows::Win32::UI::WindowsAndMessaging::{
+            MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
+            MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
+            MESSAGEBOX_STYLE,
+        };
     } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
 
     } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
@@ -980,6 +985,7 @@ fn should_update_for_info_change() -> bool {
 
 cfg_if! {
     if #[cfg(windows)] {
+    if #[cfg(windows)] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxType {
@@ -1024,6 +1030,7 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(windows)] {
+    if #[cfg(windows)] {
         #[derive(Copy, Clone, Default, Debug)]
         #[repr(u32)]
         pub enum MessageBoxIcon {
@@ -1066,6 +1073,7 @@ cfg_if! {
 }
 
 cfg_if! {
+    if #[cfg(windows)] {
     if #[cfg(windows)] {
         #[derive(Copy, Clone, FromPrimitive)]
         #[repr(i32)]
@@ -1112,6 +1120,7 @@ cfg_if! {
 }
 
 cfg_if! {
+    if #[cfg(windows)] {
     if #[cfg(windows)] {
         pub fn message_box(
             handle: Option<WindowHandle>,
@@ -1657,7 +1666,9 @@ cfg_if! {
                 let mut ev = unsafe {
                     core::mem::MaybeUninit::<XEvent>::zeroed().assume_init()
                 };
-                let display = unsafe { XOpenDisplay(core::ptr::null()) };
+                let display = unsafe { XOpenDisplay(
+                    platform::display_server::xlib::display_name()
+                ) };
                 if unsafe { XPending(display) } == 0 {
                     return None;
                 }
@@ -1753,14 +1764,18 @@ cfg_if! {
         #[allow(clippy::undocumented_unsafe_blocks)]
         pub fn show_window(handle: WindowHandle) {
             let handle = handle.get_xlib().unwrap();
-            let display = unsafe { XOpenDisplay(core::ptr::null()) };
+            let display = unsafe { XOpenDisplay(
+                platform::display_server::xlib::display_name()
+            ) };
             unsafe { XMapWindow(display, handle.window); }
         }
 
         #[allow(clippy::undocumented_unsafe_blocks)]
         pub fn focus_window(handle: WindowHandle) {
             let handle = handle.get_xlib().unwrap();
-            let display = unsafe { XOpenDisplay(core::ptr::null()) };
+            let display = unsafe { XOpenDisplay(
+                platform::display_server::xlib::display_name()
+            ) };
             unsafe { XSetInputFocus(
                 display, handle.window, RevertToParent, CurrentTime
             ); }

@@ -512,7 +512,7 @@ pub fn frame_time() -> Duration {
 
 pub fn quit_f() -> ! {
     self::println!(0.into(), "quitting...");
-    if ERROR_ENTERED.load(Ordering::Relaxed) {}
+    if ERROR_ENTERED.load(Ordering::Relaxed) == false {}
     sys::quit();
 }
 
