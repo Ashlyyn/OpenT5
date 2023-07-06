@@ -32,6 +32,8 @@ unsafe impl HasRawWindowHandle for WindowHandle {
     }
 }
 
+pub struct ImageHandle(pub isize);
+
 #[derive(Copy, Clone)]
 pub struct PlatformVars {
     pub window_handle: Option<WindowHandle>,

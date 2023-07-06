@@ -68,7 +68,6 @@ fn swap_buffers() {
                 sys::enqueue_event(sys::Event::new(
                     Some(platform::get_msg_time() as _),
                     sys::EventType::Key(modifier.try_into().unwrap(), down),
-                    None,
                 ));
             }
             WindowEvent::KeyDown {
@@ -96,7 +95,6 @@ fn swap_buffers() {
                 sys::enqueue_event(sys::Event::new(
                     Some(platform::get_msg_time() as _),
                     sys::EventType::Key(logical_scancode, true),
-                    None,
                 ));
             }
             WindowEvent::KeyUp {
@@ -105,7 +103,6 @@ fn swap_buffers() {
                 sys::enqueue_event(sys::Event::new(
                     Some(platform::get_msg_time() as _),
                     sys::EventType::Key(logical_scancode, false),
-                    None,
                 ));
             }
             _ => {}

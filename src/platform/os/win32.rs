@@ -27,8 +27,8 @@ use windows::{
         },
         UI::{
             Input::KeyboardAndMouse::{
-                MapVirtualKeyW, MAPVK_VSC_TO_VK_EX, VIRTUAL_KEY, VK_ADD,
-                VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DECIMAL, VK_DELETE,
+                MapVirtualKeyW, SetFocus, MAPVK_VSC_TO_VK_EX, VIRTUAL_KEY,
+                VK_ADD, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DECIMAL, VK_DELETE,
                 VK_DIVIDE, VK_DOWN, VK_END, VK_ESCAPE, VK_F1, VK_F10, VK_F11,
                 VK_F12, VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_F7, VK_F8, VK_F9,
                 VK_HOME, VK_INSERT, VK_LBUTTON, VK_LCONTROL, VK_LEFT, VK_LMENU,
@@ -43,15 +43,16 @@ use windows::{
                 VK_TAB, VK_UP, VK_XBUTTON1, VK_XBUTTON2,
             },
             WindowsAndMessaging::{
-                DefWindowProcA, DestroyWindow, GetSystemMetrics, LoadCursorA,
-                LoadIconA, MessageBoxA, PostQuitMessage, RegisterClassExA,
-                IDC_ARROW, MB_OK, MSG, SM_REMOTESESSION, WA_INACTIVE,
-                WM_ACTIVATE, WM_CHAR, WM_CLOSE, WM_CREATE, WM_DESTROY,
-                WM_DISPLAYCHANGE, WM_KEYDOWN, WM_KEYUP, WM_KILLFOCUS,
-                WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
-                WM_MOVE, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SETFOCUS,
-                WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
-                WNDCLASSEXA,
+                CallWindowProcA, DefWindowProcA, DestroyWindow,
+                GetSystemMetrics, GetWindowTextA, LoadCursorA, LoadIconA,
+                MessageBoxA, PostQuitMessage, RegisterClassExA, SetWindowPos,
+                SetWindowTextA, IDC_ARROW, MB_OK, MSG, SET_WINDOW_POS_FLAGS,
+                SM_REMOTESESSION, WA_INACTIVE, WM_ACTIVATE, WM_CHAR, WM_CLOSE,
+                WM_CREATE, WM_DESTROY, WM_DISPLAYCHANGE, WM_KEYDOWN, WM_KEYUP,
+                WM_KILLFOCUS, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN,
+                WM_MBUTTONUP, WM_MOVE, WM_RBUTTONDOWN, WM_RBUTTONUP,
+                WM_SETFOCUS, WM_SIZE, WM_SYSKEYDOWN, WM_SYSKEYUP,
+                WM_XBUTTONDOWN, WM_XBUTTONUP, WNDCLASSEXA,
             },
         },
     },
@@ -61,6 +62,7 @@ use libc::c_int;
 
 use crate::{
     com::{self, ErrorParm},
+    conbuf,
     platform::WindowHandle,
     sys::{self, KeyboardScancode, Modifiers, MouseScancode, WindowEvent},
     util::{CharFromUtf16Char, HighWord, LowWord},
@@ -630,6 +632,13 @@ impl WindowHandle {
             _ => None,
         }
     }
+
+    pub fn from_win32(hwnd: HWND, hinstance: Option<HMODULE>) -> Self {
+        let mut h = Win32WindowHandle::empty();
+        h.hwnd = hwnd.0 as _;
+        h.hinstance = hinstance.unwrap_or_default().0 as _;
+        Self(RawWindowHandle::Win32(h))
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -686,6 +695,145 @@ impl MonitorHandle {
         match *self {
             Self::Win32(hmonitor) => Some(HMONITOR(hmonitor)),
         }
+    }
+}
+
+pub unsafe extern "system" fn con_wnd_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
+    match msg {
+        WM_SIZE => {
+            let height = lparam.high_word();
+            let cx = lparam.low_word() - 0xf;
+            SetWindowPos(
+                HWND(
+                    conbuf::s_wcd_buffer_window()
+                        .unwrap()
+                        .get_win32()
+                        .unwrap()
+                        .hwnd as _,
+                ),
+                None,
+                5,
+                70,
+                cx as _,
+                height as i32 - 100,
+                SET_WINDOW_POS_FLAGS(0),
+            );
+            SetWindowPos(
+                HWND(
+                    conbuf::s_wcd_input_line_window()
+                        .unwrap()
+                        .get_win32()
+                        .unwrap()
+                        .hwnd as _,
+                ),
+                None,
+                5,
+                height as i32 - 22,
+                cx as _,
+                20,
+                SET_WINDOW_POS_FLAGS(0),
+            );
+            conbuf::s_wcd_set_window_width(lparam.low_word() as _);
+            conbuf::s_wcd_set_window_height(height as _);
+            DefWindowProcA(hwnd, msg, wparam, lparam)
+        }
+        WM_ACTIVATE => {
+            if wparam.low_word() as u32 != WA_INACTIVE {
+                SetFocus(HWND(
+                    conbuf::s_wcd_input_line_window()
+                        .unwrap()
+                        .get_win32()
+                        .unwrap()
+                        .hwnd as _,
+                ));
+            }
+            DefWindowProcA(hwnd, msg, wparam, lparam)
+        }
+        WM_CLOSE => {
+            sys::enqueue_event(sys::Event::new(
+                None,
+                sys::EventType::Console("quit".to_owned()),
+            ));
+            LRESULT(0)
+        }
+        _ => DefWindowProcA(hwnd, msg, wparam, lparam),
+    }
+}
+
+pub unsafe extern "system" fn input_line_wnd_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
+    match msg {
+        WM_KILLFOCUS => {
+            if conbuf::s_wcd_window_handle()
+                .unwrap()
+                .get_win32()
+                .unwrap()
+                .hwnd as usize
+                == wparam.0
+            {
+                SetFocus(HWND(
+                    conbuf::s_wcd_window_handle()
+                        .unwrap()
+                        .get_win32()
+                        .unwrap()
+                        .hwnd as _,
+                ));
+            }
+            LRESULT(0)
+        }
+        WM_CHAR => {
+            if wparam.0 == VK_RETURN.0 as usize {
+                let mut buf = [0u8; 1024];
+                GetWindowTextA(
+                    HWND(
+                        conbuf::s_wcd_input_line_window()
+                            .unwrap()
+                            .get_win32()
+                            .unwrap()
+                            .hwnd as _,
+                    ),
+                    &mut buf,
+                );
+                let text = String::from_utf8_lossy(&buf).to_string();
+                conbuf::s_wcd_append_console_text(text.clone());
+                SetWindowTextA(
+                    HWND(
+                        conbuf::s_wcd_input_line_window()
+                            .unwrap()
+                            .get_win32()
+                            .unwrap()
+                            .hwnd as _,
+                    ),
+                    s!(""),
+                );
+                sys::println!("]{}", text);
+                LRESULT(0)
+            } else {
+                CallWindowProcA(
+                    conbuf::s_wcd_sys_input_line_wnd_proc(),
+                    hwnd,
+                    msg,
+                    wparam,
+                    lparam,
+                )
+            }
+        }
+        _ => CallWindowProcA(
+            conbuf::s_wcd_sys_input_line_wnd_proc(),
+            hwnd,
+            msg,
+            wparam,
+            lparam,
+        ),
     }
 }
 

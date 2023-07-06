@@ -2,12 +2,13 @@
 #![allow(unused_variables)]
 #![allow(unused_mut)]
 
+use crate::*;
 use cfg_if::cfg_if;
+use windows::Win32::{Foundation::LRESULT, UI::WindowsAndMessaging::WNDPROC};
 
 cfg_if! {
     if #[cfg(not(target_arch = "wasm32"))] {
         use lazy_static::lazy_static;
-        use raw_window_handle::{RawWindowHandle};
         use crate::{
             platform::{FontHandle, WindowHandle},
         };
@@ -15,12 +16,6 @@ cfg_if! {
         extern crate alloc;
         use core::sync::atomic::AtomicUsize;
         use arrayvec::ArrayString;
-    }
-}
-
-cfg_if! {
-    if #[cfg(all(not(target_os = "windows"), not(target_arch = "wasm32")))] {
-        use crate::*;
     }
 }
 
@@ -98,6 +93,7 @@ cfg_if! {
             returned_text: ArrayString<512>,
             pub window_width: i16,
             pub window_height: i16,
+            pub sys_input_line_wnd_proc: WNDPROC,
         }
 
         impl Default for ConsoleData {
@@ -113,6 +109,7 @@ cfg_if! {
                     returned_text: ArrayString::new(),
                     window_width: 620,
                     window_height: 450,
+                    sys_input_line_wnd_proc: None,
                 }
             }
         }
@@ -157,14 +154,9 @@ cfg_if! {
             s_wcd.window.is_none()
         }
 
-        pub fn s_wcd_window_set_visible(visible: bool) {
-            let mut s_wcd = S_WCD.write().unwrap();
-            //s_wcd.window.as_mut().unwrap().set_visible(visible);
-        }
-
-        pub fn s_wcd_buffer_window_handle() -> WindowHandle {
+        pub fn s_wcd_buffer_window() -> Option<WindowHandle> {
             let s_wcd = S_WCD.read().unwrap();
-            *s_wcd.buffer_window.as_ref().unwrap()
+            s_wcd.buffer_window
         }
 
         pub fn s_wcd_buffer_is_none() -> bool {
@@ -177,6 +169,11 @@ cfg_if! {
             s_wcd.window_width = width;
         }
 
+        pub fn s_wcd_set_window_height(height: i16) {
+            let mut s_wcd = S_WCD.write().unwrap();
+            s_wcd.window_height = height;
+        }
+
         pub fn s_wcd_window_width() -> i16 {
             let s_wcd = S_WCD.read().unwrap();
             s_wcd.window_width
@@ -187,9 +184,45 @@ cfg_if! {
             s_wcd.window_height
         }
 
-        pub fn s_wcd_window_handle() -> RawWindowHandle {
+        pub fn s_wcd_buffer_font() -> Option<FontHandle> {
+            let mut s_wcd = S_WCD.write().unwrap();
+            s_wcd.buffer_font
+        }
+
+        pub fn s_wcd_set_buffer_font(font: FontHandle) {
+            let mut s_wcd = S_WCD.write().unwrap();
+            s_wcd.buffer_font = Some(font);
+        }
+
+        pub fn s_wcd_window_handle() -> Option<WindowHandle> {
             let s_wcd = S_WCD.read().unwrap();
-            s_wcd.window.as_ref().unwrap().get()
+            s_wcd.window
+        }
+
+        pub fn s_wcd_sys_input_line_wnd_proc() -> WNDPROC {
+            let mut s_wcd = S_WCD.write().unwrap();
+            s_wcd.sys_input_line_wnd_proc
+        }
+
+        pub fn s_wcd_set_sys_input_line_wnd_proc(proc: unsafe extern "system" fn(HWND, u32, WPARAM, LPARAM) -> LRESULT) {
+            let mut s_wcd = S_WCD.write().unwrap();
+            s_wcd.sys_input_line_wnd_proc = Some(proc);
+        }
+
+        pub fn s_wcd_input_line_window() -> Option<WindowHandle> {
+            let s_wcd = S_WCD.read().unwrap();
+            s_wcd.input_line_window
+        }
+
+        pub fn s_wcd_append_console_text(text: String) {
+            let mut s_wcd = S_WCD.write().unwrap();
+            s_wcd.console_text.push_str(&text);
+            s_wcd.console_text.push('\n');
+        }
+
+        pub fn s_wcd_clear_window() {
+            let mut s_wcd = S_WCD.write().unwrap();
+            s_wcd.window = None;
         }
     }
 }
@@ -200,14 +233,15 @@ cfg_if! {
             clippy::undocumented_unsafe_blocks,
             clippy::unnecessary_safety_comment
         )]
-        pub fn append_text(text: &str) {
+        pub fn append_text(text: impl ToString) {
+            let text = &text.to_string();
             let clean_text = clean_text(text);
             let clean_len = clean_text.len();
             TEXT_APPENDED.store_relaxed(
                 TEXT_APPENDED.load_relaxed() + clean_len
             );
 
-            let buffer_window_handle = s_wcd_buffer_window_handle();
+            let buffer_window_handle = s_wcd_buffer_window().unwrap();
             let hwnd = buffer_window_handle.get_win32().unwrap().hwnd;
 
             // SAFETY:
@@ -246,20 +280,20 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(not(target_arch = "wasm32"))] {
-        pub fn append_text_in_main_thread(text: &str) {
+        pub fn append_text_in_main_thread(text: impl ToString) {
             if s_wcd_buffer_is_none() {
                 return;
             }
 
-            //if sys::is_main_thread() {
-            append_text(text);
-            //}
+            if sys::is_main_thread() {
+                append_text(text);
+            }
         }
     } else {
-        pub fn append_text_in_main_thread(text: &str) {
-            //if sys::is_main_thread() {
-            append_text(text);
-            //}
+        pub fn append_text_in_main_thread(text: impl ToString) {
+            if sys::is_main_thread() {
+                append_text(text);
+            }
         }
     }
 }

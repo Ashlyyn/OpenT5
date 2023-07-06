@@ -3,7 +3,10 @@
 extern crate alloc;
 
 use crate::{
-    platform::WindowHandle,
+    platform::{
+        os::target::{con_wnd_proc, input_line_wnd_proc},
+        FontHandle, WindowHandle,
+    },
     util::{EasierAtomicBool, SignalState, SmpEvent},
     *,
 };
@@ -21,11 +24,13 @@ use lazy_static::lazy_static;
 use std::{
     fs::File,
     io::{Read, Write},
+    mem::transmute,
     path::PathBuf,
     sync::{Mutex, RwLock},
     thread::{JoinHandle, ThreadId},
     time::{SystemTime, UNIX_EPOCH},
 };
+
 cfg_if! {
     if #[cfg(windows)] {
         use core::ffi::{CStr};
@@ -50,6 +55,32 @@ cfg_if! {
             MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
             MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
             MESSAGEBOX_STYLE,
+        };
+        use windows::{
+            s,
+            Win32::{
+                Foundation::{LPARAM, RECT, WPARAM},
+                Graphics::Gdi::{
+                    CreateFontA, GetDC, GetDeviceCaps, ReleaseDC, CLIP_DEFAULT_PRECIS,
+                    COLOR_WINDOW, DEFAULT_CHARSET, DEFAULT_PITCH, DEFAULT_QUALITY,
+                    FF_MODERN, FW_LIGHT, HBRUSH, HORZRES, LOGPIXELSY,
+                    OUT_DEFAULT_PRECIS, VERTRES,
+                },
+                System::{LibraryLoader::GetModuleHandleA, WindowsProgramming::MulDiv},
+                UI::{
+                    Controls::EM_LINESCROLL,
+                    WindowsAndMessaging::{
+                        AdjustWindowRect, CloseWindow, CreateWindowExA, DestroyWindow,
+                        GetDesktopWindow, LoadCursorA, LoadIconA, LoadImageA,
+                        RegisterClassA, SendMessageA, SetWindowLongPtrA,
+                        SetWindowTextA, ES_AUTOHSCROLL, ES_AUTOVSCROLL, ES_MULTILINE,
+                        ES_READONLY, GWLP_WNDPROC, HMENU, IDC_ARROW, IMAGE_BITMAP,
+                        LR_LOADFROMFILE, STM_SETIMAGE, SW_HIDE, WINDOW_EX_STYLE,
+                        WINDOW_STYLE, WM_SETFONT, WNDCLASSA, WS_BORDER, WS_CAPTION,
+                        WS_CHILD, WS_POPUPWINDOW, WS_VISIBLE, WS_VSCROLL,
+                    },
+                },
+            },
         };
     } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
 
@@ -603,26 +634,20 @@ pub enum EventType {
     Key(KeyboardScancode, bool),
     Mouse(MouseScancode, bool),
     Character(char),
-    Console,
+    Console(String),
 }
 
 #[derive(Clone, Debug)]
 pub struct Event {
     time: isize,
     event_type: EventType,
-    data: Vec<u8>,
 }
 
 impl Event {
-    pub fn new(
-        time: Option<isize>,
-        event_type: EventType,
-        data: Option<Vec<u8>>,
-    ) -> Self {
+    pub fn new(time: Option<isize>, event_type: EventType) -> Self {
         Self {
             time: time.unwrap_or_default(),
             event_type,
-            data: data.unwrap_or_default(),
         }
     }
 }
@@ -1257,63 +1282,335 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(target_os = "windows")] {
-        fn output_debug_string(string: &str) {
+        fn output_debug_string(string: impl ToString) {
             // SAFETY:
             // OutputDebugStringA is an FFI function, requiring use of unsafe.
             // OutputDebugStringA itself should never create UB, violate memory
             // safety, etc., in any scenario.
-            unsafe { OutputDebugStringA(PCSTR(string.as_ptr())); }
+            unsafe { OutputDebugStringA(PCSTR(string.to_string().as_ptr())); }
         }
     } else {
-        fn output_debug_string(string: &str) {
+        fn output_debug_string(string: impl ToString) {
             com::dprint!(0.into(), "sys::print: {}", string);
         }
     }
 }
 
-pub fn print(text: &str) {
+#[doc(hidden)]
+pub fn _print_internal(arguments: core::fmt::Arguments) {
     if DEBUG_OUTPUT.load(Ordering::Relaxed) {
-        output_debug_string(text);
+        output_debug_string(arguments);
     }
 
-    conbuf::append_text_in_main_thread(text);
+    conbuf::append_text_in_main_thread(arguments);
 }
 
-const fn create_console() {}
+#[macro_export]
+macro_rules! __sys_print {
+    ($($arg:tt)*) => {{
+        $crate::sys::_print_internal(core::format_args!($($arg)*));
+    }};
+}
+pub use __sys_print as print;
+
+#[macro_export]
+macro_rules! __sys_println {
+    () => {
+        $crate::sys::print!("\n")
+    };
+    ($($arg:tt)*) => {{
+        $crate::sys::print!("{}\n", core::format_args!($($arg)*));
+    }};
+}
+pub use __sys_println as println;
 
 cfg_if! {
-    if #[cfg(not(target_arch = "wasm32"))] {
+    if #[cfg(windows)] {
+        pub fn create_console() {
+            let hinstance = unsafe { 
+                GetModuleHandleA(None) 
+            }.unwrap_or_default();
+            let class_name = s!("CoD Black Ops WinConsole");
+        
+            let mut wnd_class = WNDCLASSA::default();
+            wnd_class.hInstance = hinstance;
+            wnd_class.hIcon = unsafe { 
+                LoadIconA(hinstance, PCSTR(1 as _)) 
+            }.unwrap_or_default();
+            wnd_class.hCursor = unsafe { 
+                LoadCursorA(None, PCSTR(IDC_ARROW.0 as _)) 
+            }.unwrap_or_default();
+            wnd_class.hbrBackground = HBRUSH(COLOR_WINDOW.0 as _);
+            wnd_class.lpszClassName = class_name;
+            wnd_class.lpfnWndProc = Some(con_wnd_proc);
+            if unsafe { RegisterClassA(addr_of!(wnd_class)) } == 0 {
+                return;
+            }
+        
+            let dwstyle = WS_POPUPWINDOW | WS_CAPTION;
+            let mut rect = RECT::default();
+            rect.right = 620;
+            rect.bottom = 450;
+            unsafe { AdjustWindowRect(addr_of_mut!(rect), dwstyle, false) };
+            let desktop_wnd = unsafe { GetDesktopWindow() };
+            let hdc = unsafe { GetDC(desktop_wnd) };
+            let x = unsafe { GetDeviceCaps(hdc, HORZRES) };
+            let y = unsafe { GetDeviceCaps(hdc, VERTRES) };
+            unsafe { ReleaseDC(desktop_wnd, hdc) };
+            let width = rect.right - rect.left + 1 as i32;
+            let height = rect.bottom - rect.top + 1 as i32;
+            conbuf::s_wcd_set_window_width(width as _);
+            conbuf::s_wcd_set_window_height(height as _);
+            let hwnd = unsafe {
+                CreateWindowExA(
+                    WINDOW_EX_STYLE(0),
+                    class_name,
+                    s!("CoD Black Ops Console"),
+                    dwstyle,
+                    (x - 600) / 2,
+                    (y - 450) / 2,
+                    width,
+                    height,
+                    None,
+                    None,
+                    hinstance,
+                    None,
+                )
+            };
+        
+            conbuf::s_wcd_set_window(
+                WindowHandle::from_win32(hwnd, Some(hinstance))
+            );
+        
+            if hwnd.0 == 0 {
+                return;
+            }
+        
+            let hdc = unsafe { GetDC(hwnd) };
+            let font_height = unsafe { 
+                MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72) 
+            };
+            conbuf::s_wcd_set_buffer_font(FontHandle(unsafe {
+                CreateFontA(
+                    font_height,
+                    0,
+                    0,
+                    0,
+                    FW_LIGHT.0 as _,
+                    0,
+                    0,
+                    0,
+                    DEFAULT_CHARSET.0 as _,
+                    OUT_DEFAULT_PRECIS.0 as _,
+                    CLIP_DEFAULT_PRECIS.0 as _,
+                    DEFAULT_QUALITY.0 as _,
+                    DEFAULT_PITCH.0 as u32 + FF_MODERN.0 as u32,
+                    s!("Courier New"),
+                )
+                .0
+            }));
+        
+            unsafe { ReleaseDC(hwnd, hdc) };
+            if let Ok(image) = unsafe {
+                LoadImageA(
+                    hinstance,
+                    s!("codlogo.bmp"),
+                    IMAGE_BITMAP,
+                    0,
+                    0,
+                    LR_LOADFROMFILE,
+                )
+            } {
+                let cod_logo = unsafe {
+                    CreateWindowExA(
+                        WINDOW_EX_STYLE(0),
+                        s!("Static"),
+                        None,
+                        WS_CHILD | WS_VISIBLE | WINDOW_STYLE(0x0000000E),
+                        5,
+                        5,
+                        0,
+                        0,
+                        hwnd,
+                        HMENU(1),
+                        hinstance,
+                        None,
+                    )
+                };
+        
+                conbuf::s_wcd_set_cod_logo_window(WindowHandle::from_win32(
+                    cod_logo,
+                    Some(hinstance),
+                ));
+        
+                unsafe { SendMessageA(
+                    cod_logo, STM_SETIMAGE, WPARAM(0), LPARAM(image.0)
+                ) };
+            }
+        
+            let hwnd_input_line = unsafe {
+                CreateWindowExA(
+                    WINDOW_EX_STYLE(0),
+                    s!("edit"),
+                    None,
+                    WS_CHILD
+                        | WS_VISIBLE
+                        | WS_BORDER
+                        | WINDOW_STYLE(ES_AUTOHSCROLL as _),
+                    6,
+                    400,
+                    608,
+                    20,
+                    hwnd,
+                    HMENU(101),
+                    hinstance,
+                    None,
+                )
+            };
+        
+            conbuf::s_wcd_set_input_line_window(WindowHandle::from_win32(
+                hwnd_input_line,
+                Some(hinstance),
+            ));
+        
+            let hwnd_buffer = unsafe {
+                CreateWindowExA(
+                    WINDOW_EX_STYLE(0),
+                    s!("edit"),
+                    None,
+                    WS_CHILD
+                        | WS_VISIBLE
+                        | WS_BORDER
+                        | WS_VSCROLL
+                        | WINDOW_STYLE(
+                            ES_READONLY as u32
+                                | ES_AUTOVSCROLL as u32
+                                | ES_MULTILINE as u32,
+                        ),
+                    6,
+                    70,
+                    606,
+                    324,
+                    hwnd,
+                    HMENU(100),
+                    hinstance,
+                    None,
+                )
+            };
+        
+            conbuf::s_wcd_set_buffer_window(WindowHandle::from_win32(
+                hwnd_buffer,
+                Some(hinstance),
+            ));
+        
+            unsafe {
+                SendMessageA(
+                    hwnd_buffer,
+                    WM_SETFONT,
+                    WPARAM(conbuf::s_wcd_buffer_font().unwrap().0 as _),
+                    LPARAM(0),
+                )
+            };
+            conbuf::s_wcd_set_sys_input_line_wnd_proc(unsafe {
+                transmute(SetWindowLongPtrA(
+                    hwnd_input_line,
+                    GWLP_WNDPROC,
+                    input_line_wnd_proc as _,
+                ) as *const ())
+            });
+            unsafe {
+                SendMessageA(
+                    hwnd_input_line,
+                    WM_SETFONT,
+                    WPARAM(conbuf::s_wcd_buffer_font().unwrap().0 as _),
+                    LPARAM(0),
+                )
+            };
+            unsafe { SetFocus(hwnd_input_line) };
+            unsafe {
+                SetWindowTextA(
+                    hwnd_buffer,
+                    PCSTR(conbuf::clean_text(
+                        &console::get_text_copy(0x4000)
+                    ).as_ptr()),
+                )
+            };
+        }
+    } else {
+        pub fn create_console() {
+            unimplemented!()
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(windows)] {
         pub fn show_console() {
             if conbuf::s_wcd_window_is_none() {
                 create_console();
+                assert!(!conbuf::s_wcd_window_is_none());
             }
 
-            conbuf::s_wcd_window_set_visible(true);
+            show_window(conbuf::s_wcd_buffer_window().unwrap());
+            unsafe { SendMessageA(
+                HWND(conbuf::s_wcd_buffer_window()
+                    .unwrap()
+                    .get_win32()
+                    .unwrap().hwnd as _
+                ),
+                EM_LINESCROLL, WPARAM(0), LPARAM(0xFFFF)
+            ) };
         }
+    } else {
+        pub fn show_console() {
+            todo!()
+        }
+    }
+}
 
-        fn post_error(error: &str) {
+cfg_if! {
+    if #[cfg(windows)] {
+        pub fn destroy_console() {
+            if conbuf::s_wcd_window_handle().is_some() {
+                let hwnd = HWND(
+                    conbuf::s_wcd_window_handle()
+                        .unwrap()
+                        .get_win32()
+                        .unwrap().hwnd as _
+                );
+                unsafe { ShowWindow(hwnd, SW_HIDE) };
+                unsafe { CloseWindow(hwnd) };
+                unsafe { DestroyWindow(hwnd) };
+                conbuf::s_wcd_clear_window();
+            }
+        }
+    } else {
+        pub fn destroy_console() {
+            todo!()
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(windows)] {
+        fn set_error_text(error: &str) {
             conbuf::s_wcd_set_error_string(error.into());
+            destroy_window(conbuf::s_wcd_input_line_window().unwrap());
             conbuf::s_wcd_clear_input_line_window();
 
-            // DestroyWindow(s_wcd.hwndInputLine);
-
-            let handle = None;
             message_box(
-                handle,
+                None,
                 "Error",
                 error,
                 MessageBoxType::Ok,
-                MessageBoxIcon::Stop.into(),
+                Some(MessageBoxIcon::Stop),
             )
             .unwrap();
         }
     } else {
         #[allow(clippy::missing_const_for_fn)]
-        pub fn show_console() {}
-
-        #[allow(clippy::missing_const_for_fn)]
-        pub fn post_error(_error: &str) {
-
+        pub fn set_error_text(_error: &str) {
+            todo!()
         }
     }
 }
@@ -1328,7 +1625,7 @@ pub fn error(error: &str) -> ! {
     // probably have to do some restructuring)
     show_console();
     conbuf::append_text(&format!("\n\n{}\n", error));
-    post_error(error);
+    set_error_text(error);
     // Finish processing events
     // DoSetEvent_UNK();
     std::process::exit(0);
@@ -1768,6 +2065,19 @@ cfg_if! {
             unsafe { XSetInputFocus(
                 display, handle.window, RevertToParent, CurrentTime
             ); }
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(windows)] {
+        pub fn destroy_window(handle: WindowHandle) {
+            #[allow(clippy::undocumented_unsafe_blocks)]
+            unsafe { DestroyWindow(HWND(handle.get_win32().unwrap().hwnd as _)); }
+        }
+    } else {
+        pub fn destroy_window(handle: WindowHandle) {
+            todo!()
         }
     }
 }
