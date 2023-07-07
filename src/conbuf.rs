@@ -4,7 +4,7 @@
 
 use crate::*;
 use cfg_if::cfg_if;
-use windows::Win32::{Foundation::LRESULT, UI::WindowsAndMessaging::WNDPROC};
+
 
 cfg_if! {
     if #[cfg(not(target_arch = "wasm32"))] {
@@ -25,11 +25,11 @@ cfg_if! {
         use core::sync::atomic::Ordering;
         use windows::Win32::{
             UI::{
-                WindowsAndMessaging::SendMessageA, Controls::{
+                WindowsAndMessaging::{SendMessageA, WNDPROC}, Controls::{
                     EM_SETSEL, EM_LINESCROLL, EM_SCROLLCARET, EM_REPLACESEL
                 }
             },
-            Foundation::{WPARAM, LPARAM, HWND}
+            Foundation::{WPARAM, LPARAM, HWND, LRESULT}
         };
         use crate::util::EasierAtomic;
     }
@@ -93,6 +93,7 @@ cfg_if! {
             returned_text: ArrayString<512>,
             pub window_width: i16,
             pub window_height: i16,
+            #[cfg(windows)]
             pub sys_input_line_wnd_proc: WNDPROC,
         }
 
@@ -109,6 +110,7 @@ cfg_if! {
                     returned_text: ArrayString::new(),
                     window_width: 620,
                     window_height: 450,
+                    #[cfg(windows)]
                     sys_input_line_wnd_proc: None,
                 }
             }
@@ -199,11 +201,13 @@ cfg_if! {
             s_wcd.window
         }
 
+        #[cfg(windows)]
         pub fn s_wcd_sys_input_line_wnd_proc() -> WNDPROC {
             let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.sys_input_line_wnd_proc
         }
 
+        #[cfg(windows)]
         pub fn s_wcd_set_sys_input_line_wnd_proc(proc: unsafe extern "system" fn(HWND, u32, WPARAM, LPARAM) -> LRESULT) {
             let mut s_wcd = S_WCD.write().unwrap();
             s_wcd.sys_input_line_wnd_proc = Some(proc);
@@ -286,14 +290,12 @@ cfg_if! {
             }
 
             if sys::is_main_thread() {
-                append_text(text);
+                append_text(&text.to_string());
             }
         }
     } else {
         pub fn append_text_in_main_thread(text: impl ToString) {
-            if sys::is_main_thread() {
-                append_text(text);
-            }
+            todo!()
         }
     }
 }

@@ -4,8 +4,7 @@ extern crate alloc;
 
 use crate::{
     platform::{
-        os::target::{con_wnd_proc, input_line_wnd_proc},
-        FontHandle, WindowHandle,
+        WindowHandle,
     },
     util::{EasierAtomicBool, SignalState, SmpEvent},
     *,
@@ -24,7 +23,6 @@ use lazy_static::lazy_static;
 use std::{
     fs::File,
     io::{Read, Write},
-    mem::transmute,
     path::PathBuf,
     sync::{Mutex, RwLock},
     thread::{JoinHandle, ThreadId},
@@ -33,13 +31,19 @@ use std::{
 
 cfg_if! {
     if #[cfg(windows)] {
+        use platform::os::win32::{con_wnd_proc, input_line_wnd_proc};
+        use platform::FontHandle;
         use core::ffi::{CStr};
         use alloc::ffi::CString;
+        use core::mem::{transmute, size_of_val};
         use core::ptr::{addr_of, addr_of_mut};
         use std::fs::OpenOptions;
         use std::os::windows::prelude::*;
         use windows::Win32::Foundation::MAX_PATH;
         use windows::Win32::System::LibraryLoader::GetModuleFileNameA;
+        use windows::Win32::System::SystemInformation::{
+            MEMORYSTATUS, GlobalMemoryStatus, SYSTEM_INFO, GetNativeSystemInfo
+        };
         use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_HIDDEN;
         use windows::core::PCSTR;
         use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
@@ -101,7 +105,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(not(target_arch = "wasm32"))] {
+    if #[cfg(not(any(target_arch = "wasm32", target_os = "windows")))] {
         use sysinfo::{CpuExt, SystemExt};
     }
 }
@@ -114,6 +118,12 @@ cfg_if! {
         use std::ffi::OsStr;
     } else if #[cfg(target_os = "macos")] {
         use std::ffi::CString;
+    }
+}
+
+cfg_if! {
+    if #[cfg(all(windows, any(target_arch = "x86_64", target_arch = "x86")))] {
+        use platform::arch::x86::target::cpuid;
     }
 }
 
@@ -494,7 +504,101 @@ fn normal_exit() {
 // something other than the sysinfo crate
 
 cfg_if! {
-    if #[cfg(not(target_arch = "wasm32"))] {
+    if #[cfg(all(windows, any(target_arch = "x86_64", target_arch = "x86")))] {
+        // TODO - use processor affinity masks to get the number of logical
+        // CPUs actually available to the process
+        pub fn get_logical_cpu_count() -> usize {
+            let mut system_info = SYSTEM_INFO::default();
+            unsafe { GetNativeSystemInfo(addr_of_mut!(system_info)) };
+            system_info.dwNumberOfProcessors as _
+        }
+
+        // TODO - actually get number of physical CPUs 
+        // (SYSTEM_INFO::dwNumberOfProcessors returns the logical CPU count)
+        pub fn get_physical_cpu_count() -> usize {
+            let mut system_info = SYSTEM_INFO::default();
+            unsafe { GetNativeSystemInfo(addr_of_mut!(system_info)) };
+            system_info.dwNumberOfProcessors as _
+        }
+
+        // TODO - use GlobalMemoryStatusEx
+        pub fn system_memory_mb() -> u64 {
+            let mut memory_status = MEMORYSTATUS::default();
+            memory_status.dwLength = size_of_val(&memory_status) as _;
+            unsafe { GlobalMemoryStatus(addr_of_mut!(memory_status)) };
+            memory_status.dwAvailPhys as _
+        }
+
+        pub fn get_cpu_vendor() -> String {
+            // Make the buffer large enough to contain a null-terminator in 
+            // the case that the CPU vendor string is 12-bytes long (AMD and
+            // Intel CPUs both are)
+            //
+            // Theoretically, we could declare it as [0u8; 13], but then
+            // we'd have to do some annoying casts to get the CpuidResult's
+            // fields into it. I'd rather waste three bytes. 
+            let mut vendor_buf = [0u32; 4];
+            let cpuid_result = cpuid(0x0000_0000);
+            vendor_buf[0] = cpuid_result.ebx;
+            vendor_buf[1] = cpuid_result.ecx;
+            vendor_buf[2] = cpuid_result.edx;
+            // vendor_buf[3] was zeroed in name_buf's initialization
+            let bytes: [u8; 16] = unsafe { transmute(vendor_buf) };
+            CStr::from_bytes_until_nul(&bytes).unwrap().to_string_lossy().to_string()
+        }
+
+        pub fn get_cpu_name() -> String {
+            // Make the buffer large enough to contain a null-terminator in 
+            // the case that the CPU brand string is 48-bytes long
+            //
+            // Theoretically, we could declare it as [0u8; 49], but then
+            // we'd have to do some annoying casts to get the CpuidResult's
+            // fields into it. I'd rather waste three bytes. 
+            let mut name_buf = [0u32; 13];
+            let cpuid_result = cpuid(0x8000_0002);
+            name_buf[0] = cpuid_result.eax;
+            name_buf[1] = cpuid_result.ebx;
+            name_buf[2] = cpuid_result.ecx;
+            name_buf[3] = cpuid_result.edx;
+            let cpuid_result = cpuid(0x8000_0003);
+            name_buf[4] = cpuid_result.eax;
+            name_buf[5] = cpuid_result.ebx;
+            name_buf[6] = cpuid_result.ecx;
+            name_buf[7] = cpuid_result.edx;
+            let cpuid_result = cpuid(0x8000_0004);
+            name_buf[8] = cpuid_result.eax;
+            name_buf[9] = cpuid_result.ebx;
+            name_buf[10] = cpuid_result.ecx;
+            name_buf[11] = cpuid_result.edx;
+            // name_buf[12] was zeroed in name_buf's initialization
+            let bytes: [u8; 52] = unsafe { transmute(name_buf) };
+            CStr::from_bytes_until_nul(&bytes).unwrap().to_string_lossy().to_string()
+        }
+        
+    } else if #[cfg(target_arch = "wasm32")] {
+        #[allow(clippy::missing_const_for_fn)]
+        pub fn get_logical_cpu_count() -> usize {
+            0
+        }
+
+        #[allow(clippy::missing_const_for_fn)]
+        pub fn get_physical_cpu_count() -> usize {
+            0
+        }
+
+        #[allow(clippy::missing_const_for_fn)]
+        pub fn system_memory_mb() -> u64 {
+            0
+        }
+
+        pub fn get_cpu_vendor() -> String {
+            "Unknown CPU vendor".to_owned()
+        }
+
+        pub fn get_cpu_name() -> String {
+            "Unknown CPU name".to_owned()
+        }
+    } else {
         pub fn get_logical_cpu_count() -> usize {
             let mut system = sysinfo::System::new_all();
             system.refresh_all();
@@ -509,7 +613,7 @@ cfg_if! {
                 .map_or_else(get_logical_cpu_count, |u| u)
         }
 
-        pub fn get_system_ram_in_bytes() -> u64 {
+        pub fn system_memory_mb() -> u64 {
             let mut system = sysinfo::System::new_all();
             system.refresh_all();
             system.total_memory()
@@ -530,29 +634,6 @@ cfg_if! {
                 .to_owned()
                 .trim()
                 .to_owned()
-        }
-    } else {
-        #[allow(clippy::missing_const_for_fn)]
-        pub fn get_logical_cpu_count() -> usize {
-            0
-        }
-
-        #[allow(clippy::missing_const_for_fn)]
-        pub fn get_physical_cpu_count() -> usize {
-            0
-        }
-
-        #[allow(clippy::missing_const_for_fn)]
-        pub fn get_system_ram_in_bytes() -> u64 {
-            0
-        }
-
-        pub fn get_cpu_vendor() -> String {
-            "Unknown CPU vendor".to_owned()
-        }
-
-        pub fn get_cpu_name() -> String {
-            "Unknown CPU name".to_owned()
         }
     }
 }
@@ -606,7 +687,7 @@ impl SysInfo {
         self.gpu_description = detect_video_card();
         self.logical_cpu_count = get_logical_cpu_count();
         self.physical_cpu_count = get_physical_cpu_count();
-        self.sys_mb = (get_system_ram_in_bytes() as f64 / (1024f64 * 1024f64))
+        self.sys_mb = (system_memory_mb() as f64 / (1024f64 * 1024f64))
             .clamp(0f64, f64::MAX) as u64;
         self.cpu_vendor = get_cpu_vendor();
         self.cpu_name = get_cpu_name();
@@ -1291,7 +1372,7 @@ cfg_if! {
         }
     } else {
         fn output_debug_string(string: impl ToString) {
-            com::dprint!(0.into(), "sys::print: {}", string);
+            com::dprint!(0.into(), "sys::print: {}", string.to_string());
         }
     }
 }
@@ -2076,7 +2157,7 @@ cfg_if! {
             unsafe { DestroyWindow(HWND(handle.get_win32().unwrap().hwnd as _)); }
         }
     } else {
-        pub fn destroy_window(handle: WindowHandle) {
+        pub fn destroy_window(_handle: WindowHandle) {
             todo!()
         }
     }
