@@ -11,8 +11,6 @@ use crate::{
 };
 use num_derive::FromPrimitive;
 
-pub mod gpu;
-
 use alloc::collections::VecDeque;
 use cfg_if::cfg_if;
 use core::{
@@ -55,6 +53,8 @@ cfg_if! {
         use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
         use windows::Win32::Foundation::HWND;
+        use windows::Win32::System::Performance::QueryPerformanceCounter;
+        use windows::Win32::System::Threading::Sleep;
         use windows::Win32::UI::WindowsAndMessaging::{
             MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
             MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
@@ -638,10 +638,38 @@ cfg_if! {
     }
 }
 
-pub fn detect_video_card() -> String {
-    let adapter =
-        pollster::block_on(gpu::Adapter::new(&gpu::Instance::new(), None));
-    adapter.get_info().name
+cfg_if! {
+    if #[cfg(any(not(windows), feature = "windows_use_wgpu"))] {
+        pub fn detect_video_card() -> String {
+            let adapter =
+                pollster::block_on(platform::render::wgpu::Adapter::new(&platform::render::wgpu::Instance::new(), None));
+            adapter.get_info().name
+        }
+    } else {
+        pub fn detect_video_card() -> String {
+            todo!()
+        }
+    }
+}
+
+
+cfg_if! {
+    if #[cfg(windows)] {
+        fn seconds_per_tick() -> f64 {
+            unsafe { Sleep(0) };
+            let mut frequency = 0i64;
+            unsafe { QueryPerformanceCounter(addr_of_mut!(frequency)) };
+            1.0f64 / frequency as f64
+        }
+    } else {
+        fn seconds_per_tick() -> f64 {
+            todo!()
+        }
+    }
+}
+
+pub fn init_timing() {
+    *MSEC_PER_RAW_TIMER_TICK.write().unwrap() = seconds_per_tick() * 1000.0f64;
 }
 
 #[derive(Clone, Default)]
@@ -676,35 +704,41 @@ impl SysInfo {
     fn new() -> Self {
         Self::default()
     }
-
-    #[allow(
-        clippy::cast_precision_loss,
-        clippy::as_conversions,
-        clippy::cast_sign_loss,
-        clippy::cast_possible_truncation
-    )]
-    fn find(&mut self) -> &mut Self {
-        self.gpu_description = detect_video_card();
-        self.logical_cpu_count = get_logical_cpu_count();
-        self.physical_cpu_count = get_physical_cpu_count();
-        self.sys_mb = (system_memory_mb() as f64 / (1024f64 * 1024f64))
-            .clamp(0f64, f64::MAX) as u64;
-        self.cpu_vendor = get_cpu_vendor();
-        self.cpu_name = get_cpu_name();
-        self
-    }
 }
 
 lazy_static! {
-    static ref SYS_INFO: Arc<RwLock<Option<SysInfo>>> =
-        Arc::new(RwLock::new(None));
+    static ref SYS_INFO: RwLock<Option<SysInfo>> = RwLock::new(None);
+    static ref MSEC_PER_RAW_TIMER_TICK: RwLock<f64> = RwLock::new(0.0f64);
 }
 
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::as_conversions,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation
+)]
 pub fn find_info() -> SysInfo {
-    let lock = SYS_INFO.clone();
-    let mut sys_info = lock.write().unwrap();
+    let mut sys_info = SYS_INFO.write().unwrap();
     if sys_info.is_none() {
-        *sys_info = Some(SysInfo::new().find().clone());
+        let gpu_description = detect_video_card();
+        let logical_cpu_count = get_logical_cpu_count();
+        let physical_cpu_count = get_physical_cpu_count();
+        let sys_mb = (system_memory_mb() as f64 / (1024f64 * 1024f64)).clamp(0f64, f64::MAX) as u64;
+        let cpu_vendor = get_cpu_vendor();
+        let cpu_name = get_cpu_name();
+        let cpu_ghz = 1.0f64 / (*MSEC_PER_RAW_TIMER_TICK.read().unwrap() * 1_000_000.0f64);
+        let configure_ghz = cpu_ghz;
+        
+        *sys_info = Some(SysInfo { 
+            gpu_description, 
+            logical_cpu_count, 
+            physical_cpu_count, 
+            sys_mb, 
+            cpu_vendor, 
+            cpu_name, 
+            cpu_ghz: cpu_ghz as _, 
+            configure_ghz: configure_ghz as _,
+        });
     }
     sys_info.as_ref().unwrap().clone()
 }

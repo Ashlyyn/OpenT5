@@ -3,11 +3,14 @@
 use crate::{
     gfx::{WindowTarget, R_GLOB},
     platform::{os::target::MonitorHandle, WindowHandle},
-    sys::{gpu::Device, show_window},
+    sys::{show_window},
     util::{EasierAtomic, SignalState},
     *,
 };
+
+#[cfg(any(not(windows), feature = "windows_use_wgpu"))]
 use pollster::block_on;
+
 use sscanf::scanf;
 extern crate alloc;
 use alloc::collections::VecDeque;
@@ -68,6 +71,12 @@ cfg_if! {
         use platform::display_server::target::WM_DELETE_WINDOW;
         use alloc::ffi::CString;
         use core::ptr::addr_of_mut;
+    }
+}
+
+cfg_if! {
+    if #[cfg(any(not(windows), feature = "windows_use_wgpu"))] {
+        use platform::render::wgpu::Device;
     }
 }
 
@@ -278,6 +287,7 @@ fn init() -> Result<(), ()> {
 
     register();
 
+    #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
     init_graphics_api().unwrap();
 
     Ok(())
@@ -292,9 +302,12 @@ pub struct RenderGlobals {
     resolution_names: HashSet<String>,
     refresh_rate_names: HashSet<String>,
     target_window_index: i32,
-    device: Option<sys::gpu::Device>,
-    adapter: Option<sys::gpu::Adapter>,
-    instance: Option<sys::gpu::Instance>,
+    #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+    device: Option<platform::render::wgpu::Device>,
+    #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+    adapter: Option<platform::render::wgpu::Adapter>,
+    #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+    instance: Option<platform::render::wgpu::Instance>,
     windows: Vec<WindowTarget>,
 }
 
@@ -309,8 +322,11 @@ impl RenderGlobals {
             resolution_names: HashSet::new(),
             refresh_rate_names: HashSet::new(),
             target_window_index: 0,
+            #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
             device: None,
+            #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
             adapter: None,
+            #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
             instance: None,
             windows: Vec::new(),
         }
@@ -622,11 +638,12 @@ fn reduce_window_settings() -> Result<(), ()> {
     }
 }
 
+#[cfg(any(not(windows), feature = "windows_use_wgpu"))]
 #[allow(clippy::unnecessary_wraps)]
-fn choose_adapter() -> Option<sys::gpu::Adapter> {
+fn choose_adapter() -> Option<platform::render::wgpu::Adapter> {
     let rg = RENDER_GLOBALS.write().unwrap();
     let adapter =
-        block_on(sys::gpu::Adapter::new(rg.instance.as_ref().unwrap(), None));
+        block_on(platform::render::wgpu::Adapter::new(rg.instance.as_ref().unwrap(), None));
     Some(adapter)
 }
 
@@ -1302,10 +1319,11 @@ fn enum_display_modes() {
         valid_modes.iter().copied().cloned().collect();
 }
 
+#[cfg(any(not(windows), feature = "windows_use_wgpu"))]
 #[allow(clippy::unnecessary_wraps)]
 fn pre_create_window() -> Result<(), ()> {
     com::println!(8.into(), "Getting Device interface...");
-    let instance = sys::gpu::Instance::new();
+    let instance = platform::render::wgpu::Instance::new();
     RENDER_GLOBALS.write().unwrap().instance = Some(instance);
 
     let adapter = choose_adapter();
@@ -1342,6 +1360,7 @@ const fn init_systems() -> Result<(), ()> {
     Ok(())
 }
 
+#[cfg(any(not(windows), feature = "windows_use_wgpu"))]
 fn init_graphics_api() -> Result<(), ()> {
     if RENDER_GLOBALS.read().unwrap().device.is_none() {
         if pre_create_window().is_err() {
@@ -1378,6 +1397,7 @@ fn finish_attaching_to_window(wnd_parms: &gfx::WindowParms) {
     HARDWARE_INITED.store(true, Ordering::Relaxed);
 }
 
+#[cfg(any(not(windows), feature = "windows_use_wgpu"))]
 fn create_device_internal(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
     com::println!(8.into(), "Creating Render device...");
 
@@ -1386,7 +1406,7 @@ fn create_device_internal(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
 
     (rg.adapter_native_width, rg.adapter_native_height) =
         get_monitor_dimensions(wnd_parms.monitor_handle.unwrap()).unwrap();
-    rg.device = block_on(sys::gpu::Device::new(rg.adapter.as_ref().unwrap()));
+    rg.device = block_on(platform::render::wgpu::Device::new(rg.adapter.as_ref().unwrap()));
     if rg.device.is_none() {
         return Err(());
     }
@@ -1394,6 +1414,7 @@ fn create_device_internal(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
     Ok(())
 }
 
+#[cfg(any(not(windows), feature = "windows_use_wgpu"))]
 fn create_device(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
     {
         let rg = RENDER_GLOBALS.read().unwrap();

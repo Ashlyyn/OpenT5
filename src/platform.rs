@@ -3,6 +3,7 @@
 pub mod arch;
 pub mod display_server;
 pub mod os;
+pub mod render;
 
 use std::sync::RwLock;
 extern crate alloc;
