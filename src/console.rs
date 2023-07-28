@@ -242,8 +242,8 @@ pub fn get_text_copy(_len: usize) -> String {
     // let mut line_pos =
     // con.console_window.lines.get(con.console_window.first_line_index).
     // unwrap().text_buf_pos; let mut end = con.console_window.text_buf_pos
-    // - line_pos; if end < 0 {
-    //     end = con.console_window.circular_text_buffer.len();
+    // - line_pos; if end < 0 { end =
+    //   con.console_window.circular_text_buffer.len();
     // }
 
     // if len - 1 < end {

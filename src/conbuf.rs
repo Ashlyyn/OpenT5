@@ -5,7 +5,6 @@
 use crate::*;
 use cfg_if::cfg_if;
 
-
 cfg_if! {
     if #[cfg(not(target_arch = "wasm32"))] {
         use lazy_static::lazy_static;

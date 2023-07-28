@@ -26,6 +26,7 @@ cfg_if! {
         use windows::Win32::Foundation::HMODULE;
         use windows::core::PCWSTR;
         use windows::Win32::Foundation::{WPARAM, LPARAM};
+        use windows::Win32::Graphics::Direct3D9::D3DFORMAT;
     }
     else if #[cfg(target_family = "unix")] {
         use std::os::unix::prelude::OsStrExt;
@@ -612,3 +613,25 @@ impl Point {
         Self { x, y, z }
     }
 }
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct FourCC(u32);
+
+pub const fn make_four_cc(a: u8, b: u8, c: u8, d: u8) -> FourCC {
+    FourCC(a as u32 | ((b as u32) << 8) | ((c as u32) << 16) | ((d as u32) << 24))
+}
+
+#[const_trait]
+pub trait FourCCExtDX {
+    fn as_d3dfmt(self) -> D3DFORMAT;
+}
+
+impl const FourCCExtDX for FourCC {
+    fn as_d3dfmt(self) -> D3DFORMAT {
+        D3DFORMAT(self.0)
+    }
+}
+
+pub const D3DFMT_NULL: D3DFORMAT = make_four_cc(b'N', b'U', b'L', b'L').as_d3dfmt();
+pub const D3DPTFILTERCAPS_MINFANISOTROPIC: u32 = 0x400;
+pub const D3DPTFILTERCAPS_MAGFANISOTROPIC: u32 = 0x4000000;

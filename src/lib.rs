@@ -3,6 +3,7 @@
 #![feature(const_option)]
 #![feature(int_roundings)]
 #![feature(const_fn_floating_point_arithmetic)]
+#![feature(const_trait_impl)]
 #![warn(
     clippy::all,
     clippy::restriction,

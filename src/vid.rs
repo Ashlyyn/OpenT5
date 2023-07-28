@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::sync::RwLock;
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::*;
 
@@ -35,8 +35,12 @@ lazy_static! {
     pub static ref CONFIG: RwLock<Config> = RwLock::new(Config::default());
 }
 
-pub fn config() -> Config {
-    *CONFIG.read().unwrap()
+pub fn config() -> RwLockReadGuard<'static, Config> {
+    CONFIG.read().unwrap()
+}
+
+pub fn config_mut() -> RwLockWriteGuard<'static, Config> {
+    CONFIG.write().unwrap()
 }
 
 #[allow(clippy::print_stdout)]

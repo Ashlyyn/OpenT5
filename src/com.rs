@@ -366,14 +366,50 @@ pub fn log_file_open() -> bool {
 // Also needs to be actually implemented
 // Currently just a wrapper for panic
 #[allow(clippy::panic, clippy::needless_pass_by_value)]
-pub fn error(err_type: ErrorParm, err: impl ToString) {
-    panic!("{} ({:?})", err.to_string(), err_type);
+#[doc(hidden)]
+pub fn _error_internal(err_type: ErrorParm, arguments: core::fmt::Arguments) {
+    panic!("{} ({:?})", arguments, err_type);
 }
 
-#[allow(clippy::needless_pass_by_value)]
-pub fn errorln(err_type: ErrorParm, err: impl ToString) {
-    error(err_type, format!("{}\n", err.to_string()));
+/// Throws an error. Not the same as [`com::print_error!`].
+///
+/// # Panics
+///
+/// Currently always panics.
+///
+/// # Example
+///
+/// ```
+/// com::error!("Error to com!");
+/// ```
+macro_rules! __error {
+    ($err_parm:expr, $($arg:tt)*) => {{
+        $crate::com::_error_internal($err_parm, core::format_args!($($arg)*));
+    }};
 }
+#[allow(unused_imports)]
+pub(crate) use __error as error;
+
+/// Throws an error with a newline appended. Not the same as [`com::print_error!`].
+///
+/// # Panics
+///
+/// Currently always panics.
+///
+/// # Example
+///
+/// ```
+/// com::errorln!("Error to com!");
+/// ```
+macro_rules! __errorln {
+    ($err_parm:expr) => {
+        $crate::com::error!($err_parm, "\n")
+    };
+    ($err_parm:expr, $($arg:tt)*) => {{
+        $crate::com::error!($err_parm, "{}\n", core::format_args!($($arg)*));
+    }};
+}
+pub(crate) use __errorln as errorln;
 
 // Implement these two later
 // (not integral to the program, look annoying to implement)

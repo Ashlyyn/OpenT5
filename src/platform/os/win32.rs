@@ -173,7 +173,7 @@ fn register_class(hinstance: HMODULE) {
     wnd_class.hbrBackground = unsafe { CreateSolidBrush(COLORREF(0)) };
     wnd_class.lpszClassName = s!("CoDBlackOps");
     if unsafe { RegisterClassExA(addr_of!(wnd_class)) } == 0 {
-        com::error(ErrorParm::FATAL, "EXE_ERR_COULDNT_REGISTER_WINDOW");
+        com::error!(ErrorParm::FATAL, "EXE_ERR_COULDNT_REGISTER_WINDOW");
     }
 }
 

@@ -3,9 +3,7 @@
 extern crate alloc;
 
 use crate::{
-    platform::{
-        WindowHandle,
-    },
+    platform::WindowHandle,
     util::{EasierAtomicBool, SignalState, SmpEvent},
     *,
 };
@@ -26,9 +24,14 @@ use std::{
     thread::{JoinHandle, ThreadId},
     time::{SystemTime, UNIX_EPOCH},
 };
+use windows::Win32::Graphics::Direct3D9::{
+    Direct3DCreate9, D3DADAPTER_DEFAULT, D3DADAPTER_IDENTIFIER9,
+    D3D_SDK_VERSION,
+};
 
 cfg_if! {
     if #[cfg(windows)] {
+        use cstr::cstr;
         use platform::os::win32::{con_wnd_proc, input_line_wnd_proc};
         use platform::FontHandle;
         use core::ffi::{CStr};
@@ -513,7 +516,7 @@ cfg_if! {
             system_info.dwNumberOfProcessors as _
         }
 
-        // TODO - actually get number of physical CPUs 
+        // TODO - actually get number of physical CPUs
         // (SYSTEM_INFO::dwNumberOfProcessors returns the logical CPU count)
         pub fn get_physical_cpu_count() -> usize {
             let mut system_info = SYSTEM_INFO::default();
@@ -530,13 +533,13 @@ cfg_if! {
         }
 
         pub fn get_cpu_vendor() -> String {
-            // Make the buffer large enough to contain a null-terminator in 
+            // Make the buffer large enough to contain a null-terminator in
             // the case that the CPU vendor string is 12-bytes long (AMD and
             // Intel CPUs both are)
             //
             // Theoretically, we could declare it as [0u8; 13], but then
             // we'd have to do some annoying casts to get the CpuidResult's
-            // fields into it. I'd rather waste three bytes. 
+            // fields into it. I'd rather waste three bytes.
             let mut vendor_buf = [0u32; 4];
             let cpuid_result = cpuid(0x0000_0000);
             vendor_buf[0] = cpuid_result.ebx;
@@ -548,12 +551,12 @@ cfg_if! {
         }
 
         pub fn get_cpu_name() -> String {
-            // Make the buffer large enough to contain a null-terminator in 
+            // Make the buffer large enough to contain a null-terminator in
             // the case that the CPU brand string is 48-bytes long
             //
             // Theoretically, we could declare it as [0u8; 49], but then
             // we'd have to do some annoying casts to get the CpuidResult's
-            // fields into it. I'd rather waste three bytes. 
+            // fields into it. I'd rather waste three bytes.
             let mut name_buf = [0u32; 13];
             let cpuid_result = cpuid(0x8000_0002);
             name_buf[0] = cpuid_result.eax;
@@ -574,7 +577,7 @@ cfg_if! {
             let bytes: [u8; 52] = unsafe { transmute(name_buf) };
             CStr::from_bytes_until_nul(&bytes).unwrap().to_string_lossy().to_string()
         }
-        
+
     } else if #[cfg(target_arch = "wasm32")] {
         #[allow(clippy::missing_const_for_fn)]
         pub fn get_logical_cpu_count() -> usize {
@@ -642,16 +645,40 @@ cfg_if! {
     if #[cfg(any(not(windows), feature = "windows_use_wgpu"))] {
         pub fn detect_video_card() -> String {
             let adapter =
-                pollster::block_on(platform::render::wgpu::Adapter::new(&platform::render::wgpu::Instance::new(), None));
+                pollster::block_on(
+                    platform::render::wgpu::Adapter::new(
+                        &platform::render::wgpu::Instance::new(), None
+                    )
+                );
             adapter.get_info().name
         }
     } else {
         pub fn detect_video_card() -> String {
-            todo!()
+            let Some(d3d9) = (unsafe { Direct3DCreate9(D3D_SDK_VERSION) }) 
+            else {
+                return String::from("Unknown video card");
+            };
+        
+            let mut identifier = D3DADAPTER_IDENTIFIER9::default();
+            if unsafe {
+                d3d9.GetAdapterIdentifier(
+                    D3DADAPTER_DEFAULT,
+                    0,
+                    addr_of_mut!(identifier),
+                )
+            }
+            .is_ok()
+            {
+                CStr::from_bytes_until_nul(&identifier.Description)
+                    .unwrap_or_else(|_| cstr!("Unknown video card"))
+                    .to_string_lossy()
+                    .to_string()
+            } else {
+                return String::from("Unknown video card");
+            }
         }
     }
 }
-
 
 cfg_if! {
     if #[cfg(windows)] {
@@ -723,20 +750,22 @@ pub fn find_info() -> SysInfo {
         let gpu_description = detect_video_card();
         let logical_cpu_count = get_logical_cpu_count();
         let physical_cpu_count = get_physical_cpu_count();
-        let sys_mb = (system_memory_mb() as f64 / (1024f64 * 1024f64)).clamp(0f64, f64::MAX) as u64;
+        let sys_mb = (system_memory_mb() as f64 / (1024f64 * 1024f64))
+            .clamp(0f64, f64::MAX) as u64;
         let cpu_vendor = get_cpu_vendor();
         let cpu_name = get_cpu_name();
-        let cpu_ghz = 1.0f64 / (*MSEC_PER_RAW_TIMER_TICK.read().unwrap() * 1_000_000.0f64);
+        let cpu_ghz = 1.0f64
+            / (*MSEC_PER_RAW_TIMER_TICK.read().unwrap() * 1_000_000.0f64);
         let configure_ghz = cpu_ghz;
-        
-        *sys_info = Some(SysInfo { 
-            gpu_description, 
-            logical_cpu_count, 
-            physical_cpu_count, 
-            sys_mb, 
-            cpu_vendor, 
-            cpu_name, 
-            cpu_ghz: cpu_ghz as _, 
+
+        *sys_info = Some(SysInfo {
+            gpu_description,
+            logical_cpu_count,
+            physical_cpu_count,
+            sys_mb,
+            cpu_vendor,
+            cpu_name,
+            cpu_ghz: cpu_ghz as _,
             configure_ghz: configure_ghz as _,
         });
     }
@@ -1442,18 +1471,18 @@ pub use __sys_println as println;
 cfg_if! {
     if #[cfg(windows)] {
         pub fn create_console() {
-            let hinstance = unsafe { 
-                GetModuleHandleA(None) 
+            let hinstance = unsafe {
+                GetModuleHandleA(None)
             }.unwrap_or_default();
             let class_name = s!("CoD Black Ops WinConsole");
-        
+
             let mut wnd_class = WNDCLASSA::default();
             wnd_class.hInstance = hinstance;
-            wnd_class.hIcon = unsafe { 
-                LoadIconA(hinstance, PCSTR(1 as _)) 
+            wnd_class.hIcon = unsafe {
+                LoadIconA(hinstance, PCSTR(1 as _))
             }.unwrap_or_default();
-            wnd_class.hCursor = unsafe { 
-                LoadCursorA(None, PCSTR(IDC_ARROW.0 as _)) 
+            wnd_class.hCursor = unsafe {
+                LoadCursorA(None, PCSTR(IDC_ARROW.0 as _))
             }.unwrap_or_default();
             wnd_class.hbrBackground = HBRUSH(COLOR_WINDOW.0 as _);
             wnd_class.lpszClassName = class_name;
@@ -1461,7 +1490,7 @@ cfg_if! {
             if unsafe { RegisterClassA(addr_of!(wnd_class)) } == 0 {
                 return;
             }
-        
+
             let dwstyle = WS_POPUPWINDOW | WS_CAPTION;
             let mut rect = RECT::default();
             rect.right = 620;
@@ -1492,18 +1521,18 @@ cfg_if! {
                     None,
                 )
             };
-        
+
             conbuf::s_wcd_set_window(
                 WindowHandle::from_win32(hwnd, Some(hinstance))
             );
-        
+
             if hwnd.0 == 0 {
                 return;
             }
-        
+
             let hdc = unsafe { GetDC(hwnd) };
-            let font_height = unsafe { 
-                MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72) 
+            let font_height = unsafe {
+                MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72)
             };
             conbuf::s_wcd_set_buffer_font(FontHandle(unsafe {
                 CreateFontA(
@@ -1524,7 +1553,7 @@ cfg_if! {
                 )
                 .0
             }));
-        
+
             unsafe { ReleaseDC(hwnd, hdc) };
             if let Ok(image) = unsafe {
                 LoadImageA(
@@ -1552,17 +1581,17 @@ cfg_if! {
                         None,
                     )
                 };
-        
+
                 conbuf::s_wcd_set_cod_logo_window(WindowHandle::from_win32(
                     cod_logo,
                     Some(hinstance),
                 ));
-        
+
                 unsafe { SendMessageA(
                     cod_logo, STM_SETIMAGE, WPARAM(0), LPARAM(image.0)
                 ) };
             }
-        
+
             let hwnd_input_line = unsafe {
                 CreateWindowExA(
                     WINDOW_EX_STYLE(0),
@@ -1582,12 +1611,12 @@ cfg_if! {
                     None,
                 )
             };
-        
+
             conbuf::s_wcd_set_input_line_window(WindowHandle::from_win32(
                 hwnd_input_line,
                 Some(hinstance),
             ));
-        
+
             let hwnd_buffer = unsafe {
                 CreateWindowExA(
                     WINDOW_EX_STYLE(0),
@@ -1612,12 +1641,12 @@ cfg_if! {
                     None,
                 )
             };
-        
+
             conbuf::s_wcd_set_buffer_window(WindowHandle::from_win32(
                 hwnd_buffer,
                 Some(hinstance),
             ));
-        
+
             unsafe {
                 SendMessageA(
                     hwnd_buffer,
