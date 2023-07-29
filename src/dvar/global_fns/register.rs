@@ -41,7 +41,9 @@ pub fn register_bool(
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-            "Can\'t create dvar \'{}\': {} dvars already exist", name, DVAR_COUNT_MAX,
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX,
         );
         return Err(());
     }
@@ -62,9 +64,10 @@ pub fn register_bool(
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name,
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name,
         );
         Err(())
     } else {
@@ -193,8 +196,10 @@ pub fn register_float(
 ) -> Result<(), ()> {
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
-            com::ErrorParm::FATAL, "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX,
+            com::ErrorParm::FATAL,
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX,
         );
         return Err(());
     }
@@ -216,10 +221,11 @@ pub fn register_float(
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name
-            );
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name
+        );
         Err(())
     } else {
         Ok(())
@@ -368,8 +374,9 @@ pub fn register_vector2(
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX,
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX,
         );
         return Err(());
     }
@@ -392,9 +399,10 @@ pub fn register_vector2(
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name,
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name,
         );
         Err(())
     } else {
@@ -545,8 +553,9 @@ pub fn register_vector3(
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX,
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX,
         );
         return Err(());
     }
@@ -568,9 +577,10 @@ pub fn register_vector3(
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name,
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name,
         );
         Err(())
     } else {
@@ -721,8 +731,9 @@ pub fn register_vector4(
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX
         );
         return Err(());
     }
@@ -745,9 +756,10 @@ pub fn register_vector4(
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name,
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name,
         );
         Err(())
     } else {
@@ -898,8 +910,9 @@ pub fn register_int(
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX,
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX,
         );
         return Err(());
     }
@@ -922,9 +935,10 @@ pub fn register_int(
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name
         );
         Err(())
     } else {
@@ -1065,8 +1079,9 @@ pub fn register_string(
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX
         );
         return Err(());
     }
@@ -1088,9 +1103,10 @@ pub fn register_string(
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name
         );
         Err(())
     } else {
@@ -1216,8 +1232,9 @@ pub fn register_enumeration(
     if DVARS.read().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX
         );
         return Err(());
     }
@@ -1240,9 +1257,10 @@ pub fn register_enumeration(
         let other_name = DVARS.read().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name
         );
         Err(())
     } else {
@@ -1391,8 +1409,9 @@ pub fn register_color(
     if DVARS.write().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX
         );
         return Err(());
     }
@@ -1414,9 +1433,10 @@ pub fn register_color(
         let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name
         );
         Err(())
     } else {
@@ -1569,8 +1589,9 @@ pub fn register_int64(
     if DVARS.write().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX
         );
         return Err(());
     }
@@ -1593,9 +1614,10 @@ pub fn register_int64(
         let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name
         );
         Err(())
     } else {
@@ -1752,8 +1774,9 @@ pub fn register_linear_color_rgb(
     if DVARS.write().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX
         );
         return Err(());
     }
@@ -1776,9 +1799,10 @@ pub fn register_linear_color_rgb(
         let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name
         );
         Err(())
     } else {
@@ -1969,8 +1993,9 @@ pub fn register_color_xyz(
     if DVARS.write().unwrap().len() + 1 > DVAR_COUNT_MAX {
         com::errorln!(
             com::ErrorParm::FATAL,
-                "Can\'t create dvar \'{}\': {} dvars already exist",
-                name, DVAR_COUNT_MAX
+            "Can\'t create dvar \'{}\': {} dvars already exist",
+            name,
+            DVAR_COUNT_MAX
         );
         return Err(());
     }
@@ -1992,9 +2017,10 @@ pub fn register_color_xyz(
         let other_name = DVARS.write().unwrap().get(name).unwrap().name.clone();
         com::errorln!(
             com::ErrorParm::FATAL,
-                "dvar name hash collision between \'{}\' and \'{}\' Please \
-                 change one of these names to remove the hash collision",
-                name, other_name
+            "dvar name hash collision between \'{}\' and \'{}\' Please change \
+             one of these names to remove the hash collision",
+            name,
+            other_name
         );
         Err(())
     } else {

@@ -390,7 +390,8 @@ macro_rules! __error {
 #[allow(unused_imports)]
 pub(crate) use __error as error;
 
-/// Throws an error with a newline appended. Not the same as [`com::print_error!`].
+/// Throws an error with a newline appended. Not the same as
+/// [`com::print_error!`].
 ///
 /// # Panics
 ///

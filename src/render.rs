@@ -2,30 +2,52 @@
 
 use crate::{
     gfx::{WindowTarget, R_GLOB},
-    platform::{os::target::MonitorHandle, WindowHandle, render::d3d9::{D3D_VENDOR_ID_NVIDIA, DxCapsResponse, DxCapsCheckBits, DxCapsCheckInteger, ShadowmapBuildTechType, ShadowmapSamplerState}},
+    platform::{os::target::MonitorHandle, WindowHandle},
     sys::show_window,
-    util::{EasierAtomic, SignalState, make_four_cc, FourCCExtDX, D3DFMT_NULL, D3DPTFILTERCAPS_MINFANISOTROPIC, D3DPTFILTERCAPS_MAGFANISOTROPIC},
+    util::{EasierAtomic, SignalState},
     *,
 };
 
-use nvapi_sys::{nvapi::NvAPI_Initialize, status::NVAPI_OK};
-use cstr::cstr;
 #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
 use pollster::block_on;
+
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
+use crate::platform::render::d3d9::{
+    Adapter, DxCapsCheckBits, DxCapsCheckInteger, DxCapsResponse,
+    ShadowmapBuildTechType, ShadowmapSamplerState, D3DFMT_NULL,
+    D3DPTFILTERCAPS_MAGFANISOTROPIC, D3DPTFILTERCAPS_MINFANISOTROPIC,
+    D3D_VENDOR_ID_NVIDIA,
+};
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
+use core::{ffi::CStr, ptr::addr_of};
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
+use cstr::cstr;
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
+use nvapi_sys::{nvapi::NvAPI_Initialize, status::NVAPI_OK};
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
+use windows::Win32::{
+    Graphics::Direct3D9::{
+        Direct3DCreate9, D3DADAPTER_IDENTIFIER9, D3DCAPS2_FULLSCREENGAMMA,
+        D3DCAPS9, D3DDEVTYPE_HAL, D3DFMT_A8R8G8B8, D3DFMT_D24S8, D3DFMT_D24X8,
+        D3DFMT_R32F, D3DFMT_R5G6B5, D3DFMT_X8R8G8B8,
+        D3DMULTISAMPLE_NONMASKABLE, D3DPRASTERCAPS_SLOPESCALEDEPTHBIAS,
+        D3DPTEXTURECAPS_MIPCUBEMAP, D3DRTYPE_SURFACE, D3DRTYPE_TEXTURE,
+        D3DUSAGE_DEPTHSTENCIL, D3DUSAGE_RENDERTARGET, D3D_SDK_VERSION,
+    },
+    System::Threading::Sleep,
+};
 
 use sscanf::scanf;
 extern crate alloc;
 use alloc::collections::VecDeque;
-use windows::Win32::Graphics::Direct3D9::{Direct3DCreate9, D3D_SDK_VERSION, D3DADAPTER_IDENTIFIER9, D3DFMT_X8R8G8B8, D3DMULTISAMPLE_NONMASKABLE, D3DFMT_R5G6B5, D3DFMT_D24S8, D3DFMT_A8R8G8B8, D3DFMT_R32F, D3DFMT_D24X8, D3DUSAGE_RENDERTARGET, D3DRTYPE_SURFACE, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_TEXTURE, D3DCAPS2_FULLSCREENGAMMA, D3DPRASTERCAPS_SLOPESCALEDEPTHBIAS, D3DPTEXTURECAPS_MIPCUBEMAP};
 use core::sync::atomic::AtomicUsize;
-use std::{collections::HashSet, sync::RwLock, ffi::CStr, ptr::addr_of};
+use std::{collections::HashSet, sync::RwLock};
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u32 = 480;
 
 cfg_if! {
     if #[cfg(windows)] {
-        use windows::Win32::{Graphics::Direct3D9::{D3DCAPS9, D3DDEVTYPE_HAL}, System::Threading::Sleep};
         use windows::Win32::Foundation::{RECT, HWND, LPARAM, POINT, BOOL};
         use windows::Win32::Graphics::Gdi::{
             DEVMODEW, EnumDisplayMonitors, MONITOR_DEFAULTTOPRIMARY,
@@ -207,7 +229,13 @@ fn reflection_probe_register_dvars() {
     )
     .unwrap();
 
-    dvar::register_bool("sm_enable", true, dvar::DvarFlags::empty(), Some("Enable shadow mapping")).unwrap();
+    dvar::register_bool(
+        "sm_enable",
+        true,
+        dvar::DvarFlags::empty(),
+        Some("Enable shadow mapping"),
+    )
+    .unwrap();
 }
 
 const ASPECT_RATIO_AUTO: &str = "auto";
@@ -677,26 +705,7 @@ cfg_if! {
     }
 }
 
-cfg_if! {
-    if #[cfg(any(not(windows), feature = "windows_use_wgpu"))] {
-        struct Adapter;
-    } else {
-        #[derive(Copy, Clone, Default, Debug)]
-        struct Adapter(u32);
-
-        impl Adapter {
-            fn from_d3d9(adapter: u32) -> Self {
-                Self(adapter)
-            }
-            fn as_d3d9(&self) -> u32 {
-                self.0
-            }
-        }
-    }
-}
-
-
-
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 fn choose_adapter() -> Option<Adapter> {
     let hmonitor = choose_monitor().get_win32().unwrap();
     let dx = platform::render::d3d9::dx();
@@ -706,12 +715,23 @@ fn choose_adapter() -> Option<Adapter> {
     let mut id = D3DADAPTER_IDENTIFIER9::default();
     for adapter in 0..adapter_count {
         if hmonitor.0 != 0 {
-            let hmonitor_2 = unsafe { dx.d3d9.as_ref().unwrap().GetAdapterMonitor(adapter) };
+            let hmonitor_2 =
+                unsafe { dx.d3d9.as_ref().unwrap().GetAdapterMonitor(adapter) };
             if hmonitor == hmonitor_2 {
                 return Some(Adapter::from_d3d9(adapter));
             }
-        } else if unsafe { dx.d3d9.as_ref().unwrap().GetAdapterIdentifier(adapter, 0, addr_of_mut!(id)) }.is_ok() {
-            if CStr::from_bytes_until_nul(&id.Description).unwrap() == cstr!("NVIDIA NVPerfHUD") {
+        } else if unsafe {
+            dx.d3d9.as_ref().unwrap().GetAdapterIdentifier(
+                adapter,
+                0,
+                addr_of_mut!(id),
+            )
+        }
+        .is_ok()
+        {
+            if CStr::from_bytes_until_nul(&id.Description).unwrap()
+                == cstr!("NVIDIA NVPerfHUD")
+            {
                 return Some(Adapter::from_d3d9(adapter));
             }
         }
@@ -1339,6 +1359,7 @@ struct MonitorInfo {
     video_modes: Vec<VideoMode>,
 }
 
+#[cfg(any(not(windows), feature = "windows_use_wgpu"))]
 fn enum_display_modes() {
     let info = monitor_info(
         primary_monitor().unwrap_or(*available_monitors().get(0).unwrap()),
@@ -1359,8 +1380,11 @@ fn enum_display_modes() {
         .map(|m| format!("{}x{}", m.width, m.height))
         .collect::<Vec<_>>();
     if modes.is_empty() {
-        fatal_init_error!("No valid resolutions of {} x {} or above found",
-        MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION);
+        fatal_init_error!(
+            "No valid resolutions of {} x {} or above found",
+            MIN_HORIZONTAL_RESOLUTION,
+            MIN_VERTICAL_RESOLUTION
+        );
     }
 
     dvar::register_enumeration(
@@ -1390,26 +1414,21 @@ fn enum_display_modes() {
         valid_modes.iter().copied().cloned().collect();
 }
 
-cfg_if! {
-    if #[cfg(any(not(windows), feature = "windows_use_wgpu"))] {
-        #[allow(clippy::unnecessary_wraps)]
-        fn pre_create_window() -> Result<(), ()> {
-            com::println!(8.into(), "Getting Device interface...");
-            let instance = platform::render::wgpu::Instance::new();
-            RENDER_GLOBALS.write().unwrap().instance = Some(instance);
-    
-            let adapter = choose_adapter();
-            enum_display_modes();
-            RENDER_GLOBALS.write().unwrap().adapter = adapter;
-    
-            Ok(())
-        }   
-    } else {
-        
-    }
+#[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+#[allow(clippy::unnecessary_wraps)]
+fn pre_create_window() -> Result<(), ()> {
+    com::println!(8.into(), "Getting Device interface...");
+    let instance = platform::render::wgpu::Instance::new();
+    RENDER_GLOBALS.write().unwrap().instance = Some(instance);
+
+    let adapter = choose_adapter();
+    enum_display_modes();
+    RENDER_GLOBALS.write().unwrap().adapter = adapter;
+
+    Ok(())
 }
 
-#[cfg(all(windows, not(feature = "windows_use_wgpu")))] 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 fn get_direct3d_caps(adapter: Adapter) -> D3DCAPS9 {
     let dx = platform::render::d3d9::dx();
     assert!(dx.d3d9.is_some());
@@ -1417,7 +1436,13 @@ fn get_direct3d_caps(adapter: Adapter) -> D3DCAPS9 {
     let mut caps = D3DCAPS9::default();
     let mut i = 0;
     let err = loop {
-        let err = if let Err(e) = unsafe { dx.d3d9.as_ref().unwrap().GetDeviceCaps(adapter.as_d3d9(), D3DDEVTYPE_HAL, addr_of_mut!(caps)) } {
+        let err = if let Err(e) = unsafe {
+            dx.d3d9.as_ref().unwrap().GetDeviceCaps(
+                adapter.as_d3d9(),
+                D3DDEVTYPE_HAL,
+                addr_of_mut!(caps),
+            )
+        } {
             e
         } else {
             return caps;
@@ -1433,6 +1458,7 @@ fn get_direct3d_caps(adapter: Adapter) -> D3DCAPS9 {
     fatal_init_error!("GetDeviceCaps failed: {}", err);
 }
 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 fn respond_to_missing_caps(response: DxCapsResponse, message: &'static str) {
     if response == DxCapsResponse::Warn {
         com::warnln!(8.into(), "Video card or driver {}.", message);
@@ -1441,115 +1467,450 @@ fn respond_to_missing_caps(response: DxCapsResponse, message: &'static str) {
     }
 
     match response {
-        DxCapsResponse::Quit => com::errorln!(com::ErrorParm::FATAL, "Video card or driver {}.", message),
-        DxCapsResponse::ForbidSm3 => com::errorln!(com::ErrorParm::FATAL, "Shader model 3.0 not available."),
-        _ => { }
+        DxCapsResponse::Quit => com::errorln!(
+            com::ErrorParm::FATAL,
+            "Video card or driver {}.",
+            message
+        ),
+        DxCapsResponse::ForbidSm3 => com::errorln!(
+            com::ErrorParm::FATAL,
+            "Shader model 3.0 not available."
+        ),
+        _ => {}
     }
 }
 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 const S_CAPS_CHECK_BITS: [DxCapsCheckBits; 32] = [
-    DxCapsCheckBits { offset: 12, set_bits: 0x00000000, clear_bits: 0x20000000, response: DxCapsResponse::Quit, message: "doesn't support dynamic textures" },
-    DxCapsCheckBits { offset: 12, set_bits: 0x00000000, clear_bits: 0x00020000, response: DxCapsResponse::Warn, message: "doesn't support fullscreen gamma" },
-    DxCapsCheckBits { offset: 16, set_bits: 0x00000000, clear_bits: 0x00000020, response: DxCapsResponse::Quit, message: "doesn't support alpha blending" },
-    DxCapsCheckBits { offset: 16, set_bits: 0x00000000, clear_bits: 0x00000100, response: DxCapsResponse::Warn, message: "doesn't accelerate dynamic textures" },
-    DxCapsCheckBits { offset: 20, set_bits: 0x00000000, clear_bits: 0x80000000, response: DxCapsResponse::Warn, message: "doesn't support immediate frame buffer swapping" },
-    DxCapsCheckBits { offset: 20, set_bits: 0x00000000, clear_bits: 0x00000001, response: DxCapsResponse::Warn, message: "doesn't support vertical sync" },
-    DxCapsCheckBits { offset: 28, set_bits: 0x00000000, clear_bits: 0x00008000, response: DxCapsResponse::Quit, message: "is not at least DirectX 7 compliant" },
-    DxCapsCheckBits { offset: 28, set_bits: 0x00000000, clear_bits: 0x00010400, response: DxCapsResponse::Warn, message: "doesn't accelerate transform and lighting" },
-    DxCapsCheckBits { offset: 28, set_bits: 0x00000000, clear_bits: 0x00080000, response: DxCapsResponse::Warn, message: "doesn't accelerate rasterization" },
-    DxCapsCheckBits { offset: 32, set_bits: 0x00000000, clear_bits: 0x00000002, response: DxCapsResponse::Quit, message: "can't disable depth buffer writes" },
-    DxCapsCheckBits { offset: 32, set_bits: 0x00000000, clear_bits: 0x00000080, response: DxCapsResponse::Quit, message: "can't disable individual color channel writes" },
-    DxCapsCheckBits { offset: 32, set_bits: 0x00000000, clear_bits: 0x00000800, response: DxCapsResponse::Quit, message: "doesn't support frame buffer blending ops besides add" },
-    DxCapsCheckBits { offset: 32, set_bits: 0x00000000, clear_bits: 0x00020000, response: DxCapsResponse::Quit, message: "doesn't support separate alpha blend, glow will be disabled" },
-    DxCapsCheckBits { offset: 32, set_bits: 0x00000000, clear_bits: 0x00000070, response: DxCapsResponse::Quit, message: "doesn't support all face culling modes" },
-    DxCapsCheckBits { offset: 36, set_bits: 0x00000000, clear_bits: 0x02000000, response: DxCapsResponse::Info, message: "doesn't support high-quality polygon offset" },
-    DxCapsCheckBits { offset: 40, set_bits: 0x00000000, clear_bits: 0x0000008D, response: DxCapsResponse::Quit, message: "doesn't support the required depth comparison modes" },
-    DxCapsCheckBits { offset: 44, set_bits: 0x00000000, clear_bits: 0x000003FF, response: DxCapsResponse::Quit, message: "doesn't support the required frame buffer source blend modes" },
-    DxCapsCheckBits { offset: 48, set_bits: 0x00000000, clear_bits: 0x000000D2, response: DxCapsResponse::Quit, message: "doesn't support the required frame buffer destination blend modes" },
-    DxCapsCheckBits { offset: 60, set_bits: 0x00000000, clear_bits: 0x00000004, response: DxCapsResponse::Quit, message: "doesn't support alpha in texture" },
-    DxCapsCheckBits { offset: 60, set_bits: 0x00000000, clear_bits: 0x00000800, response: DxCapsResponse::Quit, message: "doesn't support cubemap textures" },
-    DxCapsCheckBits { offset: 60, set_bits: 0x00000000, clear_bits: 0x00004000, response: DxCapsResponse::Quit, message: "doesn't support mipmapped textures" },
-    DxCapsCheckBits { offset: 60, set_bits: 0x00000002, clear_bits: 0x00000100, response: DxCapsResponse::Quit, message: "doesn't support restricted use of non-power-of-2 textures" },
-    DxCapsCheckBits { offset: 60, set_bits: 0x00000000, clear_bits: 0x00000001, response: DxCapsResponse::Warn, message: "doesn't support perspective correct texturing" },
-    DxCapsCheckBits { offset: 60, set_bits: 0x00000020, clear_bits: 0x00000000, response: DxCapsResponse::Quit, message: "doesn't support non-square textures" },
-    DxCapsCheckBits { offset: 60, set_bits: 0x00000000, clear_bits: 0x03030300, response: DxCapsResponse::Quit, message: "doesn't support the required texture filtering modes" },
-    DxCapsCheckBits { offset: 64, set_bits: 0x00000000, clear_bits: 0x03000300, response: DxCapsResponse::Quit, message: "doesn't support the required cubemap texture filtering modes" },
-    DxCapsCheckBits { offset: 72, set_bits: 0x00000000, clear_bits: 0x00000004, response: DxCapsResponse::Quit, message: "doesn't support texture clamping" },
-    DxCapsCheckBits { offset: 72, set_bits: 0x00000000, clear_bits: 0x00000001, response: DxCapsResponse::Quit, message: "doesn't support texture wrapping" },
-    DxCapsCheckBits { offset: 136, set_bits: 0x00000000, clear_bits: 0x000001FF, response: DxCapsResponse::Info, message: "doesn't support the required stencil operations" },
-    DxCapsCheckBits { offset: 212, set_bits: 0x00000000, clear_bits: 0x00000001, response: DxCapsResponse::Quit, message: "doesn't support vertex stream offsets" },
-    DxCapsCheckBits { offset: 244, set_bits: 0x00000000, clear_bits: 0x00000200, response: DxCapsResponse::Warn, message: "doesn't support linear filtering when copying and shrinking the frame buffer" },  
-    DxCapsCheckBits { offset: 236, set_bits: 0x00000000, clear_bits: 0x00000001, response: DxCapsResponse::Quit, message: "doesn't support UBYTE4N vertex data" },
+    DxCapsCheckBits {
+        offset: 12,
+        set_bits: 0x00000000,
+        clear_bits: 0x20000000,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support dynamic textures",
+    },
+    DxCapsCheckBits {
+        offset: 12,
+        set_bits: 0x00000000,
+        clear_bits: 0x00020000,
+        response: DxCapsResponse::Warn,
+        message: "doesn't support fullscreen gamma",
+    },
+    DxCapsCheckBits {
+        offset: 16,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000020,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support alpha blending",
+    },
+    DxCapsCheckBits {
+        offset: 16,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000100,
+        response: DxCapsResponse::Warn,
+        message: "doesn't accelerate dynamic textures",
+    },
+    DxCapsCheckBits {
+        offset: 20,
+        set_bits: 0x00000000,
+        clear_bits: 0x80000000,
+        response: DxCapsResponse::Warn,
+        message: "doesn't support immediate frame buffer swapping",
+    },
+    DxCapsCheckBits {
+        offset: 20,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000001,
+        response: DxCapsResponse::Warn,
+        message: "doesn't support vertical sync",
+    },
+    DxCapsCheckBits {
+        offset: 28,
+        set_bits: 0x00000000,
+        clear_bits: 0x00008000,
+        response: DxCapsResponse::Quit,
+        message: "is not at least DirectX 7 compliant",
+    },
+    DxCapsCheckBits {
+        offset: 28,
+        set_bits: 0x00000000,
+        clear_bits: 0x00010400,
+        response: DxCapsResponse::Warn,
+        message: "doesn't accelerate transform and lighting",
+    },
+    DxCapsCheckBits {
+        offset: 28,
+        set_bits: 0x00000000,
+        clear_bits: 0x00080000,
+        response: DxCapsResponse::Warn,
+        message: "doesn't accelerate rasterization",
+    },
+    DxCapsCheckBits {
+        offset: 32,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000002,
+        response: DxCapsResponse::Quit,
+        message: "can't disable depth buffer writes",
+    },
+    DxCapsCheckBits {
+        offset: 32,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000080,
+        response: DxCapsResponse::Quit,
+        message: "can't disable individual color channel writes",
+    },
+    DxCapsCheckBits {
+        offset: 32,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000800,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support frame buffer blending ops besides add",
+    },
+    DxCapsCheckBits {
+        offset: 32,
+        set_bits: 0x00000000,
+        clear_bits: 0x00020000,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support separate alpha blend, glow will be disabled",
+    },
+    DxCapsCheckBits {
+        offset: 32,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000070,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support all face culling modes",
+    },
+    DxCapsCheckBits {
+        offset: 36,
+        set_bits: 0x00000000,
+        clear_bits: 0x02000000,
+        response: DxCapsResponse::Info,
+        message: "doesn't support high-quality polygon offset",
+    },
+    DxCapsCheckBits {
+        offset: 40,
+        set_bits: 0x00000000,
+        clear_bits: 0x0000008D,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support the required depth comparison modes",
+    },
+    DxCapsCheckBits {
+        offset: 44,
+        set_bits: 0x00000000,
+        clear_bits: 0x000003FF,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support the required frame buffer source blend modes",
+    },
+    DxCapsCheckBits {
+        offset: 48,
+        set_bits: 0x00000000,
+        clear_bits: 0x000000D2,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support the required frame buffer destination blend \
+                  modes",
+    },
+    DxCapsCheckBits {
+        offset: 60,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000004,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support alpha in texture",
+    },
+    DxCapsCheckBits {
+        offset: 60,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000800,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support cubemap textures",
+    },
+    DxCapsCheckBits {
+        offset: 60,
+        set_bits: 0x00000000,
+        clear_bits: 0x00004000,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support mipmapped textures",
+    },
+    DxCapsCheckBits {
+        offset: 60,
+        set_bits: 0x00000002,
+        clear_bits: 0x00000100,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support restricted use of non-power-of-2 textures",
+    },
+    DxCapsCheckBits {
+        offset: 60,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000001,
+        response: DxCapsResponse::Warn,
+        message: "doesn't support perspective correct texturing",
+    },
+    DxCapsCheckBits {
+        offset: 60,
+        set_bits: 0x00000020,
+        clear_bits: 0x00000000,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support non-square textures",
+    },
+    DxCapsCheckBits {
+        offset: 60,
+        set_bits: 0x00000000,
+        clear_bits: 0x03030300,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support the required texture filtering modes",
+    },
+    DxCapsCheckBits {
+        offset: 64,
+        set_bits: 0x00000000,
+        clear_bits: 0x03000300,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support the required cubemap texture filtering modes",
+    },
+    DxCapsCheckBits {
+        offset: 72,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000004,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support texture clamping",
+    },
+    DxCapsCheckBits {
+        offset: 72,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000001,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support texture wrapping",
+    },
+    DxCapsCheckBits {
+        offset: 136,
+        set_bits: 0x00000000,
+        clear_bits: 0x000001FF,
+        response: DxCapsResponse::Info,
+        message: "doesn't support the required stencil operations",
+    },
+    DxCapsCheckBits {
+        offset: 212,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000001,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support vertex stream offsets",
+    },
+    DxCapsCheckBits {
+        offset: 244,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000200,
+        response: DxCapsResponse::Warn,
+        message: "doesn't support linear filtering when copying and shrinking \
+                  the frame buffer",
+    },
+    DxCapsCheckBits {
+        offset: 236,
+        set_bits: 0x00000000,
+        clear_bits: 0x00000001,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support UBYTE4N vertex data",
+    },
 ];
 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 const S_CAPS_CHECK_INT: [DxCapsCheckInteger; 10] = [
-    DxCapsCheckInteger { offset: 88, min: 0x00000800, max: 0xFFFFFFFF, response: DxCapsResponse::Quit, message: "doesn't support large enough 2D textures" },
-    DxCapsCheckInteger { offset: 92, min: 0x00000800, max: 0xFFFFFFFF, response: DxCapsResponse::Quit, message: "doesn't support large enough 2D textures" },
-    DxCapsCheckInteger { offset: 96, min: 0x00000100, max: 0xFFFFFFFF, response: DxCapsResponse::Quit, message: "doesn't support large enough 3D textures" },
-    DxCapsCheckInteger { offset: 148, min: 0x00000100, max: 0xFFFFFFFF, response: DxCapsResponse::Quit, message: "doesn't support enough texture coordinates for the DirectX 9 code path" },
-    DxCapsCheckInteger { offset: 152, min: 0x00000008, max: 0xFFFFFFFF, response: DxCapsResponse::Quit, message: "doesn't support enough textures for the DirectX 9 code path" },
-    DxCapsCheckInteger { offset: 188, min: 0x00000001, max: 0xFFFFFFFF, response: DxCapsResponse::Quit, message: "is not a DirectX 9 driver" },
-    DxCapsCheckInteger { offset: 196, min: 0xFFFE0200, max: 0xFFFFFFFF, response: DxCapsResponse::Quit, message: "doesn't support vertex shader 2.0 or better" },
-    DxCapsCheckInteger { offset: 204, min: 0xFFFE0200, max: 0xFFFFFFFF, response: DxCapsResponse::Quit, message: "doesn't support pixel shader 2.0 or better" },
-    DxCapsCheckInteger { offset: 196, min: 0xFFFE0300, max: 0xFFFFFFFF, response: DxCapsResponse::ForbidSm3, message: "doesn't support vertex shader 3.0 or better" },
-    DxCapsCheckInteger { offset: 204, min: 0xFFFE0300, max: 0xFFFFFFFF, response: DxCapsResponse::Quit, message: "doesn't support pixel shader 3.0 or better" },
+    DxCapsCheckInteger {
+        offset: 88,
+        min: 0x00000800,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support large enough 2D textures",
+    },
+    DxCapsCheckInteger {
+        offset: 92,
+        min: 0x00000800,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support large enough 2D textures",
+    },
+    DxCapsCheckInteger {
+        offset: 96,
+        min: 0x00000100,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support large enough 3D textures",
+    },
+    DxCapsCheckInteger {
+        offset: 148,
+        min: 0x00000100,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support enough texture coordinates for the DirectX \
+                  9 code path",
+    },
+    DxCapsCheckInteger {
+        offset: 152,
+        min: 0x00000008,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support enough textures for the DirectX 9 code path",
+    },
+    DxCapsCheckInteger {
+        offset: 188,
+        min: 0x00000001,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::Quit,
+        message: "is not a DirectX 9 driver",
+    },
+    DxCapsCheckInteger {
+        offset: 196,
+        min: 0xFFFE0200,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support vertex shader 2.0 or better",
+    },
+    DxCapsCheckInteger {
+        offset: 204,
+        min: 0xFFFE0200,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support pixel shader 2.0 or better",
+    },
+    DxCapsCheckInteger {
+        offset: 196,
+        min: 0xFFFE0300,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::ForbidSm3,
+        message: "doesn't support vertex shader 3.0 or better",
+    },
+    DxCapsCheckInteger {
+        offset: 204,
+        min: 0xFFFE0300,
+        max: 0xFFFFFFFF,
+        response: DxCapsResponse::Quit,
+        message: "doesn't support pixel shader 3.0 or better",
+    },
 ];
 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 fn check_dx_caps(caps: &D3DCAPS9) {
     for bit in S_CAPS_CHECK_BITS {
-        let p = unsafe { *addr_of!(*caps).cast::<u8>().offset(bit.offset).cast::<u32>() };
-        if ((bit.clear_bits == 0) || ((!p & bit.clear_bits) != 0)) && ((bit.set_bits == 0 || ((p & bit.set_bits) != 0))) {
+        let p = unsafe {
+            *addr_of!(*caps)
+                .cast::<u8>()
+                .offset(bit.offset)
+                .cast::<u32>()
+        };
+        if ((bit.clear_bits == 0) || ((!p & bit.clear_bits) != 0))
+            && (bit.set_bits == 0 || ((p & bit.set_bits) != 0))
+        {
             respond_to_missing_caps(bit.response, bit.message);
         }
     }
 
     for int in S_CAPS_CHECK_INT {
-        let p = unsafe { *addr_of!(*caps).cast::<u8>().offset(int.offset).cast::<u32>() };
+        let p = unsafe {
+            *addr_of!(*caps)
+                .cast::<u8>()
+                .offset(int.offset)
+                .cast::<u32>()
+        };
         if p < int.min || (int.max <= p && p != int.max) {
             respond_to_missing_caps(int.response, int.message)
         }
     }
 }
 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 fn pick_renderer(caps: &D3DCAPS9) {
-    com::println!(8.into(), "Pixel shader version is {}.{}", (caps.PixelShaderVersion & 0xFFFF) >> 8, caps.PixelShaderVersion & 0xFF);
-    com::println!(8.into(), "Vertex shader version is {}.{}", (caps.VertexShaderVersion & 0xFFFF) >> 8, caps.VertexShaderVersion & 0xFF);
+    com::println!(
+        8.into(),
+        "Pixel shader version is {}.{}",
+        (caps.PixelShaderVersion & 0xFFFF) >> 8,
+        caps.PixelShaderVersion & 0xFF
+    );
+    com::println!(
+        8.into(),
+        "Vertex shader version is {}.{}",
+        (caps.VertexShaderVersion & 0xFFFF) >> 8,
+        caps.VertexShaderVersion & 0xFF
+    );
     check_dx_caps(caps);
 }
 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 fn check_transparency_msaa(adapter: Adapter) -> bool {
     if dvar::get_int("r_aaSamples").unwrap() == 1 {
         false
     } else {
         let dx = platform::render::d3d9::dx();
         // TODO - quality levels
-        unsafe { dx.d3d9.as_ref().unwrap().CheckDeviceMultiSampleType(adapter.as_d3d9(), D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, false, D3DMULTISAMPLE_NONMASKABLE, core::ptr::null_mut()) }.is_ok()
+        unsafe {
+            dx.d3d9.as_ref().unwrap().CheckDeviceMultiSampleType(
+                adapter.as_d3d9(),
+                D3DDEVTYPE_HAL,
+                D3DFMT_X8R8G8B8,
+                false,
+                D3DMULTISAMPLE_NONMASKABLE,
+                core::ptr::null_mut(),
+            )
+        }
+        .is_ok()
     }
 }
 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 fn set_shadowmap_formats_dx(adapter: Adapter) {
-    let mut formats = [
-        D3DFMT_D24S8, D3DFMT_R5G6B5, D3DFMT_D24S8, D3DFMT_R5G6B5, 
-        D3DFMT_D24S8, D3DFMT_X8R8G8B8, D3DFMT_D24S8, D3DFMT_A8R8G8B8,
+    let format_1 =
+        if platform::render::d3d9::nv_use_shadow_null_color_render_target() {
+            D3DFMT_NULL
+        } else {
+            D3DFMT_D24S8
+        };
+
+    let formats = [
+        (format_1, D3DFMT_R5G6B5),
+        (D3DFMT_D24S8, D3DFMT_R5G6B5),
+        (D3DFMT_D24S8, D3DFMT_X8R8G8B8),
+        (D3DFMT_D24S8, D3DFMT_A8R8G8B8),
     ];
 
-    if platform::render::d3d9::nv_use_shadow_null_color_render_target() {
-        formats[0] = make_four_cc(b'N', b'U', b'L', b'L').as_d3dfmt();
-    }
-
-    let mut depth_stencil_format = formats[0];
-    let mut render_target_format = formats[0];
+    let mut depth_stencil_format = formats[0].0;
+    let mut render_target_format = formats[0].1;
 
     let mut valid = false;
     for i in 0..3 {
-        depth_stencil_format = formats[i * 2];
-        render_target_format = formats[i * 2 + 1];
+        depth_stencil_format = formats[i].0;
+        render_target_format = formats[i].1;
 
         let dx = platform::render::d3d9::dx();
-        if !platform::render::d3d9::nv_use_shadow_null_color_render_target() || render_target_format != D3DFMT_NULL 
-            || unsafe { dx.d3d9.as_ref().unwrap().CheckDeviceFormat(adapter.as_d3d9(), D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, D3DUSAGE_RENDERTARGET as _, D3DRTYPE_SURFACE, D3DFMT_NULL) }.is_ok()
-            || unsafe { dx.d3d9.as_ref().unwrap().CheckDepthStencilMatch(adapter.as_d3d9(), D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, render_target_format, depth_stencil_format) }.is_ok()
-            || unsafe { dx.d3d9.as_ref().unwrap().CheckDeviceFormat(adapter.as_d3d9(), D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, D3DUSAGE_DEPTHSTENCIL as _, D3DRTYPE_TEXTURE, depth_stencil_format) }.is_ok()
+        if !platform::render::d3d9::nv_use_shadow_null_color_render_target()
+            || render_target_format != D3DFMT_NULL
+            || unsafe {
+                dx.d3d9.as_ref().unwrap().CheckDeviceFormat(
+                    adapter.as_d3d9(),
+                    D3DDEVTYPE_HAL,
+                    D3DFMT_X8R8G8B8,
+                    D3DUSAGE_RENDERTARGET as _,
+                    D3DRTYPE_SURFACE,
+                    D3DFMT_NULL,
+                )
+            }
+            .is_ok()
+            || unsafe {
+                dx.d3d9.as_ref().unwrap().CheckDepthStencilMatch(
+                    adapter.as_d3d9(),
+                    D3DDEVTYPE_HAL,
+                    D3DFMT_X8R8G8B8,
+                    render_target_format,
+                    depth_stencil_format,
+                )
+            }
+            .is_ok()
+            || unsafe {
+                dx.d3d9.as_ref().unwrap().CheckDeviceFormat(
+                    adapter.as_d3d9(),
+                    D3DDEVTYPE_HAL,
+                    D3DFMT_X8R8G8B8,
+                    D3DUSAGE_DEPTHSTENCIL as _,
+                    D3DRTYPE_TEXTURE,
+                    depth_stencil_format,
+                )
+            }
+            .is_ok()
         {
             valid = true;
             break;
@@ -1576,54 +1937,192 @@ fn set_shadowmap_formats_dx(adapter: Adapter) {
     }
 }
 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 fn store_direct3d_caps(adapter: Adapter) {
     let caps = get_direct3d_caps(adapter);
     pick_renderer(&caps);
-    let max_texture_dimension = if (caps.MaxTextureHeight as i32) < caps.MaxTextureHeight as i32 {
-        caps.MaxTextureWidth
-    } else {
-        caps.MaxTextureHeight
-    };
+    let max_texture_dimension =
+        if (caps.MaxTextureHeight as i32) < caps.MaxTextureHeight as i32 {
+            caps.MaxTextureWidth
+        } else {
+            caps.MaxTextureHeight
+        };
     {
         let mut vc = vid::config_mut();
-        vc.device_supports_gamma = (caps.Caps2 & D3DCAPS2_FULLSCREENGAMMA as u32) != 0;
+        vc.device_supports_gamma =
+            (caps.Caps2 & D3DCAPS2_FULLSCREENGAMMA as u32) != 0;
         vc.max_texture_maps = 16;
         vc.max_texture_size = max_texture_dimension as _;
     }
-    
+
     {
         let mut gm = platform::render::d3d9::gfx_metrics_mut();
         gm.max_clip_planes = (caps.MaxUserClipPlanes as i32).clamp(6, i32::MAX);
-        gm.has_anisotropic_min_filter = (caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC) != 0;
-        gm.has_anisotropic_mag_filter = (caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC) != 0;
+        gm.has_anisotropic_min_filter =
+            (caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC) != 0;
+        gm.has_anisotropic_mag_filter =
+            (caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC) != 0;
         gm.max_anisotropy = caps.MaxAnisotropy as _;
-        gm.slope_scale_depth_bias = caps.RasterCaps & D3DPRASTERCAPS_SLOPESCALEDEPTHBIAS as u32 != 0;
-        gm.can_mip_cubemaps = caps.TextureCaps & D3DPTEXTURECAPS_MIPCUBEMAP as u32 != 0;
+        gm.slope_scale_depth_bias =
+            caps.RasterCaps & D3DPRASTERCAPS_SLOPESCALEDEPTHBIAS as u32 != 0;
+        gm.can_mip_cubemaps =
+            caps.TextureCaps & D3DPTEXTURECAPS_MIPCUBEMAP as u32 != 0;
         gm.has_transparency_msaa = check_transparency_msaa(adapter);
         set_shadowmap_formats_dx(adapter);
     }
 }
 
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
+fn enum_display_modes(adapter: Adapter) {
+    use windows::Win32::Graphics::Direct3D9::D3DDISPLAYMODE;
+
+    let mut dx = platform::render::d3d9::dx_mut();
+    let display_mode_count =
+        unsafe { dx.d3d9.as_ref().unwrap().GetAdapterCount() };
+
+    let mut i = 0;
+    loop {
+        if i >= display_mode_count
+            || dx.display_modes.len() >= dx.display_modes.capacity()
+        {
+            break;
+        }
+
+        let mut mode = D3DDISPLAYMODE::default();
+        if unsafe {
+            dx.d3d9
+                .as_ref()
+                .unwrap()
+                .EnumAdapterModes(
+                    adapter.as_d3d9(),
+                    D3DFMT_X8R8G8B8,
+                    i,
+                    addr_of_mut!(mode),
+                )
+                .is_ok()
+        } {
+            if mode.RefreshRate == 0 {
+                mode.RefreshRate = 60;
+            }
+            dx.display_modes.push(mode);
+        }
+
+        i += 1;
+    }
+
+    dx.display_modes.sort_by(|a, b| {
+        a.Width.cmp(&b.Width).then(
+            a.Height
+                .cmp(&b.Height)
+                .then(a.RefreshRate.cmp(&b.RefreshRate)),
+        )
+    });
+    let mut modes = dx
+        .display_modes
+        .iter()
+        .filter(|&a| {
+            a.Width >= MIN_HORIZONTAL_RESOLUTION
+                && a.Height >= MIN_VERTICAL_RESOLUTION
+        })
+        .copied()
+        .collect::<Vec<_>>();
+    modes.dedup();
+    for i in 0..modes.len() {
+        dx.display_modes[i] = modes[i];
+    }
+
+    if dx.display_modes.is_empty() {
+        fatal_init_error!(
+            "No valid resolutions of {} x {} or above found",
+            MIN_HORIZONTAL_RESOLUTION,
+            MIN_VERTICAL_RESOLUTION
+        );
+    }
+
+    let mut resolutions = dx
+        .display_modes
+        .iter()
+        .map(|a| (a.Width, a.Height))
+        .filter(|a| a.0 >= 640 && a.1 >= 480)
+        .collect::<Vec<_>>();
+    resolutions.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+    resolutions.dedup();
+
+    let mut refreshes = dx
+        .display_modes
+        .iter()
+        .map(|a| a.RefreshRate)
+        .collect::<Vec<_>>();
+    refreshes.sort();
+    refreshes.dedup();
+
+    let mode_strings = resolutions
+        .iter()
+        .map(|a| format!("{}x{}", a.0, a.1))
+        .collect::<Vec<_>>();
+    for i in 0..mode_strings.len() {
+        dx.resolution_name_table[i] = mode_strings[i].clone();
+    }
+    let refresh_strings = refreshes
+        .iter()
+        .map(|a| format!("{} Hz", *a))
+        .collect::<Vec<_>>();
+    for i in 0..refresh_strings.len() {
+        dx.refresh_rate_name_table[i] = refresh_strings[i].clone();
+    }
+
+    dvar::register_enumeration(
+        "r_mode",
+        mode_strings.last().unwrap().clone(),
+        Some(mode_strings),
+        dvar::DvarFlags::ARCHIVE | dvar::DvarFlags::LATCHED,
+        Some("Direct X resolution mode"),
+    )
+    .unwrap();
+    dvar::register_enumeration(
+        "r_displayRefresh",
+        refresh_strings.last().unwrap().clone(),
+        Some(refresh_strings),
+        dvar::DvarFlags::ARCHIVE
+            | dvar::DvarFlags::LATCHED
+            | dvar::DvarFlags::CHANGEABLE_RESET,
+        Some("Refresh rate"),
+    )
+    .unwrap();
+}
+
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 fn pre_create_window() -> Result<(), ()> {
     let mut dx = platform::render::d3d9::dx_mut();
-    assert!(dx.d3d9.is_none(), "D3D re-initialized before being shutdown");
+    assert!(
+        dx.d3d9.is_none(),
+        "D3D re-initialized before being shutdown"
+    );
 
     com::println!(8.into(), "Getting Direct3D 9 interface...");
     let Some(d3d9) = (unsafe { Direct3DCreate9(D3D_SDK_VERSION) }) else {
         com::println!(8.into(), "Direct3D 9 failed to initialize");
         return Err(())
     };
-    
+
     dx.d3d9 = Some(d3d9);
 
-    dx.adapter_index = choose_adapter().unwrap_or_default().as_d3d9();
-    
-    // enum_display_modes
+    dx.adapter = choose_adapter().unwrap_or_default();
+
+    store_direct3d_caps(dx.adapter);
+    enum_display_modes(dx.adapter);
 
     let mut identifier = D3DADAPTER_IDENTIFIER9::default();
     dx.vendor_id = identifier.VendorId;
-    if unsafe { dx.d3d9.as_ref().unwrap().GetAdapterIdentifier(dx.adapter_index, 0, addr_of_mut!(identifier)) }.is_ok() 
-        && identifier.VendorId == D3D_VENDOR_ID_NVIDIA 
+    if unsafe {
+        dx.d3d9.as_ref().unwrap().GetAdapterIdentifier(
+            dx.adapter.as_d3d9(),
+            0,
+            addr_of_mut!(identifier),
+        )
+    }
+    .is_ok()
+        && identifier.VendorId == D3D_VENDOR_ID_NVIDIA
     {
         dx.nv_initialized = unsafe { NvAPI_Initialize() == NVAPI_OK }
     }
@@ -1672,7 +2171,7 @@ fn init_graphics_api() -> Result<(), ()> {
                 break;
             }
             if reduce_window_settings().is_err() {
-                fatal_init_error("Couldn't initialize renderer")
+                fatal_init_error!("Couldn't initialize renderer")
             }
         }
 

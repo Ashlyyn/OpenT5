@@ -4,18 +4,36 @@ use lazy_static::lazy_static;
 
 use arrayvec::{ArrayString, ArrayVec};
 use libc::c_void;
-use windows::Win32::{Foundation::HMODULE, Graphics::Direct3D9::{IDirect3D9, IDirect3DDevice9, D3DFORMAT, D3DDISPLAYMODE, IDirect3DQuery9, D3DMULTISAMPLE_TYPE, IDirect3DSurface9, D3DTEXTUREFILTERTYPE}};
+use windows::Win32::{
+    Foundation::HMODULE,
+    Graphics::Direct3D9::{
+        IDirect3D9, IDirect3DDevice9, IDirect3DQuery9, IDirect3DSurface9,
+        D3DDISPLAYMODE, D3DFORMAT, D3DMULTISAMPLE_TYPE, D3DTEXTUREFILTERTYPE,
+    },
+};
 
 use crate::gfx;
 
 pub const D3D_VENDOR_ID_NVIDIA: u32 = 0x10DE;
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct Adapter(u32);
+
+impl Adapter {
+    pub fn from_d3d9(adapter: u32) -> Self {
+        Self(adapter)
+    }
+    pub fn as_d3d9(&self) -> u32 {
+        self.0
+    }
+}
 
 #[derive(Clone, Default, Debug)]
 pub struct DxGlobals {
     hinst: Option<HMODULE>,
     pub d3d9: Option<IDirect3D9>,
     device: Option<Box<IDirect3DDevice9>>,
-    pub adapter_index: u32,
+    pub adapter: Adapter,
     pub vendor_id: u32,
     adapter_native_is_valid: bool,
     adapter_native_width: i32,
@@ -31,10 +49,9 @@ pub struct DxGlobals {
     nv_float_z_buffer_handle: Option<*mut c_void>,
     resize_window: bool,
     depth_stencil_format: D3DFORMAT,
-    display_mode_count: u32,
-    display_modes: ArrayVec<D3DDISPLAYMODE, 256>,
-    resolution_name_table: ArrayVec<String, 257>,
-    refresh_rate_name_table: ArrayVec<String, 257>,
+    pub display_modes: ArrayVec<D3DDISPLAYMODE, 256>,
+    pub resolution_name_table: ArrayVec<String, 256>,
+    pub refresh_rate_name_table: ArrayVec<String, 256>,
     mode_text: ArrayString<5120>,
     fence_pool: [Option<Box<IDirect3DQuery9>>; 8],
     next_fence: u32,
@@ -87,7 +104,8 @@ pub fn nv_use_shadow_null_color_render_target() -> bool {
 }
 
 lazy_static! {
-    static ref GFX_METRICS: RwLock<GfxMetrics> = RwLock::new(GfxMetrics::default());
+    static ref GFX_METRICS: RwLock<GfxMetrics> =
+        RwLock::new(GfxMetrics::default());
 }
 
 pub fn gfx_metrics() -> RwLockReadGuard<'static, GfxMetrics> {
@@ -155,3 +173,28 @@ pub struct GfxMetrics {
     pub can_mip_cubemaps: bool,
     pub has_transparency_msaa: bool,
 }
+
+#[derive(Copy, Clone, Default, Debug)]
+pub struct FourCC(u32);
+
+pub const fn make_four_cc(a: u8, b: u8, c: u8, d: u8) -> FourCC {
+    FourCC(
+        a as u32 | ((b as u32) << 8) | ((c as u32) << 16) | ((d as u32) << 24),
+    )
+}
+
+#[const_trait]
+pub trait FourCCExtDX {
+    fn as_d3dfmt(self) -> D3DFORMAT;
+}
+
+impl const FourCCExtDX for FourCC {
+    fn as_d3dfmt(self) -> D3DFORMAT {
+        D3DFORMAT(self.0)
+    }
+}
+
+pub const D3DFMT_NULL: D3DFORMAT =
+    make_four_cc(b'N', b'U', b'L', b'L').as_d3dfmt();
+pub const D3DPTFILTERCAPS_MINFANISOTROPIC: u32 = 0x400;
+pub const D3DPTFILTERCAPS_MAGFANISOTROPIC: u32 = 0x4000000;

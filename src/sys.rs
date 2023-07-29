@@ -24,6 +24,10 @@ use std::{
     thread::{JoinHandle, ThreadId},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
+use cstr::cstr;
+#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
 use windows::Win32::Graphics::Direct3D9::{
     Direct3DCreate9, D3DADAPTER_DEFAULT, D3DADAPTER_IDENTIFIER9,
     D3D_SDK_VERSION,
@@ -31,7 +35,6 @@ use windows::Win32::Graphics::Direct3D9::{
 
 cfg_if! {
     if #[cfg(windows)] {
-        use cstr::cstr;
         use platform::os::win32::{con_wnd_proc, input_line_wnd_proc};
         use platform::FontHandle;
         use core::ffi::{CStr};
@@ -654,11 +657,11 @@ cfg_if! {
         }
     } else {
         pub fn detect_video_card() -> String {
-            let Some(d3d9) = (unsafe { Direct3DCreate9(D3D_SDK_VERSION) }) 
+            let Some(d3d9) = (unsafe { Direct3DCreate9(D3D_SDK_VERSION) })
             else {
                 return String::from("Unknown video card");
             };
-        
+
             let mut identifier = D3DADAPTER_IDENTIFIER9::default();
             if unsafe {
                 d3d9.GetAdapterIdentifier(
