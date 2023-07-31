@@ -11,13 +11,13 @@ use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 
 cfg_if! {
-    if #[cfg(target_os = "windows")] {
+    if #[cfg(windows)] {
         use windows::Win32::System::Memory::{
             VirtualAlloc, MEM_COMMIT, PAGE_READWRITE,
         };
-    } else if #[cfg(target_family = "unix")] {
+    } else if #[cfg(unix)] {
         use nix::sys::mman::{mmap, MapFlags, ProtFlags};
-    } else if #[cfg(not(target_arch = "wasm32"))] {
+    } else if #[cfg(other_os)] {
         use libc::malloc;
     }
 }
@@ -136,65 +136,62 @@ impl<'a> PhysicalMemory<'a> {
     }
 }
 
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
-            // SAFETY:
-            // VirtualAlloc is an FFI function, requiring use of unsafe.
-            // Depending on the parameters passed, it may create memory
-            // unsafety, but in our case, we pass None (NULL), so it should
-            // never corrupt our program.
-            let p = unsafe {
-                VirtualAlloc(
-                    None, size.get(), MEM_COMMIT, PAGE_READWRITE
-                ).cast::<u8>()
-            };
+#[cfg(windows)]
+fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
+    // SAFETY:
+    // VirtualAlloc is an FFI function, requiring use of unsafe.
+    // Depending on the parameters passed, it may create memory
+    // unsafety, but in our case, we pass None (NULL), so it should
+    // never corrupt our program.
+    let p = unsafe {
+        VirtualAlloc(None, size.get(), MEM_COMMIT, PAGE_READWRITE).cast::<u8>()
+    };
 
-            if p.is_null() {
-                None
-            } else {
-                // SAFETY:
-                // We've already verified p isn't null, and if mmap returns a
-                // non-null pointer, an allocation with at least the size
-                // supplied should've been alloced.
-                Some( unsafe {
-                    core::slice::from_raw_parts_mut(p, size.get())
-                })
-            }
-        }
-    } else if #[cfg(target_family = "unix")] {
-        fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
-            // SAFETY:
-            // mmap being called with None (NULL) should always be safe.
-            let p = unsafe {
-                mmap(
-                    None,
-                    size,
-                    ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
-                    MapFlags::MAP_PRIVATE | MapFlags::MAP_ANON,
-                    0,
-                    0,
-                ).unwrap().cast::<u8>()
-            };
-            if p.is_null() {
-                None
-            } else {
-                // SAFETY:
-                // We've already verified p isn't null, and if mmap returns a
-                // non-null pointer, an allocation with at least the size
-                // supplied should've been mapped.
-                Some(unsafe { core::slice::from_raw_parts_mut(p, size.get()) })
-            }
-        }
-    } else if #[cfg(not(target_arch = "wasm32"))] {
-        fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
-            let p = malloc(size.get()) as *mut u8;
-            match p.is_null() {
-                true => None,
-                false => Some( unsafe {
-                    core::slice::from_raw_parts_mut(p, size.get())
-                }),
-            }
+    if p.is_null() {
+        None
+    } else {
+        // SAFETY:
+        // We've already verified p isn't null, and if mmap returns a
+        // non-null pointer, an allocation with at least the size
+        // supplied should've been alloced.
+        Some(unsafe { core::slice::from_raw_parts_mut(p, size.get()) })
+    }
+}
+
+#[cfg(unix)]
+fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
+    // SAFETY:
+    // mmap being called with None (NULL) should always be safe.
+    let p = unsafe {
+        mmap(
+            None,
+            size,
+            ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
+            MapFlags::MAP_PRIVATE | MapFlags::MAP_ANON,
+            0,
+            0,
+        )
+        .unwrap()
+        .cast::<u8>()
+    };
+    if p.is_null() {
+        None
+    } else {
+        // SAFETY:
+        // We've already verified p isn't null, and if mmap returns a
+        // non-null pointer, an allocation with at least the size
+        // supplied should've been mapped.
+        Some(unsafe { core::slice::from_raw_parts_mut(p, size.get()) })
+    }
+}
+
+#[cfg(other_os)]
+fn alloc<'a>(size: NonZeroUsize) -> Option<&'a mut [u8]> {
+    let p = malloc(size.get()) as *mut u8;
+    match p.is_null() {
+        true => None,
+        false => {
+            Some(unsafe { core::slice::from_raw_parts_mut(p, size.get()) })
         }
     }
 }

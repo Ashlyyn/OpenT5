@@ -106,7 +106,9 @@ fn find_keybind(code: KeybindCode) -> Option<Keybind> {
 }
 
 fn key_down(code: KeybindCode) {
-    let Some(mut bind) = find_keybind(code) else { return };
+    let Some(mut bind) = find_keybind(code) else {
+        return;
+    };
 
     let arg = cmd::argv(1);
     let i = if arg.is_empty() {
@@ -139,7 +141,9 @@ fn key_down(code: KeybindCode) {
 
     if !bind.active {
         let arg = cmd::argv(2);
-        let Ok(downtime) = arg.parse::<usize>() else { return };
+        let Ok(downtime) = arg.parse::<usize>() else {
+            return;
+        };
         bind.downtime = downtime;
         bind.active = true;
         bind.was_pressed = true;
@@ -149,7 +153,9 @@ fn key_down(code: KeybindCode) {
 }
 
 fn key_up(code: KeybindCode) {
-    let Some(mut bind) = find_keybind(code) else { return };
+    let Some(mut bind) = find_keybind(code) else {
+        return;
+    };
 
     let arg = cmd::argv(1);
     if arg.is_empty() {

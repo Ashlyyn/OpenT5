@@ -423,11 +423,11 @@ impl WindowEventExtXlib for WindowEvent {
 
                 let physical_scancode: Option<KeyboardScancode> =
                     XlibKeysym(physical_keysym).try_into().ok();
-                let Ok(logical_scancode)
-                            = XlibKeysym(logical_keysym).try_into() else
-                        {
-                            return Err(())
-                        };
+                let Ok(logical_scancode) =
+                    XlibKeysym(logical_keysym).try_into()
+                else {
+                    return Err(());
+                };
 
                 if down {
                     Ok((

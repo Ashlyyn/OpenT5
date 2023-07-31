@@ -735,10 +735,6 @@ fn choose_adapter() -> Option<Adapter> {
     Some(Adapter::from_d3d9(adapter_count))
 }
 
-// All uses of unsafe in the following cfg_if! block are just for FFI,
-// and all of those functions should be safe. No reason to comment them
-// individually.
-
 #[cfg(windows)]
 #[allow(clippy::undocumented_unsafe_blocks)]
 fn available_monitors() -> VecDeque<MonitorHandle> {
@@ -2126,7 +2122,7 @@ fn pre_create_window() -> Result<(), ()> {
     com::println!(8.into(), "Getting Direct3D 9 interface...");
     let Some(d3d9) = (unsafe { Direct3DCreate9(D3D_SDK_VERSION) }) else {
         com::println!(8.into(), "Direct3D 9 failed to initialize");
-        return Err(())
+        return Err(());
     };
 
     dx.d3d9 = Some(d3d9);

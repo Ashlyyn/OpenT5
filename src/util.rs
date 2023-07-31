@@ -20,14 +20,14 @@ use crate::platform::{os::target::MonitorHandle, WindowHandle};
 use cfg_if::cfg_if;
 
 cfg_if! {
-    if #[cfg(target_os = "windows")] {
+    if #[cfg(windows)] {
         use std::os::windows::prelude::OsStrExt;
         use windows::Win32::System::LibraryLoader::{LoadLibraryW, FreeLibrary};
         use windows::Win32::Foundation::HMODULE;
         use windows::core::PCWSTR;
         use windows::Win32::Foundation::{WPARAM, LPARAM};
     }
-    else if #[cfg(target_family = "unix")] {
+    else if #[cfg(unix)] {
         use std::os::unix::prelude::OsStrExt;
         use libc::{dlopen, dlclose, RTLD_NOW};
         use core::ffi::c_char;
@@ -118,7 +118,7 @@ pub struct Module {
 
 impl Module {
     cfg_if! {
-        if #[cfg(target_os = "windows")] {
+        if #[cfg(windows)] {
             /// Loads a library from the supplied path using [`LoadLibraryW`].
             /// Refer to [`LoadLibraryW`]'s documentation for what paths are
             /// valid.
@@ -161,7 +161,7 @@ impl Module {
                 // be valid since it was retrieved via LoadLibraryW.
                 unsafe { FreeLibrary(HMODULE(self.ptr as _)); }
             }
-        } else if #[cfg(target_family = "unix")] {
+        } else if #[cfg(unix)] {
             /// Loads a library from the supplied path using [`dlopen`].
             /// Refer to [`dlopen`]'s documentation for what paths are
             /// valid.

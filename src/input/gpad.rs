@@ -292,7 +292,9 @@ impl Into<gilrs::Button> for Button {
 }
 
 pub fn get_button(port_index: GPadIdx, button: Button) -> Option<ButtonState> {
-    let Ok(gilrs) = gilrs::Gilrs::new() else { return None };
+    let Ok(gilrs) = gilrs::Gilrs::new() else {
+        return None;
+    };
 
     let mut gamepads = gilrs.gamepads();
 
@@ -336,7 +338,9 @@ impl Into<gilrs::Button> for Stick {
 }
 
 pub fn get_stick(port_index: GPadIdx, stick: Stick) -> Option<StickState> {
-    let Ok(gilrs) = gilrs::Gilrs::new() else { return None };
+    let Ok(gilrs) = gilrs::Gilrs::new() else {
+        return None;
+    };
 
     let mut gamepads = gilrs.gamepads();
 

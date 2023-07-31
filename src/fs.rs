@@ -31,7 +31,7 @@ pub enum OsFolder {
     Home,
 }
 
-cfg_if::cfg_if! {
+cfg_if! {
     if #[cfg(target_os = "windows")] {
         // TODO - will panic if folder path contains invalid UTF-8 characters.
         // Fix later.
@@ -126,7 +126,7 @@ pub fn create_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, std::io::Error> {
         Ok(PathBuf::from_str(path.to_str().unwrap()).unwrap())
     } else {
         let Some(dir_path) = path.parent() else {
-            return Err(std::io::ErrorKind::InvalidFilename.into())
+            return Err(std::io::ErrorKind::InvalidFilename.into());
         };
 
         std::fs::create_dir_all(dir_path)?;

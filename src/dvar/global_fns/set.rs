@@ -1344,7 +1344,9 @@ pub fn set_enumeration(name: &str, value: &str) -> Result<(), ()> {
 /// }
 /// ```
 pub fn set_enumeration_next(name: &str) -> Result<(), ()> {
-    let Some(current) = get_enumeration(name) else { return Err(()) };
+    let Some(current) = get_enumeration(name) else {
+        return Err(());
+    };
 
     match find(name) {
         Some(d) => match d.current {
@@ -1404,13 +1406,15 @@ pub fn set_enumeration_prev(name: &str) -> Result<(), ()> {
     match find(name) {
         Some(d) => match d.current {
             DvarValue::Enumeration(s) => {
-                let DvarLimits::Enumeration(domain) = d.domain else { return Err(()) };
+                let DvarLimits::Enumeration(domain) = d.domain else {
+                    return Err(());
+                };
 
-                let Some((i, _)) = domain.strings
-                    .iter()
-                    .enumerate()
-                    .find(|(_, u)| **u == *s
-                ) else { return Err(()) };
+                let Some((i, _)) =
+                    domain.strings.iter().enumerate().find(|(_, u)| **u == *s)
+                else {
+                    return Err(());
+                };
 
                 if i == 0 {
                     return Err(());

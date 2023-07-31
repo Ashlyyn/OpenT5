@@ -226,132 +226,110 @@ pub fn milliseconds() -> isize {
     time - TIME_BASE.load(SeqCst)
 }
 
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        #[allow(clippy::semicolon_outside_block)]
-        pub fn get_executable_name() -> String {
-            let mut buf = [0u8; MAX_PATH as usize];
-            // SAFETY:
-            // GetModuleFileNameA is an FFI function, requiring use of unsafe.
-            // GetModuleFileNameA itself should never create UB, violate memory
-            // safety, etc., provided the buffer passed is long enough,
-            // which we've guaranteed is true.
-            unsafe { GetModuleFileNameA(None, &mut buf); }
-            let c_string = CStr::from_bytes_until_nul(&buf).unwrap();
-            let s = c_string.to_str()
-                .unwrap()
-                .to_owned();
-            let p = PathBuf::from(s);
-            let s = p.file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned();
-            s.strip_suffix(".exe").map_or(
-                s.clone(),
-                alloc::borrow::ToOwned::to_owned
-            )
-        }
-    } else if #[cfg(target_os = "linux")] {
-        pub fn get_executable_name() -> String {
-            let pid = std::process::id();
-            let proc_path = format!("/proc/{}/exe", pid);
-            std::fs::read_link(proc_path).map_or_else(|_| String::new(), |f| {
-                let file_name = f.file_name()
-                    .unwrap_or_else(|| OsStr::new(""))
-                    .to_str()
-                    .unwrap_or("")
-                    .to_owned();
-                let pos = file_name.find('.')
-                    .unwrap_or(file_name.len());
-                file_name.get(..pos).unwrap().to_owned()
-            })
-        }
-    } else if #[cfg(any(
-        target_os = "freebsd",
-        target_os = "dragonfly",
-        target_os = "openbsd",
-        target_os = "netbsd"
-    ))] {
-        pub fn get_executable_name() -> String {
-            cfg_if! {
-                if #[cfg(target_os = "netbsd")] {
-                    const PROC_PATH: &'static str = "/proc/curproc/exe";
-                }
-                else {
-                    const PROC_PATH: &'static str = "/proc/curproc/file";
-                }
-            }
-            // kinfo_getproc method hasn't been tested yet. Not even sure it
-            // compiles (don't have a BSD machine to test it on). Probably
-            // doesn't work even if it does compile, but the general idea
-            // is here
-            match std::fs::read_link(proc_path) {
-                Ok(f) => f.file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_owned(),
-                Err(_) => {
-                    let pid = libc::getpid();
-                    let kinfo_proc = unsafe { libc::kinfo_getproc(pid) };
-                    if kinfo_proc.is_null() {
-                        return String::new();
-                    }
-
-                    let s = CString::new((*kinfo_proc).ki_comm)
-                        .unwrap_or(CString::new("")
-                        .unwrap())
-                        .to_str()
-                        .unwrap_or("")
-                        .to_owned();
-                    unsafe { libc::free(kinfo_proc) };
-                    s
-                }
-            }
-        }
+#[cfg(windows)]
+#[allow(clippy::semicolon_outside_block)]
+pub fn get_executable_name() -> String {
+    let mut buf = [0u8; MAX_PATH as usize];
+    // SAFETY:
+    // GetModuleFileNameA is an FFI function, requiring use of unsafe.
+    // GetModuleFileNameA itself should never create UB, violate memory
+    // safety, etc., provided the buffer passed is long enough,
+    // which we've guaranteed is true.
+    unsafe {
+        GetModuleFileNameA(None, &mut buf);
     }
-    else if #[cfg(target_os = "macos")] {
-        pub fn get_executable_name() -> String {
-            let mut buf = [0u8; libc::PROC_PIDPATHINFO_MAXSIZE as usize];
-            let pid = std::process::id();
-            unsafe {
-                libc::proc_pidpath(
-                    pid as libc::c_int,
-                    addr_of_mut!(buf) as *mut _,
-                    buf.len() as u32
-                )
-            };
-            CString::from_vec_with_nul(buf.to_vec())
-                .unwrap_or(
-                    CString::new("")
-                        .unwrap()
-                )
+    let c_string = CStr::from_bytes_until_nul(&buf).unwrap();
+    let s = c_string.to_str().unwrap().to_owned();
+    let p = PathBuf::from(s);
+    let s = p.file_name().unwrap().to_str().unwrap().to_owned();
+    s.strip_suffix(".exe")
+        .map_or(s.clone(), alloc::borrow::ToOwned::to_owned)
+}
+
+#[cfg(linux)]
+pub fn get_executable_name() -> String {
+    let pid = std::process::id();
+    let proc_path = format!("/proc/{}/exe", pid);
+    std::fs::read_link(proc_path).map_or_else(
+        |_| String::new(),
+        |f| {
+            let file_name = f
+                .file_name()
+                .unwrap_or_else(|| OsStr::new(""))
                 .to_str()
                 .unwrap_or("")
-                .to_owned()
-        }
-    }
-    // Fallback method - if no platform-specific method is used,
-    // try to get the executable name from argv[0]
-    else {
-        pub fn get_executable_name() -> String {
-            let argv_0 = std::env::args()
-                .collect::<Vec<String>>()
-                .get(0)
-                .unwrap()
-                .clone();
-            let path = PathBuf::from(argv_0);
-            let file_name = path.file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
                 .to_owned();
-            let pos = file_name.find('.')
-                .unwrap_or(file_name.len());
+            let pos = file_name.find('.').unwrap_or(file_name.len());
             file_name.get(..pos).unwrap().to_owned()
+        },
+    )
+}
+
+#[cfg(bsd)]
+pub fn get_executable_name() -> String {
+    cfg_if! {
+        if #[cfg(target_os = "netbsd")] {
+            const PROC_PATH: &'static str = "/proc/curproc/exe";
+        }
+        else {
+            const PROC_PATH: &'static str = "/proc/curproc/file";
         }
     }
+    // kinfo_getproc method hasn't been tested yet. Not even sure it
+    // compiles (don't have a BSD machine to test it on). Probably
+    // doesn't work even if it does compile, but the general idea
+    // is here
+    match std::fs::read_link(proc_path) {
+        Ok(f) => f.file_name().unwrap().to_str().unwrap().to_owned(),
+        Err(_) => {
+            let pid = libc::getpid();
+            let kinfo_proc = unsafe { libc::kinfo_getproc(pid) };
+            if kinfo_proc.is_null() {
+                return String::new();
+            }
+
+            let s = CString::new((*kinfo_proc).ki_comm)
+                .unwrap_or(CString::new("").unwrap())
+                .to_str()
+                .unwrap_or("")
+                .to_owned();
+            unsafe { libc::free(kinfo_proc) };
+            s
+        }
+    }
+}
+
+#[cfg(macos)]
+pub fn get_executable_name() -> String {
+    let mut buf = [0u8; libc::PROC_PIDPATHINFO_MAXSIZE as usize];
+    let pid = std::process::id();
+    unsafe {
+        libc::proc_pidpath(
+            pid as libc::c_int,
+            addr_of_mut!(buf) as *mut _,
+            buf.len() as u32,
+        )
+    };
+    CString::from_vec_with_nul(buf.to_vec())
+        .unwrap_or(CString::new("").unwrap())
+        .to_str()
+        .unwrap_or("")
+        .to_owned()
+}
+
+// Fallback method - if no platform-specific method is used,
+// try to get the executable name from argv[0]
+#[cfg(other_os)]
+pub fn get_executable_name() -> String {
+    let argv_0 = std::env::args()
+        .collect::<Vec<String>>()
+        .get(0)
+        .unwrap()
+        .clone();
+    let path = PathBuf::from(argv_0);
+    let file_name = path.file_name().unwrap().to_str().unwrap().to_owned();
+    let pos = file_name.find('.').unwrap_or(file_name.len());
+    file_name.get(..pos).unwrap().to_owned()
 }
 
 const fn get_application_name() -> &'static str {
@@ -369,24 +347,23 @@ pub fn get_semaphore_folder_path() -> Option<PathBuf> {
     Some(p)
 }
 
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        pub fn get_semaphore_file_name() -> String {
-            format!("__{}", get_executable_name())
-        }
-    } else if #[cfg(target_family = "unix")] {
-        pub fn get_semaphore_file_name() -> String {
-            format!(".__{}", get_executable_name())
-        }
-    } else {
-        pub fn get_semaphore_file_name() -> String {
-            com::dprintln!(
-                0.into(),
-                "sys::get_semaphore_file: using default implementation."
-            );
-            format!("__{}", get_executable_name())
-        }
-    }
+#[cfg(windows)]
+pub fn get_semaphore_file_name() -> String {
+    format!("__{}", get_executable_name())
+}
+
+#[cfg(unix)]
+pub fn get_semaphore_file_name() -> String {
+    format!(".__{}", get_executable_name())
+}
+
+#[cfg(other_os)]
+pub fn get_semaphore_file_name() -> String {
+    com::dprintln!(
+        0.into(),
+        "sys::get_semaphore_file: using default implementation."
+    );
+    format!("__{}", get_executable_name())
 }
 
 pub fn no_free_files_error() -> ! {
@@ -407,7 +384,7 @@ const fn is_game_process(_pid: u32) -> bool {
 
 pub fn check_crash_or_rerun() -> bool {
     let Some(semaphore_folder_path) = get_semaphore_folder_path() else {
-        return true
+        return true;
     };
 
     if !std::path::Path::new(&semaphore_folder_path).exists() {
@@ -454,7 +431,7 @@ pub fn check_crash_or_rerun() -> bool {
     // (prefixing the file's name with a '.') should
     // already have been done by get_semaphore_file_name.
     cfg_if! {
-        if #[cfg(target_os = "windows")] {
+        if #[cfg(windows)] {
             let file = OpenOptions::new()
                 .write(true)
                 .create(true)
@@ -498,180 +475,188 @@ fn normal_exit() {
     std::fs::remove_file(semaphore_file_path).unwrap();
 }
 
-// Abstracted out in case a certain platform needs an implementation using
-// something other than the sysinfo crate
-
-cfg_if! {
-    if #[cfg(all(windows, any(target_arch = "x86_64", target_arch = "x86")))] {
-        // TODO - use processor affinity masks to get the number of logical
-        // CPUs actually available to the process
-        pub fn get_logical_cpu_count() -> usize {
-            let mut system_info = SYSTEM_INFO::default();
-            unsafe { GetNativeSystemInfo(addr_of_mut!(system_info)) };
-            system_info.dwNumberOfProcessors as _
-        }
-
-        // TODO - actually get number of physical CPUs
-        // (SYSTEM_INFO::dwNumberOfProcessors returns the logical CPU count)
-        pub fn get_physical_cpu_count() -> usize {
-            let mut system_info = SYSTEM_INFO::default();
-            unsafe { GetNativeSystemInfo(addr_of_mut!(system_info)) };
-            system_info.dwNumberOfProcessors as _
-        }
-
-        // TODO - use GlobalMemoryStatusEx
-        pub fn system_memory_mb() -> u64 {
-            let mut memory_status = MEMORYSTATUS::default();
-            memory_status.dwLength = size_of_val(&memory_status) as _;
-            unsafe { GlobalMemoryStatus(addr_of_mut!(memory_status)) };
-            memory_status.dwAvailPhys as _
-        }
-
-        pub fn get_cpu_vendor() -> String {
-            // Make the buffer large enough to contain a null-terminator in
-            // the case that the CPU vendor string is 12-bytes long (AMD and
-            // Intel CPUs both are)
-            //
-            // Theoretically, we could declare it as [0u8; 13], but then
-            // we'd have to do some annoying casts to get the CpuidResult's
-            // fields into it. I'd rather waste three bytes.
-            let mut vendor_buf = [0u32; 4];
-            let cpuid_result = cpuid(0x0000_0000);
-            vendor_buf[0] = cpuid_result.ebx;
-            vendor_buf[1] = cpuid_result.ecx;
-            vendor_buf[2] = cpuid_result.edx;
-            // vendor_buf[3] was zeroed in name_buf's initialization
-            let bytes: [u8; 16] = unsafe { transmute(vendor_buf) };
-            CStr::from_bytes_until_nul(&bytes).unwrap().to_string_lossy().to_string()
-        }
-
-        pub fn get_cpu_name() -> String {
-            // Make the buffer large enough to contain a null-terminator in
-            // the case that the CPU brand string is 48-bytes long
-            //
-            // Theoretically, we could declare it as [0u8; 49], but then
-            // we'd have to do some annoying casts to get the CpuidResult's
-            // fields into it. I'd rather waste three bytes.
-            let mut name_buf = [0u32; 13];
-            let cpuid_result = cpuid(0x8000_0002);
-            name_buf[0] = cpuid_result.eax;
-            name_buf[1] = cpuid_result.ebx;
-            name_buf[2] = cpuid_result.ecx;
-            name_buf[3] = cpuid_result.edx;
-            let cpuid_result = cpuid(0x8000_0003);
-            name_buf[4] = cpuid_result.eax;
-            name_buf[5] = cpuid_result.ebx;
-            name_buf[6] = cpuid_result.ecx;
-            name_buf[7] = cpuid_result.edx;
-            let cpuid_result = cpuid(0x8000_0004);
-            name_buf[8] = cpuid_result.eax;
-            name_buf[9] = cpuid_result.ebx;
-            name_buf[10] = cpuid_result.ecx;
-            name_buf[11] = cpuid_result.edx;
-            // name_buf[12] was zeroed in name_buf's initialization
-            let bytes: [u8; 52] = unsafe { transmute(name_buf) };
-            CStr::from_bytes_until_nul(&bytes).unwrap().to_string_lossy().to_string()
-        }
-
-    } else if #[cfg(target_arch = "wasm32")] {
-        #[allow(clippy::missing_const_for_fn)]
-        pub fn get_logical_cpu_count() -> usize {
-            0
-        }
-
-        #[allow(clippy::missing_const_for_fn)]
-        pub fn get_physical_cpu_count() -> usize {
-            0
-        }
-
-        #[allow(clippy::missing_const_for_fn)]
-        pub fn system_memory_mb() -> u64 {
-            0
-        }
-
-        pub fn get_cpu_vendor() -> String {
-            "Unknown CPU vendor".to_owned()
-        }
-
-        pub fn get_cpu_name() -> String {
-            "Unknown CPU name".to_owned()
-        }
-    } else {
-        pub fn get_logical_cpu_count() -> usize {
-            let mut system = sysinfo::System::new_all();
-            system.refresh_all();
-            system.cpus().len()
-        }
-
-        pub fn get_physical_cpu_count() -> usize {
-            let mut system = sysinfo::System::new_all();
-            system.refresh_all();
-            system
-                .physical_core_count()
-                .map_or_else(get_logical_cpu_count, |u| u)
-        }
-
-        pub fn system_memory_mb() -> u64 {
-            let mut system = sysinfo::System::new_all();
-            system.refresh_all();
-            system.total_memory()
-        }
-
-        pub fn get_cpu_vendor() -> String {
-            let mut system = sysinfo::System::new_all();
-            system.refresh_all();
-            system.global_cpu_info().vendor_id().to_owned()
-        }
-
-        pub fn get_cpu_name() -> String {
-            let mut system = sysinfo::System::new_all();
-            system.refresh_all();
-            system
-                .global_cpu_info()
-                .brand()
-                .to_owned()
-                .trim()
-                .to_owned()
-        }
-    }
+// TODO - use processor affinity masks to get the number of logical
+// CPUs actually available to the process
+#[cfg(all(windows, x86))]
+pub fn get_logical_cpu_count() -> usize {
+    let mut system_info = SYSTEM_INFO::default();
+    unsafe { GetNativeSystemInfo(addr_of_mut!(system_info)) };
+    system_info.dwNumberOfProcessors as _
 }
 
-cfg_if! {
-    if #[cfg(any(not(windows), feature = "windows_use_wgpu"))] {
-        pub fn detect_video_card() -> String {
-            let adapter =
-                pollster::block_on(
-                    platform::render::wgpu::Adapter::new(
-                        &platform::render::wgpu::Instance::new(), None
-                    )
-                );
-            adapter.get_info().name
-        }
-    } else {
-        pub fn detect_video_card() -> String {
-            let Some(d3d9) = (unsafe { Direct3DCreate9(D3D_SDK_VERSION) })
-            else {
-                return String::from("Unknown video card");
-            };
+// TODO - actually get number of physical CPUs
+// (SYSTEM_INFO::dwNumberOfProcessors returns the logical CPU count)
+#[cfg(all(windows, x86))]
+pub fn get_physical_cpu_count() -> usize {
+    let mut system_info = SYSTEM_INFO::default();
+    unsafe { GetNativeSystemInfo(addr_of_mut!(system_info)) };
+    system_info.dwNumberOfProcessors as _
+}
 
-            let mut identifier = D3DADAPTER_IDENTIFIER9::default();
-            if unsafe {
-                d3d9.GetAdapterIdentifier(
-                    D3DADAPTER_DEFAULT,
-                    0,
-                    addr_of_mut!(identifier),
-                )
-            }
-            .is_ok()
-            {
-                CStr::from_bytes_until_nul(&identifier.Description)
-                    .unwrap_or_else(|_| cstr!("Unknown video card"))
-                    .to_string_lossy()
-                    .to_string()
-            } else {
-                return String::from("Unknown video card");
-            }
-        }
+// TODO - use GlobalMemoryStatusEx
+#[cfg(all(windows, x86))]
+pub fn system_memory_mb() -> u64 {
+    let mut memory_status = MEMORYSTATUS::default();
+    memory_status.dwLength = size_of_val(&memory_status) as _;
+    unsafe { GlobalMemoryStatus(addr_of_mut!(memory_status)) };
+    memory_status.dwAvailPhys as _
+}
+
+#[cfg(all(windows, x86))]
+pub fn get_cpu_vendor() -> String {
+    // Make the buffer large enough to contain a null-terminator in
+    // the case that the CPU vendor string is 12-bytes long (AMD and
+    // Intel CPUs both are)
+    //
+    // Theoretically, we could declare it as [0u8; 13], but then
+    // we'd have to do some annoying casts to get the CpuidResult's
+    // fields into it. I'd rather waste three bytes.
+    let mut vendor_buf = [0u32; 4];
+    let cpuid_result = cpuid(0x0000_0000);
+    vendor_buf[0] = cpuid_result.ebx;
+    vendor_buf[1] = cpuid_result.ecx;
+    vendor_buf[2] = cpuid_result.edx;
+    // vendor_buf[3] was zeroed in name_buf's initialization
+    let bytes: [u8; 16] = unsafe { transmute(vendor_buf) };
+    CStr::from_bytes_until_nul(&bytes)
+        .unwrap()
+        .to_string_lossy()
+        .to_string()
+}
+
+#[cfg(all(windows, x86))]
+pub fn get_cpu_name() -> String {
+    // Make the buffer large enough to contain a null-terminator in
+    // the case that the CPU brand string is 48-bytes long
+    //
+    // Theoretically, we could declare it as [0u8; 49], but then
+    // we'd have to do some annoying casts to get the CpuidResult's
+    // fields into it. I'd rather waste three bytes.
+    let mut name_buf = [0u32; 13];
+    let cpuid_result = cpuid(0x8000_0002);
+    name_buf[0] = cpuid_result.eax;
+    name_buf[1] = cpuid_result.ebx;
+    name_buf[2] = cpuid_result.ecx;
+    name_buf[3] = cpuid_result.edx;
+    let cpuid_result = cpuid(0x8000_0003);
+    name_buf[4] = cpuid_result.eax;
+    name_buf[5] = cpuid_result.ebx;
+    name_buf[6] = cpuid_result.ecx;
+    name_buf[7] = cpuid_result.edx;
+    let cpuid_result = cpuid(0x8000_0004);
+    name_buf[8] = cpuid_result.eax;
+    name_buf[9] = cpuid_result.ebx;
+    name_buf[10] = cpuid_result.ecx;
+    name_buf[11] = cpuid_result.edx;
+    // name_buf[12] was zeroed in name_buf's initialization
+    let bytes: [u8; 52] = unsafe { transmute(name_buf) };
+    CStr::from_bytes_until_nul(&bytes)
+        .unwrap()
+        .to_string_lossy()
+        .to_string()
+}
+
+#[cfg(not(all(windows, x86)))]
+pub fn get_logical_cpu_count() -> usize {
+    let mut system = sysinfo::System::new_all();
+    system.refresh_all();
+    system.cpus().len()
+}
+
+#[cfg(not(all(windows, x86)))]
+pub fn get_physical_cpu_count() -> usize {
+    let mut system = sysinfo::System::new_all();
+    system.refresh_all();
+    system
+        .physical_core_count()
+        .map_or_else(get_logical_cpu_count, |u| u)
+}
+
+#[cfg(not(all(windows, x86)))]
+pub fn system_memory_mb() -> u64 {
+    let mut system = sysinfo::System::new_all();
+    system.refresh_all();
+    system.total_memory()
+}
+
+#[cfg(not(all(windows, x86)))]
+pub fn get_cpu_vendor() -> String {
+    let mut system = sysinfo::System::new_all();
+    system.refresh_all();
+    system.global_cpu_info().vendor_id().to_owned()
+}
+
+#[cfg(not(all(windows, x86)))]
+pub fn get_cpu_name() -> String {
+    let mut system = sysinfo::System::new_all();
+    system.refresh_all();
+    system
+        .global_cpu_info()
+        .brand()
+        .to_owned()
+        .trim()
+        .to_owned()
+}
+
+#[cfg(wasm)]
+#[allow(clippy::missing_const_for_fn)]
+pub fn get_logical_cpu_count() -> usize {
+    0
+}
+
+#[cfg(wasm)]
+#[allow(clippy::missing_const_for_fn)]
+pub fn get_physical_cpu_count() -> usize {
+    0
+}
+
+#[cfg(wasm)]
+#[allow(clippy::missing_const_for_fn)]
+pub fn system_memory_mb() -> u64 {
+    0
+}
+
+#[cfg(wasm)]
+pub fn get_cpu_vendor() -> String {
+    "Unknown CPU vendor".to_owned()
+}
+
+#[cfg(wasm)]
+pub fn get_cpu_name() -> String {
+    "Unknown CPU name".to_owned()
+}
+
+#[cfg(wgpu)]
+pub fn detect_video_card() -> String {
+    let adapter = pollster::block_on(platform::render::wgpu::Adapter::new(
+        &platform::render::wgpu::Instance::new(),
+        None,
+    ));
+    adapter.get_info().name
+}
+
+#[cfg(d3d9)]
+pub fn detect_video_card() -> String {
+    let Some(d3d9) = (unsafe { Direct3DCreate9(D3D_SDK_VERSION) }) else {
+        return String::from("Unknown video card");
+    };
+
+    let mut identifier = D3DADAPTER_IDENTIFIER9::default();
+    if unsafe {
+        d3d9.GetAdapterIdentifier(
+            D3DADAPTER_DEFAULT,
+            0,
+            addr_of_mut!(identifier),
+        )
+    }
+    .is_ok()
+    {
+        CStr::from_bytes_until_nul(&identifier.Description)
+            .unwrap_or_else(|_| cstr!("Unknown video card"))
+            .to_string_lossy()
+            .to_string()
+    } else {
+        return String::from("Unknown video card");
     }
 }
 
@@ -1140,275 +1125,279 @@ fn should_update_for_info_change() -> bool {
     )
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        #[derive(Copy, Clone, Default, Debug)]
-        #[repr(u32)]
-        pub enum MessageBoxType {
-            #[default]
-            Ok = MB_OK.0,
-            YesNoCancel = MB_YESNOCANCEL.0,
-            YesNo = MB_YESNO.0,
-            // TODO - maybe implement Help?
-        }
-    } else if #[cfg(target_os = "linux")] {
-        #[derive(Copy, Clone, Default, Debug)]
-        #[repr(u32)]
-        pub enum MessageBoxType {
-            #[default]
-            Ok,
-            YesNoCancel,
-            YesNo,
-            // TODO - maybe implement Help?
-        }
+#[cfg(windows)]
+#[derive(Copy, Clone, Default, Debug)]
+#[repr(u32)]
+pub enum MessageBoxType {
+    #[default]
+    Ok = MB_OK.0,
+    YesNoCancel = MB_YESNOCANCEL.0,
+    YesNo = MB_YESNO.0,
+    // TODO - maybe implement Help?
+}
 
-        impl TryInto<gtk4::ButtonsType> for MessageBoxType {
-            type Error = ();
-            fn try_into(self) -> Result<gtk4::ButtonsType, Self::Error> {
-                match self {
-                    Self::Ok => Ok(gtk4::ButtonsType::Ok),
-                    Self::YesNo => Ok(gtk4::ButtonsType::YesNo),
-                    _ => Err(())
-                }
-            }
-        }
-    } else {
-        #[derive(Copy, Clone, Default, Debug)]
-        #[repr(u32)]
-        pub enum MessageBoxType {
-            #[default]
-            Ok,
-            YesNoCancel,
-            YesNo,
+#[cfg(windows)]
+#[derive(Copy, Clone, Default, Debug)]
+#[repr(u32)]
+pub enum MessageBoxIcon {
+    #[default]
+    None = 0x0000_0000,
+    Stop = MB_ICONSTOP.0,
+    Information = MB_ICONINFORMATION.0,
+}
+
+#[cfg(windows)]
+#[derive(Copy, Clone, FromPrimitive)]
+#[repr(i32)]
+pub enum MessageBoxResult {
+    Ok = IDOK.0,
+    Cancel = IDCANCEL.0,
+    Yes = IDYES.0,
+    No = IDNO.0,
+    Unknown,
+}
+
+#[cfg(linux)]
+#[derive(Copy, Clone, Default, Debug)]
+#[repr(u32)]
+pub enum MessageBoxType {
+    #[default]
+    Ok,
+    YesNoCancel,
+    YesNo,
+    // TODO - maybe implement Help?
+}
+
+#[cfg(linux)]
+impl TryInto<gtk4::ButtonsType> for MessageBoxType {
+    type Error = ();
+    fn try_into(self) -> Result<gtk4::ButtonsType, Self::Error> {
+        match self {
+            Self::Ok => Ok(gtk4::ButtonsType::Ok),
+            Self::YesNo => Ok(gtk4::ButtonsType::YesNo),
+            _ => Err(()),
         }
     }
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        #[derive(Copy, Clone, Default, Debug)]
-        #[repr(u32)]
-        pub enum MessageBoxIcon {
-            #[default]
-            None = 0x0000_0000,
-            Stop = MB_ICONSTOP.0,
-            Information = MB_ICONINFORMATION.0,
-        }
-    } else if #[cfg(target_os = "linux")]  {
-        #[derive(Copy, Clone, Default, Debug)]
-        #[repr(u32)]
-        pub enum MessageBoxIcon {
-            #[default]
-            None,
-            Stop,
-            Information,
-        }
+#[cfg(linux)]
+#[derive(Copy, Clone, Default, Debug)]
+#[repr(u32)]
+pub enum MessageBoxIcon {
+    #[default]
+    None,
+    Stop,
+    Information,
+}
 
-        impl TryInto<gtk4::MessageType> for MessageBoxIcon {
-            type Error = ();
-            fn try_into(self) -> Result<gtk4::MessageType, Self::Error> {
-                use gtk4::MessageType::*;
-                match self {
-                    Self::Information => Ok(Info),
-                    Self::Stop => Ok(Error),
-                    _ => Err(())
-                }
-            }
-        }
-    } else {
-        #[derive(Copy, Clone, Default, Debug)]
-        #[repr(u32)]
-        pub enum MessageBoxIcon {
-            #[default]
-            None,
-            Stop,
-            Information,
+#[cfg(linux)]
+impl TryInto<gtk4::MessageType> for MessageBoxIcon {
+    type Error = ();
+    fn try_into(self) -> Result<gtk4::MessageType, Self::Error> {
+        use gtk4::MessageType::*;
+        match self {
+            Self::Information => Ok(Info),
+            Self::Stop => Ok(Error),
+            _ => Err(()),
         }
     }
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        #[derive(Copy, Clone, FromPrimitive)]
-        #[repr(i32)]
-        pub enum MessageBoxResult {
-            Ok = IDOK.0,
-            Cancel = IDCANCEL.0,
-            Yes = IDYES.0,
-            No = IDNO.0,
-            Unknown,
-        }
-    } else if #[cfg(target_os = "linux")] {
-        #[derive(Copy, Clone, FromPrimitive, Debug)]
-        #[repr(i32)]
-        pub enum MessageBoxResult {
-            Ok,
-            Cancel,
-            Yes,
-            No,
-            Unknown,
-        }
+#[cfg(linux)]
+#[derive(Copy, Clone, FromPrimitive, Debug)]
+#[repr(i32)]
+pub enum MessageBoxResult {
+    Ok,
+    Cancel,
+    Yes,
+    No,
+    Unknown,
+}
 
-        impl From<gtk4::ResponseType> for MessageBoxResult {
-            fn from(value: gtk4::ResponseType) -> Self {
-                match value {
-                    gtk4::ResponseType::Ok => Self::Ok,
-                    gtk4::ResponseType::Cancel => Self::Cancel,
-                    gtk4::ResponseType::Yes => Self::Yes,
-                    gtk4::ResponseType::No => Self::No,
-                    _ => Self::Unknown
-                }
-            }
-        }
-    } else {
-        #[derive(Copy, Clone, FromPrimitive, Debug)]
-        #[repr(i32)]
-        pub enum MessageBoxResult {
-            Ok,
-            Cancel,
-            Yes,
-            No,
-            Unknown,
+#[cfg(linux)]
+impl From<gtk4::ResponseType> for MessageBoxResult {
+    fn from(value: gtk4::ResponseType) -> Self {
+        match value {
+            gtk4::ResponseType::Ok => Self::Ok,
+            gtk4::ResponseType::Cancel => Self::Cancel,
+            gtk4::ResponseType::Yes => Self::Yes,
+            gtk4::ResponseType::No => Self::No,
+            _ => Self::Unknown,
         }
     }
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        pub fn message_box(
-            handle: Option<WindowHandle>,
-            title: &str,
-            text: &str,
-            msg_box_type: MessageBoxType,
-            msg_box_icon: Option<MessageBoxIcon>
-        ) -> Option<MessageBoxResult> {
-            let hwnd = handle.map_or(0 as _, |h| h.get_win32().unwrap().hwnd);
+#[cfg(not(any(windows, linux)))]
+#[derive(Copy, Clone, Default, Debug)]
+#[repr(u32)]
+pub enum MessageBoxType {
+    #[default]
+    Ok,
+    YesNoCancel,
+    YesNo,
+}
 
-            let Ok(ctext) = CString::new(text) else { return None };
+#[cfg(not(any(windows, linux)))]
+#[derive(Copy, Clone, Default, Debug)]
+#[repr(u32)]
+pub enum MessageBoxIcon {
+    #[default]
+    None,
+    Stop,
+    Information,
+}
 
-            let Ok(ctitle) = CString::new(title) else { return None };
+#[cfg(not(any(windows, linux)))]
+#[derive(Copy, Clone, FromPrimitive, Debug)]
+#[repr(i32)]
+pub enum MessageBoxResult {
+    Ok,
+    Cancel,
+    Yes,
+    No,
+    Unknown,
+}
 
-            let ctype = MESSAGEBOX_STYLE(
-                msg_box_type as u32
-                | msg_box_icon.unwrap_or(MessageBoxIcon::None) as u32
-            );
+#[cfg(windows)]
+pub fn message_box(
+    handle: Option<WindowHandle>,
+    title: &str,
+    text: &str,
+    msg_box_type: MessageBoxType,
+    msg_box_icon: Option<MessageBoxIcon>,
+) -> Option<MessageBoxResult> {
+    let hwnd = handle.map_or(0 as _, |h| h.get_win32().unwrap().hwnd);
 
-            // SAFETY:
-            // MessageBoxA is an FFI function, requiring use of unsafe.
-            // MessageBoxA itself should never create UB, violate memory
-            // safety, etc., regardless of the parameters passed to it.
-            let res: MessageBoxResult = num::FromPrimitive::from_i32(unsafe {
-                MessageBoxA(
-                    HWND(hwnd as _),
-                    PCSTR(ctext.as_ptr().cast()),
-                    PCSTR(ctitle.as_ptr().cast()),
-                    ctype
-                ) }.0).unwrap_or(MessageBoxResult::Unknown);
-            Some(res)
+    let Ok(ctext) = CString::new(text) else {
+        return None;
+    };
+
+    let Ok(ctitle) = CString::new(title) else {
+        return None;
+    };
+
+    let ctype = MESSAGEBOX_STYLE(
+        msg_box_type as u32
+            | msg_box_icon.unwrap_or(MessageBoxIcon::None) as u32,
+    );
+
+    // SAFETY:
+    // MessageBoxA is an FFI function, requiring use of unsafe.
+    // MessageBoxA itself should never create UB, violate memory
+    // safety, etc., regardless of the parameters passed to it.
+    let res: MessageBoxResult = num::FromPrimitive::from_i32(
+        unsafe {
+            MessageBoxA(
+                HWND(hwnd as _),
+                PCSTR(ctext.as_ptr().cast()),
+                PCSTR(ctitle.as_ptr().cast()),
+                ctype,
+            )
         }
-    } else if #[cfg(target_os = "linux")] {
-        // The non-Windows implementations of message_box() will use GTK
-        // by default, instead of targeting each, e.g. Wayland, X, Cocoa, etc.
-        // For platforms that don't support GTK for some reason,
-        // other implementations are welcome
+        .0,
+    )
+    .unwrap_or(MessageBoxResult::Unknown);
+    Some(res)
+}
 
-        // The GTK implementation here is very much a work in progress. It's
-        // super buggy on WSL2, but I can't tell if the issues are with the
-        // application here, or with WSL2. Will try to test on native Linux
-        // at some point
-        lazy_static! {
-            static ref GTK_WINDOW_TITLE: Arc<RwLock<String>>
-                = Arc::new(RwLock::new(String::new()));
-        }
+#[cfg(linux)]
+// The non-Windows implementations of message_box() will use GTK
+// by default, instead of targeting each, e.g. Wayland, X, Cocoa, etc.
+// For platforms that don't support GTK for some reason,
+// other implementations are welcome
 
-        thread_local! {
-            static GTK_RESPONSE_EVENT: RefCell<SmpEvent>
-                = RefCell::new(SmpEvent::new(SignalState::Cleared, false));
+// The GTK implementation here is very much a work in progress. It's
+// super buggy on WSL2, but I can't tell if the issues are with the
+// application here, or with WSL2. Will try to test on native Linux
+// at some point
+lazy_static! {
+    static ref GTK_WINDOW_TITLE: Arc<RwLock<String>> =
+        Arc::new(RwLock::new(String::new()));
+}
 
-            static GTK_RESPONSE_EVENT_VALUE:
-                RefCell<Option<gtk4::ResponseType>>
-                    = RefCell::new(None);
-        }
+#[cfg(linux)]
+thread_local! {
+    static GTK_RESPONSE_EVENT: RefCell<SmpEvent>
+        = RefCell::new(SmpEvent::new(SignalState::Cleared, false));
 
-        #[allow(clippy::unnecessary_wraps)]
-        pub fn message_box(
-            _handle: Option<WindowHandle>,
-            text: &str,
-            title: &str,
-            msg_box_type: MessageBoxType,
-            msg_icon_type: Option<MessageBoxIcon>
-        ) -> Option<MessageBoxResult> {
-            let dialog = MessageDialogBuilder::new()
-                .buttons(gtk4::ButtonsType::None)
-                .destroy_with_parent(true)
-                .focusable(true)
-                //.message_type(msg_icon_type.unwrap_or(MessageBoxIcon::None)
-                //.try_into().unwrap_or(gtk4::MessageType::Other))
-                .message_type(msg_icon_type.unwrap().try_into().unwrap())
-                .modal(false)
-                .name(title)
-                .resizable(false)
-                .title(title)
-                .text(text)
-                .visible(true)
-                .build();
+    static GTK_RESPONSE_EVENT_VALUE:
+        RefCell<Option<gtk4::ResponseType>>
+            = RefCell::new(None);
+}
 
-            let buttons = &match msg_box_type {
-                MessageBoxType::Ok => vec![("Ok", gtk4::ResponseType::Ok)],
-                MessageBoxType::YesNo => vec![
-                    ("Yes", gtk4::ResponseType::Yes),
-                    ("No", gtk4::ResponseType::No)
-                ],
-                MessageBoxType::YesNoCancel => vec![
-                    ("Yes", gtk4::ResponseType::Yes),
-                    ("No", gtk4::ResponseType::No),
-                    ("Cancel", gtk4::ResponseType::Cancel)
-                ],
-            };
+#[cfg(linux)]
+#[allow(clippy::unnecessary_wraps)]
+pub fn message_box(
+    _handle: Option<WindowHandle>,
+    text: &str,
+    title: &str,
+    msg_box_type: MessageBoxType,
+    msg_icon_type: Option<MessageBoxIcon>,
+) -> Option<MessageBoxResult> {
+    let dialog = MessageDialogBuilder::new()
+        .buttons(gtk4::ButtonsType::None)
+        .destroy_with_parent(true)
+        .focusable(true)
+        //.message_type(msg_icon_type.unwrap_or(MessageBoxIcon::None)
+        //.try_into().unwrap_or(gtk4::MessageType::Other))
+        .message_type(msg_icon_type.unwrap().try_into().unwrap())
+        .modal(false)
+        .name(title)
+        .resizable(false)
+        .title(title)
+        .text(text)
+        .visible(true)
+        .build();
 
-            dialog.add_buttons(buttons);
-            dialog.run_async(|obj, answer| {
-                obj.close();
-                GTK_RESPONSE_EVENT.with(|event| {
-                    #[allow(unused_must_use)]
-                    {
-                        GTK_RESPONSE_EVENT_VALUE.with(|value| {
-                            *value.borrow_mut() = Some(answer);
-                        });
-                        event.borrow_mut().set();
-                    }
-                });
-            });
+    let buttons = &match msg_box_type {
+        MessageBoxType::Ok => vec![("Ok", gtk4::ResponseType::Ok)],
+        MessageBoxType::YesNo => vec![
+            ("Yes", gtk4::ResponseType::Yes),
+            ("No", gtk4::ResponseType::No),
+        ],
+        MessageBoxType::YesNoCancel => vec![
+            ("Yes", gtk4::ResponseType::Yes),
+            ("No", gtk4::ResponseType::No),
+            ("Cancel", gtk4::ResponseType::Cancel),
+        ],
+    };
 
-            let response = GTK_RESPONSE_EVENT.with(|event| {
-                event.borrow_mut().wait();
+    dialog.add_buttons(buttons);
+    dialog.run_async(|obj, answer| {
+        obj.close();
+        GTK_RESPONSE_EVENT.with(|event| {
+            #[allow(unused_must_use)]
+            {
                 GTK_RESPONSE_EVENT_VALUE.with(|value| {
-                    value.borrow().unwrap()
-                })
-            });
+                    *value.borrow_mut() = Some(answer);
+                });
+                event.borrow_mut().set();
+            }
+        });
+    });
 
-            Some(response.into())
-        }
-    } else {
-        #[allow(clippy::print_stdout, clippy::use_debug)]
-        pub fn message_box(
-            handle: Option<WindowHandle>,
-            text: &str,
-            title: &str,
-            msg_box_type: MessageBoxType,
-            msg_icon_type: Option<MessageBoxIcon>
-        ) -> Option<MessageBoxResult> {
-            println!(
-                "message_box: handle={:?} text={}, title={}, type={:?}, icon={:?}",
-                handle,
-                text,
-                title,
-                msg_box_type,
-                msg_icon_type,
-            );
-            None
-        }
-    }
+    let response = GTK_RESPONSE_EVENT.with(|event| {
+        event.borrow_mut().wait();
+        GTK_RESPONSE_EVENT_VALUE.with(|value| value.borrow().unwrap())
+    });
+
+    Some(response.into())
+}
+
+#[cfg(not(any(windows, linux)))]
+#[allow(clippy::print_stdout, clippy::use_debug)]
+pub fn message_box(
+    handle: Option<WindowHandle>,
+    text: &str,
+    title: &str,
+    msg_box_type: MessageBoxType,
+    msg_icon_type: Option<MessageBoxIcon>,
+) -> Option<MessageBoxResult> {
+    println!(
+        "message_box: handle={:?} text={}, title={}, type={:?}, icon={:?}",
+        handle, text, title, msg_box_type, msg_icon_type,
+    );
+    None
 }
 
 cfg_if! {
@@ -1463,295 +1452,284 @@ macro_rules! __sys_println {
 }
 pub use __sys_println as println;
 
-cfg_if! {
-    if #[cfg(windows)] {
-        pub fn create_console() {
-            let hinstance = unsafe {
-                GetModuleHandleA(None)
-            }.unwrap_or_default();
-            let class_name = s!("CoD Black Ops WinConsole");
+#[cfg(windows)]
+pub fn create_console() {
+    let hinstance = unsafe { GetModuleHandleA(None) }.unwrap_or_default();
+    let class_name = s!("CoD Black Ops WinConsole");
 
-            let mut wnd_class = WNDCLASSA::default();
-            wnd_class.hInstance = hinstance;
-            wnd_class.hIcon = unsafe {
-                LoadIconA(hinstance, PCSTR(1 as _))
-            }.unwrap_or_default();
-            wnd_class.hCursor = unsafe {
-                LoadCursorA(None, PCSTR(IDC_ARROW.0 as _))
-            }.unwrap_or_default();
-            wnd_class.hbrBackground = HBRUSH(COLOR_WINDOW.0 as _);
-            wnd_class.lpszClassName = class_name;
-            wnd_class.lpfnWndProc = Some(con_wnd_proc);
-            if unsafe { RegisterClassA(addr_of!(wnd_class)) } == 0 {
-                return;
-            }
-
-            let dwstyle = WS_POPUPWINDOW | WS_CAPTION;
-            let mut rect = RECT::default();
-            rect.right = 620;
-            rect.bottom = 450;
-            unsafe { AdjustWindowRect(addr_of_mut!(rect), dwstyle, false) };
-            let desktop_wnd = unsafe { GetDesktopWindow() };
-            let hdc = unsafe { GetDC(desktop_wnd) };
-            let x = unsafe { GetDeviceCaps(hdc, HORZRES) };
-            let y = unsafe { GetDeviceCaps(hdc, VERTRES) };
-            unsafe { ReleaseDC(desktop_wnd, hdc) };
-            let width = rect.right - rect.left + 1 as i32;
-            let height = rect.bottom - rect.top + 1 as i32;
-            conbuf::s_wcd_set_window_width(width as _);
-            conbuf::s_wcd_set_window_height(height as _);
-            let hwnd = unsafe {
-                CreateWindowExA(
-                    WINDOW_EX_STYLE(0),
-                    class_name,
-                    s!("CoD Black Ops Console"),
-                    dwstyle,
-                    (x - 600) / 2,
-                    (y - 450) / 2,
-                    width,
-                    height,
-                    None,
-                    None,
-                    hinstance,
-                    None,
-                )
-            };
-
-            conbuf::s_wcd_set_window(
-                WindowHandle::from_win32(hwnd, Some(hinstance))
-            );
-
-            if hwnd.0 == 0 {
-                return;
-            }
-
-            let hdc = unsafe { GetDC(hwnd) };
-            let font_height = unsafe {
-                MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72)
-            };
-            conbuf::s_wcd_set_buffer_font(FontHandle(unsafe {
-                CreateFontA(
-                    font_height,
-                    0,
-                    0,
-                    0,
-                    FW_LIGHT.0 as _,
-                    0,
-                    0,
-                    0,
-                    DEFAULT_CHARSET.0 as _,
-                    OUT_DEFAULT_PRECIS.0 as _,
-                    CLIP_DEFAULT_PRECIS.0 as _,
-                    DEFAULT_QUALITY.0 as _,
-                    DEFAULT_PITCH.0 as u32 + FF_MODERN.0 as u32,
-                    s!("Courier New"),
-                )
-                .0
-            }));
-
-            unsafe { ReleaseDC(hwnd, hdc) };
-            if let Ok(image) = unsafe {
-                LoadImageA(
-                    hinstance,
-                    s!("codlogo.bmp"),
-                    IMAGE_BITMAP,
-                    0,
-                    0,
-                    LR_LOADFROMFILE,
-                )
-            } {
-                let cod_logo = unsafe {
-                    CreateWindowExA(
-                        WINDOW_EX_STYLE(0),
-                        s!("Static"),
-                        None,
-                        WS_CHILD | WS_VISIBLE | WINDOW_STYLE(0x0000000E),
-                        5,
-                        5,
-                        0,
-                        0,
-                        hwnd,
-                        HMENU(1),
-                        hinstance,
-                        None,
-                    )
-                };
-
-                conbuf::s_wcd_set_cod_logo_window(WindowHandle::from_win32(
-                    cod_logo,
-                    Some(hinstance),
-                ));
-
-                unsafe { SendMessageA(
-                    cod_logo, STM_SETIMAGE, WPARAM(0), LPARAM(image.0)
-                ) };
-            }
-
-            let hwnd_input_line = unsafe {
-                CreateWindowExA(
-                    WINDOW_EX_STYLE(0),
-                    s!("edit"),
-                    None,
-                    WS_CHILD
-                        | WS_VISIBLE
-                        | WS_BORDER
-                        | WINDOW_STYLE(ES_AUTOHSCROLL as _),
-                    6,
-                    400,
-                    608,
-                    20,
-                    hwnd,
-                    HMENU(101),
-                    hinstance,
-                    None,
-                )
-            };
-
-            conbuf::s_wcd_set_input_line_window(WindowHandle::from_win32(
-                hwnd_input_line,
-                Some(hinstance),
-            ));
-
-            let hwnd_buffer = unsafe {
-                CreateWindowExA(
-                    WINDOW_EX_STYLE(0),
-                    s!("edit"),
-                    None,
-                    WS_CHILD
-                        | WS_VISIBLE
-                        | WS_BORDER
-                        | WS_VSCROLL
-                        | WINDOW_STYLE(
-                            ES_READONLY as u32
-                                | ES_AUTOVSCROLL as u32
-                                | ES_MULTILINE as u32,
-                        ),
-                    6,
-                    70,
-                    606,
-                    324,
-                    hwnd,
-                    HMENU(100),
-                    hinstance,
-                    None,
-                )
-            };
-
-            conbuf::s_wcd_set_buffer_window(WindowHandle::from_win32(
-                hwnd_buffer,
-                Some(hinstance),
-            ));
-
-            unsafe {
-                SendMessageA(
-                    hwnd_buffer,
-                    WM_SETFONT,
-                    WPARAM(conbuf::s_wcd_buffer_font().unwrap().0 as _),
-                    LPARAM(0),
-                )
-            };
-            conbuf::s_wcd_set_sys_input_line_wnd_proc(unsafe {
-                transmute(SetWindowLongPtrA(
-                    hwnd_input_line,
-                    GWLP_WNDPROC,
-                    input_line_wnd_proc as _,
-                ) as *const ())
-            });
-            unsafe {
-                SendMessageA(
-                    hwnd_input_line,
-                    WM_SETFONT,
-                    WPARAM(conbuf::s_wcd_buffer_font().unwrap().0 as _),
-                    LPARAM(0),
-                )
-            };
-            unsafe { SetFocus(hwnd_input_line) };
-            unsafe {
-                SetWindowTextA(
-                    hwnd_buffer,
-                    PCSTR(conbuf::clean_text(
-                        &console::get_text_copy(0x4000)
-                    ).as_ptr()),
-                )
-            };
-        }
-    } else {
-        pub fn create_console() {
-            unimplemented!()
-        }
+    let mut wnd_class = WNDCLASSA::default();
+    wnd_class.hInstance = hinstance;
+    wnd_class.hIcon =
+        unsafe { LoadIconA(hinstance, PCSTR(1 as _)) }.unwrap_or_default();
+    wnd_class.hCursor = unsafe { LoadCursorA(None, PCSTR(IDC_ARROW.0 as _)) }
+        .unwrap_or_default();
+    wnd_class.hbrBackground = HBRUSH(COLOR_WINDOW.0 as _);
+    wnd_class.lpszClassName = class_name;
+    wnd_class.lpfnWndProc = Some(con_wnd_proc);
+    if unsafe { RegisterClassA(addr_of!(wnd_class)) } == 0 {
+        return;
     }
+
+    let dwstyle = WS_POPUPWINDOW | WS_CAPTION;
+    let mut rect = RECT::default();
+    rect.right = 620;
+    rect.bottom = 450;
+    unsafe { AdjustWindowRect(addr_of_mut!(rect), dwstyle, false) };
+    let desktop_wnd = unsafe { GetDesktopWindow() };
+    let hdc = unsafe { GetDC(desktop_wnd) };
+    let x = unsafe { GetDeviceCaps(hdc, HORZRES) };
+    let y = unsafe { GetDeviceCaps(hdc, VERTRES) };
+    unsafe { ReleaseDC(desktop_wnd, hdc) };
+    let width = rect.right - rect.left + 1 as i32;
+    let height = rect.bottom - rect.top + 1 as i32;
+    conbuf::s_wcd_set_window_width(width as _);
+    conbuf::s_wcd_set_window_height(height as _);
+    let hwnd = unsafe {
+        CreateWindowExA(
+            WINDOW_EX_STYLE(0),
+            class_name,
+            s!("CoD Black Ops Console"),
+            dwstyle,
+            (x - 600) / 2,
+            (y - 450) / 2,
+            width,
+            height,
+            None,
+            None,
+            hinstance,
+            None,
+        )
+    };
+
+    conbuf::s_wcd_set_window(WindowHandle::from_win32(hwnd, Some(hinstance)));
+
+    if hwnd.0 == 0 {
+        return;
+    }
+
+    let hdc = unsafe { GetDC(hwnd) };
+    let font_height = unsafe { MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72) };
+    conbuf::s_wcd_set_buffer_font(FontHandle(unsafe {
+        CreateFontA(
+            font_height,
+            0,
+            0,
+            0,
+            FW_LIGHT.0 as _,
+            0,
+            0,
+            0,
+            DEFAULT_CHARSET.0 as _,
+            OUT_DEFAULT_PRECIS.0 as _,
+            CLIP_DEFAULT_PRECIS.0 as _,
+            DEFAULT_QUALITY.0 as _,
+            DEFAULT_PITCH.0 as u32 + FF_MODERN.0 as u32,
+            s!("Courier New"),
+        )
+        .0
+    }));
+
+    unsafe { ReleaseDC(hwnd, hdc) };
+    if let Ok(image) = unsafe {
+        LoadImageA(
+            hinstance,
+            s!("codlogo.bmp"),
+            IMAGE_BITMAP,
+            0,
+            0,
+            LR_LOADFROMFILE,
+        )
+    } {
+        let cod_logo = unsafe {
+            CreateWindowExA(
+                WINDOW_EX_STYLE(0),
+                s!("Static"),
+                None,
+                WS_CHILD | WS_VISIBLE | WINDOW_STYLE(0x0000000E),
+                5,
+                5,
+                0,
+                0,
+                hwnd,
+                HMENU(1),
+                hinstance,
+                None,
+            )
+        };
+
+        conbuf::s_wcd_set_cod_logo_window(WindowHandle::from_win32(
+            cod_logo,
+            Some(hinstance),
+        ));
+
+        unsafe {
+            SendMessageA(cod_logo, STM_SETIMAGE, WPARAM(0), LPARAM(image.0))
+        };
+    }
+
+    let hwnd_input_line = unsafe {
+        CreateWindowExA(
+            WINDOW_EX_STYLE(0),
+            s!("edit"),
+            None,
+            WS_CHILD
+                | WS_VISIBLE
+                | WS_BORDER
+                | WINDOW_STYLE(ES_AUTOHSCROLL as _),
+            6,
+            400,
+            608,
+            20,
+            hwnd,
+            HMENU(101),
+            hinstance,
+            None,
+        )
+    };
+
+    conbuf::s_wcd_set_input_line_window(WindowHandle::from_win32(
+        hwnd_input_line,
+        Some(hinstance),
+    ));
+
+    let hwnd_buffer = unsafe {
+        CreateWindowExA(
+            WINDOW_EX_STYLE(0),
+            s!("edit"),
+            None,
+            WS_CHILD
+                | WS_VISIBLE
+                | WS_BORDER
+                | WS_VSCROLL
+                | WINDOW_STYLE(
+                    ES_READONLY as u32
+                        | ES_AUTOVSCROLL as u32
+                        | ES_MULTILINE as u32,
+                ),
+            6,
+            70,
+            606,
+            324,
+            hwnd,
+            HMENU(100),
+            hinstance,
+            None,
+        )
+    };
+
+    conbuf::s_wcd_set_buffer_window(WindowHandle::from_win32(
+        hwnd_buffer,
+        Some(hinstance),
+    ));
+
+    unsafe {
+        SendMessageA(
+            hwnd_buffer,
+            WM_SETFONT,
+            WPARAM(conbuf::s_wcd_buffer_font().unwrap().0 as _),
+            LPARAM(0),
+        )
+    };
+    conbuf::s_wcd_set_sys_input_line_wnd_proc(unsafe {
+        transmute(SetWindowLongPtrA(
+            hwnd_input_line,
+            GWLP_WNDPROC,
+            input_line_wnd_proc as _,
+        ) as *const ())
+    });
+    unsafe {
+        SendMessageA(
+            hwnd_input_line,
+            WM_SETFONT,
+            WPARAM(conbuf::s_wcd_buffer_font().unwrap().0 as _),
+            LPARAM(0),
+        )
+    };
+    unsafe { SetFocus(hwnd_input_line) };
+    unsafe {
+        SetWindowTextA(
+            hwnd_buffer,
+            PCSTR(conbuf::clean_text(&console::get_text_copy(0x4000)).as_ptr()),
+        )
+    };
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        pub fn show_console() {
-            if conbuf::s_wcd_window_is_none() {
-                create_console();
-                assert!(!conbuf::s_wcd_window_is_none());
-            }
+#[cfg(not(windows))]
+pub fn create_console() {
+    unimplemented!()
+}
 
-            show_window(conbuf::s_wcd_buffer_window().unwrap());
-            unsafe { SendMessageA(
-                HWND(conbuf::s_wcd_buffer_window()
+#[cfg(windows)]
+pub fn show_console() {
+    if conbuf::s_wcd_window_is_none() {
+        create_console();
+        assert!(!conbuf::s_wcd_window_is_none());
+    }
+
+    show_window(conbuf::s_wcd_buffer_window().unwrap());
+    unsafe {
+        SendMessageA(
+            HWND(
+                conbuf::s_wcd_buffer_window()
                     .unwrap()
                     .get_win32()
-                    .unwrap().hwnd as _
-                ),
-                EM_LINESCROLL, WPARAM(0), LPARAM(0xFFFF)
-            ) };
-        }
-    } else {
-        pub fn show_console() {
-            todo!()
-        }
+                    .unwrap()
+                    .hwnd as _,
+            ),
+            EM_LINESCROLL,
+            WPARAM(0),
+            LPARAM(0xFFFF),
+        )
+    };
+}
+
+#[cfg(windows)]
+pub fn destroy_console() {
+    if conbuf::s_wcd_window_handle().is_some() {
+        let hwnd = HWND(
+            conbuf::s_wcd_window_handle()
+                .unwrap()
+                .get_win32()
+                .unwrap()
+                .hwnd as _,
+        );
+        unsafe { ShowWindow(hwnd, SW_HIDE) };
+        unsafe { CloseWindow(hwnd) };
+        unsafe { DestroyWindow(hwnd) };
+        conbuf::s_wcd_clear_window();
     }
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        pub fn destroy_console() {
-            if conbuf::s_wcd_window_handle().is_some() {
-                let hwnd = HWND(
-                    conbuf::s_wcd_window_handle()
-                        .unwrap()
-                        .get_win32()
-                        .unwrap().hwnd as _
-                );
-                unsafe { ShowWindow(hwnd, SW_HIDE) };
-                unsafe { CloseWindow(hwnd) };
-                unsafe { DestroyWindow(hwnd) };
-                conbuf::s_wcd_clear_window();
-            }
-        }
-    } else {
-        pub fn destroy_console() {
-            todo!()
-        }
-    }
+#[cfg(windows)]
+fn set_error_text(error: &str) {
+    conbuf::s_wcd_set_error_string(error.into());
+    destroy_window(conbuf::s_wcd_input_line_window().unwrap());
+    conbuf::s_wcd_clear_input_line_window();
+
+    message_box(
+        None,
+        "Error",
+        error,
+        MessageBoxType::Ok,
+        Some(MessageBoxIcon::Stop),
+    )
+    .unwrap();
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        fn set_error_text(error: &str) {
-            conbuf::s_wcd_set_error_string(error.into());
-            destroy_window(conbuf::s_wcd_input_line_window().unwrap());
-            conbuf::s_wcd_clear_input_line_window();
+#[cfg(not(windows))]
+pub fn show_console() {
+    todo!()
+}
 
-            message_box(
-                None,
-                "Error",
-                error,
-                MessageBoxType::Ok,
-                Some(MessageBoxIcon::Stop),
-            )
-            .unwrap();
-        }
-    } else {
-        #[allow(clippy::missing_const_for_fn)]
-        pub fn set_error_text(_error: &str) {
-            todo!()
-        }
-    }
+#[cfg(not(windows))]
+pub fn destroy_console() {
+    todo!()
+}
+
+#[cfg(not(windows))]
+#[allow(clippy::missing_const_for_fn)]
+pub fn set_error_text(_error: &str) {
+    todo!()
 }
 
 pub fn error(error: &str) -> ! {
@@ -2021,204 +1999,191 @@ lazy_static! {
         Mutex::new(VecDeque::new());
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        // All uses of unsafe in the following function are just for FFI,
-        // and all of those functions should be safe as called.
-        // No reason to comment them individually.
-        #[allow(
-            clippy::undocumented_unsafe_blocks,
-            clippy::cast_possible_wrap
-        )]
-        pub fn next_window_event() -> Option<WindowEvent> {
-            if query_quit_event() == SignalState::Signaled {
-                com::quit_f();
+#[cfg(windows)]
+#[allow(clippy::undocumented_unsafe_blocks, clippy::cast_possible_wrap)]
+pub fn next_window_event() -> Option<WindowEvent> {
+    if query_quit_event() == SignalState::Signaled {
+        com::quit_f();
+    }
+
+    if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
+        let mut msg = MSG::default();
+
+        if unsafe { PeekMessageA(addr_of_mut!(msg), None, 0, 0, PM_NOREMOVE) }
+            .as_bool()
+        {
+            if unsafe { GetMessageA(addr_of_mut!(msg), None, 0, 0) }.0 == 0 {
+                set_quit_event();
             }
-
-            if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
-                let mut msg = MSG::default();
-
-                if unsafe {
-                    PeekMessageA(addr_of_mut!(msg), None, 0, 0, PM_NOREMOVE)
-                }.as_bool() {
-                    if unsafe {
-                        GetMessageA(addr_of_mut!(msg), None, 0, 0)
-                    }.0 == 0 {
-                        set_quit_event();
-                    }
-                    platform::set_msg_time(msg.time as _);
-                    unsafe { TranslateMessage(addr_of!(msg)); }
-                    unsafe { DispatchMessageA(addr_of!(msg)); }
-                }
-                None
-            } else {
-                MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
+            platform::set_msg_time(msg.time as _);
+            unsafe {
+                TranslateMessage(addr_of!(msg));
+            }
+            unsafe {
+                DispatchMessageA(addr_of!(msg));
             }
         }
-    } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
-        pub fn next_window_event() -> Option<WindowEvent> {
-            None
-        }
-    } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
-        pub fn next_window_event() -> Option<WindowEvent> {
-            None
-        }
-    } else if #[cfg(unix)] {
-        lazy_static! {
-            static ref XLIB_CONTEXT: RwLock<XlibContext>
-                = RwLock::new(XlibContext::default());
-        }
-
-        // All uses of unsafe in the following function are either for FFI
-        // or for accessing the members of the XEvent union. All of the
-        // functions should be safe as called, and all of the union accesses
-        // should be safe since XEvent is a tagged union thanks to its
-        // `type_` member. No reason to comment them individually.
-        #[allow(
-            clippy::undocumented_unsafe_blocks,
-            clippy::cast_sign_loss,
-            clippy::get_first,
-            clippy::if_then_some_else_none,
-            clippy::single_match_else,
-            clippy::cast_possible_wrap,
-        )]
-        pub fn next_window_event() -> Option<WindowEvent> {
-            if query_quit_event() == SignalState::Signaled {
-                com::quit_f();
-            }
-
-            if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
-                let mut ev = unsafe {
-                    core::mem::MaybeUninit::<XEvent>::zeroed().assume_init()
-                };
-                let display = unsafe { XOpenDisplay(
-                    platform::display_server::xlib::display_name()
-                ) };
-                if unsafe { XPending(display) } == 0 {
-                    return None;
-                }
-
-                unsafe { XNextEvent(display, addr_of_mut!(ev)); }
-                unsafe { XCloseDisplay(display); }
-
-                // Since XEvents don't have a timestamp associated with them
-                // like Windows MSGs do, we do the next best thing and acquire
-                // a timestamp immediately after retrieving the event.
-                let time = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis() as isize;
-                let any = unsafe { ev.any };
-                match any.type_ {
-                    ClientMessage => {
-                        let ev = unsafe { ev.client_message };
-                        if *ev.data.as_longs().get(0).unwrap() as u64
-                            == WM_DELETE_WINDOW.load_relaxed()
-                        {
-                            unsafe { XDestroyWindow(ev.display, ev.window); }
-                            platform::set_msg_time(time);
-                            Some(WindowEvent::CloseRequested)
-                        } else {
-                            None
-                        }
-                    },
-                    _ => {
-                        let context = *XLIB_CONTEXT.read().unwrap();
-                        if let Ok((mut evs, new_context))
-                            = WindowEvent::try_from_xevent(ev, context)
-                        {
-                            if let Some(n) = new_context {
-                                *XLIB_CONTEXT.write().unwrap() = n;
-                            }
-
-                            platform::set_msg_time(time);
-                            let ev = evs.pop_front();
-                            MAIN_WINDOW_EVENTS.lock().unwrap().append(&mut evs);
-
-                            ev
-                        } else {
-                            None
-                        }
-                    }
-                }
-            } else {
-                MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
-            }
-        }
+        None
+    } else {
+        MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
     }
 }
 
-// All uses of unsafe in the following cfg_if! block are just for FFI,
-// and all of those functions should be safe. No reason to comment them
-// individually.
-cfg_if! {
-    if #[cfg(windows)] {
-        pub fn show_window(handle: WindowHandle) {
-            #[allow(clippy::undocumented_unsafe_blocks)]
-            unsafe { ShowWindow(
-                HWND(handle.get_win32().unwrap().hwnd as _),
-                SW_SHOW
-            ); }
-        }
-
-        pub fn focus_window(handle: WindowHandle) {
-            #[allow(clippy::undocumented_unsafe_blocks)]
-            unsafe { SetFocus(HWND(handle.get_win32().unwrap().hwnd as _)); }
-        }
-    } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
-        pub fn show_window(handle: WindowHandle) {
-            let _handle = handle.get_wayland().unwrap();
-            todo!()
-        }
-
-        pub fn focus_window(handle: WindowHandle) {
-            let _handle = handle.get_wayland().unwrap();
-            todo!()
-        }
-    } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
-        pub fn show_window(handle: WindowHandle) {
-            let handle = handle.get_app_kit().unwrap();
-            todo!()
-        }
-
-        pub fn focus_window(handle: WindowHandle) {
-            let _handle = handle.get_wayland().unwrap();
-            todo!()
-        }
-    } else if #[cfg(unix)] {
-        #[allow(clippy::undocumented_unsafe_blocks)]
-        pub fn show_window(handle: WindowHandle) {
-            let handle = handle.get_xlib().unwrap();
-            let display = unsafe { XOpenDisplay(
-                platform::display_server::xlib::display_name()
-            ) };
-            unsafe { XMapWindow(display, handle.window); }
-        }
-
-        #[allow(clippy::undocumented_unsafe_blocks)]
-        pub fn focus_window(handle: WindowHandle) {
-            let handle = handle.get_xlib().unwrap();
-            let display = unsafe { XOpenDisplay(
-                platform::display_server::xlib::display_name()
-            ) };
-            unsafe { XSetInputFocus(
-                display, handle.window, RevertToParent, CurrentTime
-            ); }
-        }
-    }
+#[cfg(xlib)]
+lazy_static! {
+    static ref XLIB_CONTEXT: RwLock<XlibContext> =
+        RwLock::new(XlibContext::default());
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        pub fn destroy_window(handle: WindowHandle) {
-            #[allow(clippy::undocumented_unsafe_blocks)]
-            unsafe { DestroyWindow(HWND(handle.get_win32().unwrap().hwnd as _)); }
+// All uses of unsafe in the following function are either for FFI
+// or for accessing the members of the XEvent union. All of the
+// functions should be safe as called, and all of the union accesses
+// should be safe since XEvent is a tagged union thanks to its
+// `type_` member. No reason to comment them individually.
+#[cfg(xlib)]
+#[allow(
+    clippy::undocumented_unsafe_blocks,
+    clippy::cast_sign_loss,
+    clippy::get_first,
+    clippy::if_then_some_else_none,
+    clippy::single_match_else,
+    clippy::cast_possible_wrap
+)]
+pub fn next_window_event() -> Option<WindowEvent> {
+    if query_quit_event() == SignalState::Signaled {
+        com::quit_f();
+    }
+
+    if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
+        let mut ev =
+            unsafe { core::mem::MaybeUninit::<XEvent>::zeroed().assume_init() };
+        let display = unsafe {
+            XOpenDisplay(platform::display_server::xlib::display_name())
+        };
+        if unsafe { XPending(display) } == 0 {
+            return None;
+        }
+
+        unsafe {
+            XNextEvent(display, addr_of_mut!(ev));
+        }
+        unsafe {
+            XCloseDisplay(display);
+        }
+
+        // Since XEvents don't have a timestamp associated with them
+        // like Windows MSGs do, we do the next best thing and acquire
+        // a timestamp immediately after retrieving the event.
+        let time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as isize;
+        let any = unsafe { ev.any };
+        match any.type_ {
+            ClientMessage => {
+                let ev = unsafe { ev.client_message };
+                if *ev.data.as_longs().get(0).unwrap() as u64
+                    == WM_DELETE_WINDOW.load_relaxed()
+                {
+                    unsafe {
+                        XDestroyWindow(ev.display, ev.window);
+                    }
+                    platform::set_msg_time(time);
+                    Some(WindowEvent::CloseRequested)
+                } else {
+                    None
+                }
+            }
+            _ => {
+                let context = *XLIB_CONTEXT.read().unwrap();
+                if let Ok((mut evs, new_context)) =
+                    WindowEvent::try_from_xevent(ev, context)
+                {
+                    if let Some(n) = new_context {
+                        *XLIB_CONTEXT.write().unwrap() = n;
+                    }
+
+                    platform::set_msg_time(time);
+                    let ev = evs.pop_front();
+                    MAIN_WINDOW_EVENTS.lock().unwrap().append(&mut evs);
+
+                    ev
+                } else {
+                    None
+                }
+            }
         }
     } else {
-        pub fn destroy_window(_handle: WindowHandle) {
-            todo!()
-        }
+        MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
     }
+}
+
+#[cfg(not(any(windows, xlib)))]
+pub fn next_window_event() -> Option<WindowEvent> {
+    None
+}
+
+#[cfg(windows)]
+pub fn show_window(handle: WindowHandle) {
+    #[allow(clippy::undocumented_unsafe_blocks)]
+    unsafe {
+        ShowWindow(HWND(handle.get_win32().unwrap().hwnd as _), SW_SHOW);
+    }
+}
+
+#[cfg(windows)]
+pub fn focus_window(handle: WindowHandle) {
+    #[allow(clippy::undocumented_unsafe_blocks)]
+    unsafe {
+        SetFocus(HWND(handle.get_win32().unwrap().hwnd as _));
+    }
+}
+
+#[cfg(windows)]
+pub fn destroy_window(handle: WindowHandle) {
+    #[allow(clippy::undocumented_unsafe_blocks)]
+    unsafe {
+        DestroyWindow(HWND(handle.get_win32().unwrap().hwnd as _));
+    }
+}
+
+#[cfg(xlib)]
+#[allow(clippy::undocumented_unsafe_blocks)]
+pub fn show_window(handle: WindowHandle) {
+    let handle = handle.get_xlib().unwrap();
+    let display =
+        unsafe { XOpenDisplay(platform::display_server::xlib::display_name()) };
+    unsafe {
+        XMapWindow(display, handle.window);
+    }
+}
+
+#[cfg(xlib)]
+#[allow(clippy::undocumented_unsafe_blocks)]
+pub fn focus_window(handle: WindowHandle) {
+    let handle = handle.get_xlib().unwrap();
+    let display =
+        unsafe { XOpenDisplay(platform::display_server::xlib::display_name()) };
+    unsafe {
+        XSetInputFocus(display, handle.window, RevertToParent, CurrentTime);
+    }
+}
+
+#[cfg(not(any(windows, xlib)))]
+pub fn show_window(handle: WindowHandle) {
+    let _handle = handle.get_wayland().unwrap();
+    todo!()
+}
+
+#[cfg(not(any(windows, xlib)))]
+pub fn focus_window(handle: WindowHandle) {
+    let _handle = handle.get_wayland().unwrap();
+    todo!()
+}
+
+#[cfg(not(any(windows, xlib)))]
+pub fn destroy_window(_handle: WindowHandle) {
+    todo!()
 }
 
 static THREAD_ID: RwLock<[Option<ThreadId>; 15]> = RwLock::new([None; 15]);

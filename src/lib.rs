@@ -134,11 +134,9 @@ pub fn run() {
 
     sys::init_main_thread();
 
-    cfg_if! {
-        if #[cfg(not(target_arch = "wasm32"))] {
-            pmem::init();
-        }
-    }
+    #[cfg(native)]
+    pmem::init();
+
     locale::init();
 
     #[allow(clippy::collapsible_if)]
