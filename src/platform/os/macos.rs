@@ -1,6 +1,5 @@
 use crate::platform::WindowHandle;
 use cfg_if::cfg_if;
-use core::ffi::c_void;
 use raw_window_handle::{
     AppKitWindowHandle, RawDisplayHandle, RawWindowHandle, XlibDisplayHandle,
     XlibWindowHandle,
