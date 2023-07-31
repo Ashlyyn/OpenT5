@@ -4,11 +4,15 @@ use lazy_static::lazy_static;
 
 use arrayvec::{ArrayString, ArrayVec};
 use libc::c_void;
-use windows::Win32::{
-    Foundation::HMODULE,
-    Graphics::Direct3D9::{
-        IDirect3D9, IDirect3DDevice9, IDirect3DQuery9, IDirect3DSurface9,
-        D3DDISPLAYMODE, D3DFORMAT, D3DMULTISAMPLE_TYPE, D3DTEXTUREFILTERTYPE,
+use windows::{
+    core::HRESULT,
+    Win32::{
+        Foundation::HMODULE,
+        Graphics::Direct3D9::{
+            IDirect3D9, IDirect3DDevice9, IDirect3DQuery9, IDirect3DSurface9,
+            D3DDISPLAYMODE, D3DFORMAT, D3DMULTISAMPLE_TYPE,
+            D3DTEXTUREFILTERTYPE,
+        },
     },
 };
 
@@ -32,23 +36,23 @@ impl Adapter {
 pub struct DxGlobals {
     hinst: Option<HMODULE>,
     pub d3d9: Option<IDirect3D9>,
-    device: Option<Box<IDirect3DDevice9>>,
+    pub device: Option<IDirect3DDevice9>,
     pub adapter: Adapter,
     pub vendor_id: u32,
-    adapter_native_is_valid: bool,
-    adapter_native_width: i32,
-    adapter_native_height: i32,
-    adapter_fullscreen_width: i32,
-    adapter_fullscreen_height: i32,
+    pub adapter_native_is_valid: bool,
+    pub adapter_native_width: i32,
+    pub adapter_native_height: i32,
+    pub adapter_fullscreen_width: i32,
+    pub adapter_fullscreen_height: i32,
     supports_scene_null_render_target: bool,
     supports_int_z: bool,
     pub nv_initialized: bool,
-    nv_stereo_activated: bool,
-    nv_stereo_handle: Option<*mut c_void>,
+    pub nv_stereo_activated: bool,
+    pub nv_stereo_handle: Option<*mut c_void>,
     nv_depth_buffer_handle: Option<*mut c_void>,
     nv_float_z_buffer_handle: Option<*mut c_void>,
     resize_window: bool,
-    depth_stencil_format: D3DFORMAT,
+    pub depth_stencil_format: D3DFORMAT,
     pub display_modes: ArrayVec<D3DDISPLAYMODE, 256>,
     pub resolution_name_table: ArrayVec<String, 256>,
     pub refresh_rate_name_table: ArrayVec<String, 256>,
@@ -57,14 +61,14 @@ pub struct DxGlobals {
     next_fence: u32,
     gpu_sync: i32,
     gpu_count: i32,
-    multi_sample_type: D3DMULTISAMPLE_TYPE,
-    multi_sample_quality: u32,
+    pub multi_sample_type: D3DMULTISAMPLE_TYPE,
+    pub multi_sample_quality: u32,
     sun_sprite_sample: i32,
     sun_shadow_partition_res: i32,
     single_sample_depth_stencil_surface: Option<Box<IDirect3DSurface9>>,
     in_scene: bool,
     target_window_index: i32,
-    window_count: i32,
+    pub window_count: i32,
     window: gfx::WindowTarget,
     flush_gpu_query: Option<Box<IDirect3DQuery9>>,
     gpu_sync_delay: u64,
@@ -115,6 +119,8 @@ pub fn gfx_metrics() -> RwLockReadGuard<'static, GfxMetrics> {
 pub fn gfx_metrics_mut() -> RwLockWriteGuard<'static, GfxMetrics> {
     GFX_METRICS.write().unwrap()
 }
+
+pub const D3DERR_INVALID_CALL: HRESULT = HRESULT(-2005530516);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DxCapsResponse {

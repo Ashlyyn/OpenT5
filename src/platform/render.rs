@@ -1,5 +1,5 @@
-#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
+#[cfg(d3d9)]
 pub mod d3d9;
 
-#[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+#[cfg(wgpu)]
 pub mod wgpu;

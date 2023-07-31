@@ -25,14 +25,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
-use cstr::cstr;
-#[cfg(all(windows, not(feature = "windows_use_wgpu")))]
-use windows::Win32::Graphics::Direct3D9::{
-    Direct3DCreate9, D3DADAPTER_DEFAULT, D3DADAPTER_IDENTIFIER9,
-    D3D_SDK_VERSION,
-};
-
 cfg_if! {
     if #[cfg(windows)] {
         use platform::os::win32::{con_wnd_proc, input_line_wnd_proc};
@@ -92,11 +84,7 @@ cfg_if! {
                 },
             },
         };
-    } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
-
-    } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
-
-    } else if #[cfg(unix)] {
+    } else if #[cfg(xlib)] {
         use x11::xlib::{
             CurrentTime, RevertToParent, XMapWindow, XOpenDisplay,
             XSetInputFocus, XCloseDisplay, ClientMessage, XDestroyWindow,
@@ -111,7 +99,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(not(any(target_arch = "wasm32", target_os = "windows")))] {
+    if #[cfg(not(any(wasm, windows)))] {
         use sysinfo::{CpuExt, SystemExt};
     }
 }
@@ -127,10 +115,14 @@ cfg_if! {
     }
 }
 
+#[cfg(all(windows, any(x86_64, i686)))]
+use platform::arch::x86::target::cpuid;
+
 cfg_if! {
-    if #[cfg(all(windows, any(target_arch = "x86_64", target_arch = "x86")))] {
-        use platform::arch::x86::target::cpuid;
-    }
+   if #[cfg(d3d9)] {
+    use cstr::cstr;
+    use windows::Win32::Graphics::Direct3D9::{Direct3DCreate9, D3D_SDK_VERSION, D3DADAPTER_IDENTIFIER9, D3DADAPTER_DEFAULT};
+}
 }
 
 use bitflags::bitflags;
