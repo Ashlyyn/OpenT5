@@ -19,16 +19,12 @@ fn main() {
         // No, this is not the PS3's OtherOS
         other_os: { not(any(windows, unix)) },
         // Display servers
-        xlib: { all(
-            unix,
-            not(feature = "linux_use_wayland"),
-            not(feature = "macos_use_appkit"))
-        },
+        xlib: { any(other_unix, feature = "linux_use_xlib", feature = "macos_use_xlib") },
         wayland: { all(target_os = "linux", feature = "linux_use_wayland") },
         appkit: { all(target_os = "macos", feature = "macos_use_appkit") },
         // Rendering backends
-        d3d9: { all(windows, not(feature = "windows_use_wgpu")) },
-        wgpu: { any(not(windows), feature = "windows_use_wgpu") },
+        d3d9: { all(windows, feature = "windows_use_d3d9") },
+        wgpu: { any(feature = "windows_use_wgpu", feature = "linux_use_wgpu", feature = "macos_use_wgpu") },
         // Arches
         x86: { any(target_arch = "x86", target_arch = "x86_64") },
         i686: { target_arch = "x86" },
