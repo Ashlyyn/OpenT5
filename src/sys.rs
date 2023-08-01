@@ -97,6 +97,9 @@ cfg_if! {
         use core::ptr::addr_of_mut;
     } else if #[cfg(appkit)] {
         use crate::platform::os::target::AppKitWindowHandleExt;
+        use icrate::{AppKit::NSApp, Foundation::{NSDefaultRunLoopMode, NSDate}};
+        use objc2::ffi::NSUIntegerMax;
+        use core::ptr::addr_of_mut;
     }
 }
 
@@ -114,7 +117,6 @@ cfg_if! {
         use std::ffi::OsStr;
     } else if #[cfg(macos)] {
         use std::ffi::CString;
-        use core::ptr::addr_of_mut;
     }
 }
 
@@ -2039,9 +2041,6 @@ pub fn next_window_event() -> Option<WindowEvent> {
 
 #[cfg(appkit)]
 pub fn next_window_event() -> Option<WindowEvent> {
-    use icrate::{AppKit::NSApp, Foundation::{NSDefaultRunLoopMode, NSDate}};
-    use objc2::ffi::NSUIntegerMax;
-
     if query_quit_event() == SignalState::Signaled {
         com::quit_f();
     }
@@ -2177,20 +2176,20 @@ pub fn destroy_window(handle: WindowHandle) {
 }
 
 #[cfg(wayland)]
-pub fn show_window(_handle: WindowHandle) {
-    let _handle = handle.get_wayland().unwrap();
+pub fn show_window(handle: WindowHandle) {
+    let handle = handle.get_wayland().unwrap();
     todo!()
 }
 
 #[cfg(wayland)]
-pub fn focus_window(_handle: WindowHandle) {
-    let _handle = handle.get_wayland().unwrap();
+pub fn focus_window(handle: WindowHandle) {
+    let handle = handle.get_wayland().unwrap();
     todo!()
 }
 
 #[cfg(wayland)]
-pub fn destroy_window(_handle: WindowHandle) {
-    let _handle = handle.get_wayland().unwrap();
+pub fn destroy_window(handle: WindowHandle) {
+    let handle = handle.get_wayland().unwrap();
     todo!()
 }
 

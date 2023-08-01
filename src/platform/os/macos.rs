@@ -1,18 +1,25 @@
 use crate::platform::WindowHandle;
 use cfg_if::cfg_if;
-use icrate::AppKit::NSWindow;
-use objc2::rc::Id;
 use raw_window_handle::{
     AppKitDisplayHandle, AppKitWindowHandle, RawDisplayHandle, RawWindowHandle,
     XlibDisplayHandle, XlibWindowHandle,
 };
 
+cfg_if! {
+    if #[cfg(appkit)] {
+        use icrate::AppKit::NSWindow;
+        use objc2::rc::Id;
+    }
+}
+
 pub fn main() {}
 
+#[cfg(appkit)]
 pub trait AppKitWindowHandleExt {
     fn ns_window(&self) -> Id<NSWindow>;
 }
 
+#[cfg(appkit)]
 impl AppKitWindowHandleExt for AppKitWindowHandle {
     fn ns_window(&self) -> Id<NSWindow> {
         unsafe { Id::new(self.ns_window as *mut NSWindow) }.unwrap()
