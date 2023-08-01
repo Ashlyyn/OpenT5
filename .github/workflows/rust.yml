@@ -10,16 +10,25 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-win:
+  build-win_d3d9:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
     - name: Install Nightly
       run: rustup toolchain add nightly
     - name: Build
-      run: cargo +nightly build --verbose
-  
-  build-linux:
+      run: cargo +nightly build --verbose --features windows_use_d3d9
+    
+  build-win_wgpu:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Nightly
+      run: rustup toolchain add nightly
+    - name: Build
+      run: cargo +nightly build --verbose --features windows_use_wgpu
+      
+  build-linux_wayland:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -28,9 +37,20 @@ jobs:
     - name: Install Dependencies
       run: sudo apt install libgtk-4-dev libudev-dev
     - name: Build
-      run: cargo +nightly build --verbose
+      run: cargo +nightly build --verbose --features linux_use_wayland,linux_use_wgpu
       
-  build-macos:
+  build-linux_xlib:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Nightly
+      run: rustup toolchain add nightly
+    - name: Install Dependencies
+      run: sudo apt install libgtk-4-dev libudev-dev
+    - name: Build
+      run: cargo +nightly build --verbose --features linux_use_xlib,linux_use_wgpu
+      
+  build-macos_appkit:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v3
@@ -39,4 +59,15 @@ jobs:
     - name: Install Dependencies
       run: brew install xquartz libxrandr
     - name: Build
-      run: cargo +nightly build --verbose
+      run: cargo +nightly build --verbose --features macos_use_appkit,macos_use_wgpu
+      
+  build-macos_xlib:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Nightly
+      run: rustup toolchain add nightly
+    - name: Install Dependencies
+      run: brew install xquartz libxrandr
+    - name: Build
+      run: cargo +nightly build --verbose --features macos_use_xlib,macos_use_wgpu
