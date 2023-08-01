@@ -97,7 +97,10 @@ cfg_if! {
         use core::ptr::addr_of_mut;
     } else if #[cfg(appkit)] {
         use crate::platform::os::target::AppKitWindowHandleExt;
-        use icrate::{AppKit::NSApp, Foundation::{NSDefaultRunLoopMode, NSDate}};
+        use icrate::{
+            AppKit::{NSApp, NSAlert}, 
+            Foundation::{NSDefaultRunLoopMode, NSDate, NSString}
+        };
         use objc2::ffi::NSUIntegerMax;
         use core::ptr::addr_of_mut;
     }
@@ -1389,8 +1392,50 @@ pub fn message_box(
     Some(response.into())
 }
 
-#[cfg(not(any(windows, linux)))]
-#[allow(clippy::print_stdout, clippy::use_debug)]
+#[cfg(appkit)]
+pub fn message_box(
+    _handle: Option<WindowHandle>,
+    text: &str,
+    title: &str,
+    msg_box_type: MessageBoxType,
+    _msg_icon_type: Option<MessageBoxIcon>,
+) -> Option<MessageBoxResult> {
+    // defining these here the NSAlertXXXButtonReturn constants are defined as 
+    // statics instead of consts and wouldn't play nice
+    const FIRST_BUTTON: isize = 1000;
+    const SECOND_BUTTON: isize = 1001;
+    const THIRD_BUTTON: isize = 1002;
+
+    let alert = unsafe { NSAlert::new() };
+    unsafe { alert.setMessageText(&NSString::from_str(&format!("{}\n\n{}", title, text))) };
+    let buttons = match msg_box_type {
+        MessageBoxType::Ok => vec![ "Ok" ],
+        MessageBoxType::YesNo => vec![ "Yes", "No" ],
+        MessageBoxType::YesNoCancel => vec![ "Yes", "No", "Cancel" ],
+    };
+
+    for button in buttons {
+        unsafe { alert.addButtonWithTitle(&NSString::from_str(button)) };
+    }
+
+    match unsafe { alert.runModal() } {
+        FIRST_BUTTON => match msg_box_type {
+            MessageBoxType::Ok => Some(MessageBoxResult::Ok),
+            MessageBoxType::YesNo | MessageBoxType::YesNoCancel => Some(MessageBoxResult::Yes),
+        },
+        SECOND_BUTTON => match msg_box_type {
+            MessageBoxType::Ok => panic!("where the fuck i am"),
+            MessageBoxType::YesNo | MessageBoxType::YesNoCancel => Some(MessageBoxResult::No),
+        },
+        THIRD_BUTTON => match msg_box_type {
+            MessageBoxType::Ok | MessageBoxType::YesNo => panic!("where the fuck i am"),
+            MessageBoxType::YesNoCancel => Some(MessageBoxResult::Cancel),
+        },
+        _ => panic!("where the fuck i am")
+    }
+}
+
+#[cfg(not(any(windows, linux, appkit)))]
 pub fn message_box(
     handle: Option<WindowHandle>,
     text: &str,
@@ -2195,20 +2240,17 @@ pub fn destroy_window(handle: WindowHandle) {
 
 #[cfg(appkit)]
 pub fn show_window(handle: WindowHandle) {
-    let window = handle.get_appkit().unwrap().ns_window();
-    unsafe { window.orderFrontRegardless() };
+    unsafe { handle.get_appkit().unwrap().ns_window().orderFrontRegardless() };
 }
 
 #[cfg(appkit)]
 pub fn focus_window(handle: WindowHandle) {
-    let window = handle.get_appkit().unwrap().ns_window();
-    unsafe { window.makeKeyWindow() };
+    unsafe { handle.get_appkit().unwrap().ns_window().makeKeyWindow() };
 }
 
 #[cfg(appkit)]
 pub fn destroy_window(handle: WindowHandle) {
-    let window = handle.get_appkit().unwrap().ns_window();
-    unsafe { window.close() };
+    unsafe { handle.get_appkit().unwrap().ns_window().close() };
 }
 
 #[cfg(xlib)]
@@ -2231,6 +2273,17 @@ pub fn focus_window(handle: WindowHandle) {
     unsafe {
         XSetInputFocus(display, handle.window, RevertToParent, CurrentTime);
     }
+}
+
+#[cfg(xlib)]
+pub fn destroy_window(handle: WindowHandle) {
+    let handle = handle.get_xlib().unwrap();
+    let display =
+        unsafe { XOpenDisplay(platform::display_server::xlib::display_name()) };
+    unsafe {
+        XDestroyWindow(display, handle.window);
+    }
+    
 }
 
 static THREAD_ID: RwLock<[Option<ThreadId>; 15]> = RwLock::new([None; 15]);
