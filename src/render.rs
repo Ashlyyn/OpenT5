@@ -98,6 +98,25 @@ cfg_if! {
         use platform::display_server::target::WM_DELETE_WINDOW;
         use alloc::ffi::CString;
         use core::ptr::addr_of_mut;
+    } else if #[cfg(appkit)] {
+        use objc2::rc::autoreleasepool;
+        use std::ptr::addr_of;
+
+        use crate::platform::display_server::appkit::{
+            AppDelegate, WindowDelegate,
+        };
+        use icrate::{
+            ns_string,
+            AppKit::{
+                NSApp, NSApplication, NSApplicationActivationPolicyRegular,
+                NSBackingStoreBuffered, NSClosableWindowMask, NSMenu, 
+                NSMenuItem, NSResizableWindowMask, NSTitledWindowMask, 
+                NSWindow, NSWindowController,
+            },
+            Foundation::{CGPoint, CGSize, NSProcessInfo, NSRect, NSString},
+        };
+        use objc2::{rc::Id, runtime::ProtocolObject, sel, ClassType};
+        use raw_window_handle::AppKitWindowHandle;
     }
 }
 
@@ -1055,39 +1074,181 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     }
 }
 
-#[cfg(any(wayland, appkit))]
+#[cfg(wayland)]
 fn available_monitors() -> VecDeque<MonitorHandle> {
     todo!()
 }
 
-#[cfg(any(wayland, appkit))]
+#[cfg(wayland)]
 fn primary_monitor() -> Option<MonitorHandle> {
     todo!()
 }
 
-#[cfg(any(wayland, appkit))]
+#[cfg(wayland)]
 fn current_monitor(_: Option<WindowHandle>) -> Option<MonitorHandle> {
     todo!()
 }
 
-#[cfg(any(wayland, appkit))]
+#[cfg(wayland)]
 fn choose_monitor() -> MonitorHandle {
     todo!()
 }
 
-#[cfg(any(wayland, appkit))]
-fn get_monitor_dimensions(_monitor: MonitorHandle) -> Option<(u32, u32)> {
+#[cfg(wayland)]
+fn get_monitor_dimensions() -> Option<(u32, u32)> {
     todo!()
 }
 
-#[cfg(any(wayland, appkit))]
+#[cfg(wayland)]
 fn monitor_info(_monitor: MonitorHandle) -> Option<MonitorInfo> {
     todo!()
 }
 
-#[cfg(any(wayland, appkit))]
+#[cfg(wayland)]
 pub fn create_window_2(_wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     todo!()
+}
+
+#[cfg(appkit)]
+fn available_monitors() -> VecDeque<MonitorHandle> {
+    todo!()
+}
+
+#[cfg(appkit)]
+fn primary_monitor() -> Option<MonitorHandle> {
+    todo!()
+}
+
+#[cfg(appkit)]
+fn current_monitor(_: Option<WindowHandle>) -> Option<MonitorHandle> {
+    todo!()
+}
+
+#[cfg(appkit)]
+fn choose_monitor() -> MonitorHandle {
+    todo!()
+}
+
+#[cfg(appkit)]
+fn get_monitor_dimensions() -> Option<(u32, u32)> {
+    todo!()
+}
+
+#[cfg(appkit)]
+fn monitor_info(_monitor: MonitorHandle) -> Option<MonitorInfo> {
+    todo!()
+}
+
+#[cfg(appkit)]
+pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
+    assert!(wnd_parms.window_handle.is_none());
+
+    autoreleasepool(|pool| {
+        let _ = unsafe { NSApplication::sharedApplication() };
+
+        let Some(ns_app) = (unsafe { NSApp }) else {
+            // this situation should never occur unless Cocoa is buggy/corrupted
+            panic!(
+                "NSApplication::sharedApplication failed to initialize NSApp"
+            );
+        };
+
+        unsafe {
+            ns_app.setActivationPolicy(NSApplicationActivationPolicyRegular)
+        };
+
+        let dg = AppDelegate::new();
+        unsafe { ns_app.setDelegate(Some(&ProtocolObject::from_id(dg))) };
+        unsafe { ns_app.finishLaunching() };
+
+        let menu_bar = Id::autorelease(unsafe { NSMenu::new() }, pool);
+        let app_menu_item = Id::autorelease(unsafe { NSMenuItem::new() }, pool);
+        unsafe { menu_bar.addItem(&app_menu_item) };
+        unsafe { ns_app.setMainMenu(Some(&menu_bar)) };
+
+        let app_menu = Id::autorelease(unsafe { NSMenu::new() }, pool);
+        let proc_info = Id::autorelease(NSProcessInfo::processInfo(), pool);
+        let app_name = Id::autorelease(proc_info.processName(), pool);
+        let quit_title = Id::autorelease(
+            ns_string!("Quit ").stringByAppendingString(&app_name),
+            pool,
+        );
+
+        let terminate = sel!(terminate:);
+        let key_equivalent = ns_string!("q");
+        let quit_menu_item = Id::autorelease(
+            unsafe {
+                NSMenuItem::initWithTitle_action_keyEquivalent(
+                    NSMenuItem::alloc(),
+                    &quit_title,
+                    Some(terminate),
+                    key_equivalent,
+                )
+            },
+            pool,
+        );
+        unsafe { app_menu.addItem(&quit_menu_item) };
+        unsafe { app_menu_item.setSubmenu(Some(&app_menu)) };
+
+        let rect = NSRect::new(
+            CGPoint::new(wnd_parms.x as _, wnd_parms.y as _),
+            CGSize::new(
+                wnd_parms.display_width as _,
+                wnd_parms.display_height as _,
+            ),
+        );
+        let window_style =
+            NSTitledWindowMask | NSClosableWindowMask | NSResizableWindowMask;
+
+        let Ok(window) = (unsafe {
+            objc2::exception::catch(|| {
+                Id::autorelease(
+                    NSWindow::initWithContentRect_styleMask_backing_defer(
+                        NSWindow::alloc(),
+                        rect,
+                        window_style,
+                        NSBackingStoreBuffered,
+                        false,
+                    ),
+                    pool,
+                )
+            })
+        }) else {
+            com::println!(8.into(), "Couldn't create a window.");
+            wnd_parms.window_handle = None;
+            return Err(());
+        };
+
+        let _window_controller = Id::autorelease(
+            unsafe {
+                NSWindowController::initWithWindow(
+                    NSWindowController::alloc(),
+                    Some(&window),
+                )
+            },
+            pool,
+        );
+
+        unsafe { window.setReleasedWhenClosed(false) };
+
+        let wdg = WindowDelegate::new();
+        unsafe { window.setDelegate(Some(&ProtocolObject::from_id(wdg))) };
+
+        let title = NSString::from_str(com::get_official_build_name_r());
+        unsafe { window.setTitle(&title) };
+
+        let mut handle = AppKitWindowHandle::empty();
+        handle.ns_window = addr_of!(*window) as _;
+        // TODO - Get (create?) view
+
+        if wnd_parms.fullscreen == false {
+            unsafe { window.makeKeyAndOrderFront(Some(&window)) };
+        }
+        unsafe { window.setAcceptsMouseMovedEvents(true) };
+
+        com::println!(8.into(), "Game window successfully created.");
+        Ok(())
+    })
 }
 
 #[cfg(xlib)]

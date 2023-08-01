@@ -1,11 +1,23 @@
 use crate::platform::WindowHandle;
 use cfg_if::cfg_if;
+use icrate::AppKit::NSWindow;
+use objc2::rc::Id;
 use raw_window_handle::{
-    AppKitWindowHandle, RawDisplayHandle, RawWindowHandle, XlibDisplayHandle,
-    XlibWindowHandle,
+    AppKitDisplayHandle, AppKitWindowHandle, RawDisplayHandle, RawWindowHandle,
+    XlibDisplayHandle, XlibWindowHandle,
 };
 
 pub fn main() {}
+
+pub trait AppKitWindowHandleExt {
+    fn ns_window(&self) -> Id<NSWindow>;
+}
+
+impl AppKitWindowHandleExt for AppKitWindowHandle {
+    fn ns_window(&self) -> Id<NSWindow> {
+        unsafe { Id::new(self.ns_window as *mut NSWindow) }.unwrap()
+    }
+}
 
 impl WindowHandle {
     pub const fn new(handle: RawWindowHandle) -> Self {
@@ -16,7 +28,7 @@ impl WindowHandle {
         self.0
     }
 
-    pub const fn get_app_kit(&self) -> Option<AppKitWindowHandle> {
+    pub const fn get_appkit(&self) -> Option<AppKitWindowHandle> {
         match self.get() {
             RawWindowHandle::AppKit(handle) => Some(handle),
             _ => None,
@@ -34,7 +46,7 @@ impl WindowHandle {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum MonitorHandle {
     Xlib(XlibDisplayHandle),
-    AppKit(()),
+    AppKit(AppKitDisplayHandle),
 }
 
 #[allow(clippy::missing_trait_methods)]
@@ -45,7 +57,7 @@ impl Ord for MonitorHandle {
                 .display
                 .cmp(&other.get_xlib().unwrap().display)
                 .then(handle.screen.cmp(&other.get_xlib().unwrap().screen)),
-            Self::AppKit(()) => ().cmp(&()),
+            Self::AppKit(_) => ().cmp(&()),
         }
     }
 }
@@ -59,7 +71,7 @@ impl PartialOrd for MonitorHandle {
 
 impl MonitorHandle {
     cfg_if! {
-        if #[cfg(feature = "macos_use_appkit")] {
+        if #[cfg(appkit)] {
             pub const fn get(&self) -> RawDisplayHandle {
                 match *self {
                     Self::AppKit(handle) => RawDisplayHandle::AppKit(handle),
@@ -83,9 +95,9 @@ impl MonitorHandle {
         }
     }
 
-    pub const fn get_app_kit(&self) -> Option<()> {
+    pub const fn get_appkit(&self) -> Option<AppKitDisplayHandle> {
         match *self {
-            Self::AppKit(_) => Some(()),
+            Self::AppKit(handle) => Some(handle),
             _ => None,
         }
     }

@@ -95,6 +95,8 @@ cfg_if! {
         };
         use util::EasierAtomic;
         use core::ptr::addr_of_mut;
+    } else if #[cfg(appkit)] {
+        use crate::platform::os::target::AppKitWindowHandleExt;
     }
 }
 
@@ -105,13 +107,14 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(target_os = "linux")] {
+    if #[cfg(linux)] {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
         use core::cell::RefCell;
         use std::ffi::OsStr;
-    } else if #[cfg(target_os = "macos")] {
+    } else if #[cfg(macos)] {
         use std::ffi::CString;
+        use core::ptr::addr_of_mut;
     }
 }
 
@@ -119,10 +122,10 @@ cfg_if! {
 use platform::arch::x86::target::cpuid;
 
 cfg_if! {
-   if #[cfg(d3d9)] {
-    use cstr::cstr;
-    use windows::Win32::Graphics::Direct3D9::{Direct3DCreate9, D3D_SDK_VERSION, D3DADAPTER_IDENTIFIER9, D3DADAPTER_DEFAULT};
-}
+    if #[cfg(d3d9)] {
+        use cstr::cstr;
+        use windows::Win32::Graphics::Direct3D9::{Direct3DCreate9, D3D_SDK_VERSION, D3DADAPTER_IDENTIFIER9, D3DADAPTER_DEFAULT};
+    }
 }
 
 use bitflags::bitflags;
@@ -2029,6 +2032,37 @@ pub fn next_window_event() -> Option<WindowEvent> {
     }
 }
 
+#[cfg(wayland)]
+pub fn next_window_event() -> Option<WindowEvent> {
+    None
+}
+
+#[cfg(appkit)]
+pub fn next_window_event() -> Option<WindowEvent> {
+    use icrate::{AppKit::NSApp, Foundation::{NSDefaultRunLoopMode, NSDate}};
+    use objc2::ffi::NSUIntegerMax;
+
+    if query_quit_event() == SignalState::Signaled {
+        com::quit_f();
+    }
+
+    if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
+        let ns_app = unsafe { NSApp }.unwrap();
+        if let Some(ev) = unsafe { ns_app.nextEventMatchingMask_untilDate_inMode_dequeue(
+            NSUIntegerMax as _,
+            Some(&NSDate::distantPast()),
+            NSDefaultRunLoopMode,
+            true,
+        ) } {
+            WindowEvent::try_from(ev.as_ref()).ok()
+        } else {
+            None
+        }
+    } else {
+        MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
+    }
+}
+
 #[cfg(xlib)]
 lazy_static! {
     static ref XLIB_CONTEXT: RwLock<XlibContext> =
@@ -2093,7 +2127,7 @@ pub fn next_window_event() -> Option<WindowEvent> {
                 } else {
                     None
                 }
-            }
+            },
             _ => {
                 let context = *XLIB_CONTEXT.read().unwrap();
                 if let Ok((mut evs, new_context)) =
@@ -2116,11 +2150,6 @@ pub fn next_window_event() -> Option<WindowEvent> {
     } else {
         MAIN_WINDOW_EVENTS.lock().unwrap().pop_front()
     }
-}
-
-#[cfg(not(any(windows, xlib)))]
-pub fn next_window_event() -> Option<WindowEvent> {
-    None
 }
 
 #[cfg(windows)]
@@ -2147,6 +2176,42 @@ pub fn destroy_window(handle: WindowHandle) {
     }
 }
 
+#[cfg(wayland)]
+pub fn show_window(_handle: WindowHandle) {
+    let _handle = handle.get_wayland().unwrap();
+    todo!()
+}
+
+#[cfg(wayland)]
+pub fn focus_window(_handle: WindowHandle) {
+    let _handle = handle.get_wayland().unwrap();
+    todo!()
+}
+
+#[cfg(wayland)]
+pub fn destroy_window(_handle: WindowHandle) {
+    let _handle = handle.get_wayland().unwrap();
+    todo!()
+}
+
+#[cfg(appkit)]
+pub fn show_window(handle: WindowHandle) {
+    let window = handle.get_appkit().unwrap().ns_window();
+    unsafe { window.orderFrontRegardless() };
+}
+
+#[cfg(appkit)]
+pub fn focus_window(handle: WindowHandle) {
+    let window = handle.get_appkit().unwrap().ns_window();
+    unsafe { window.makeKeyWindow() };
+}
+
+#[cfg(appkit)]
+pub fn destroy_window(handle: WindowHandle) {
+    let window = handle.get_appkit().unwrap().ns_window();
+    unsafe { window.close() };
+}
+
 #[cfg(xlib)]
 #[allow(clippy::undocumented_unsafe_blocks)]
 pub fn show_window(handle: WindowHandle) {
@@ -2167,23 +2232,6 @@ pub fn focus_window(handle: WindowHandle) {
     unsafe {
         XSetInputFocus(display, handle.window, RevertToParent, CurrentTime);
     }
-}
-
-#[cfg(not(any(windows, xlib)))]
-pub fn show_window(handle: WindowHandle) {
-    let _handle = handle.get_wayland().unwrap();
-    todo!()
-}
-
-#[cfg(not(any(windows, xlib)))]
-pub fn focus_window(handle: WindowHandle) {
-    let _handle = handle.get_wayland().unwrap();
-    todo!()
-}
-
-#[cfg(not(any(windows, xlib)))]
-pub fn destroy_window(_handle: WindowHandle) {
-    todo!()
 }
 
 static THREAD_ID: RwLock<[Option<ThreadId>; 15]> = RwLock::new([None; 15]);
