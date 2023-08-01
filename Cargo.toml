@@ -44,7 +44,7 @@ icrate = { version = "0.0.3", optional = true, features = ["AppKit_all", "Founda
 objc2 = { version =  "0.4.0", optional = true, features = [ "exception" ]}
 x11 = { version = "2.21.0", features = [ "xlib", "xrandr" ], optional = true }
 
-[target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "linux")))'.depenencies]
+[target.'cfg(all(target_family = "unix", not(target_os = "macos"), not(target_os = "linux")))'.dependencies]
 x11 = { version = "2.21.0", features = [ "xlib", "xrandr" ] }
 
 [target.'cfg(windows)'.dependencies]
