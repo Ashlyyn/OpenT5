@@ -1562,7 +1562,7 @@ pub fn create_console() {
         )
     };
 
-    conbuf::s_wcd_mut().window = WindowHandle::from_win32(hwnd, Some(hinstance));
+    conbuf::s_wcd_mut().window = Some(WindowHandle::from_win32(hwnd, Some(hinstance)));
 
     if hwnd.0 == 0 {
         return;
@@ -1570,7 +1570,7 @@ pub fn create_console() {
 
     let hdc = unsafe { GetDC(hwnd) };
     let font_height = unsafe { MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72) };
-    conbuf::s_wcd_mut().buffer_font = FontHandle(unsafe {
+    conbuf::s_wcd_mut().buffer_font = Some(FontHandle(unsafe {
         CreateFontA(
             font_height,
             0,
@@ -1588,7 +1588,7 @@ pub fn create_console() {
             s!("Courier New"),
         )
         .0
-    });
+    }));
 
     unsafe { ReleaseDC(hwnd, hdc) };
     if let Ok(image) = unsafe {
@@ -1618,10 +1618,10 @@ pub fn create_console() {
             )
         };
 
-        conbuf::s_wcd().cod_logo_window = WindowHandle::from_win32(
+        conbuf::s_wcd_mut().cod_logo_window = Some(WindowHandle::from_win32(
             cod_logo,
             Some(hinstance),
-        );
+        ));
 
         unsafe {
             SendMessageA(cod_logo, STM_SETIMAGE, WPARAM(0), LPARAM(image.0))
@@ -1648,10 +1648,10 @@ pub fn create_console() {
         )
     };
 
-    conbuf::s_wcd_mut().input_line_window = WindowHandle::from_win32(
+    conbuf::s_wcd_mut().input_line_window = Some(WindowHandle::from_win32(
         hwnd_input_line,
         Some(hinstance),
-    );
+    ));
 
     let hwnd_buffer = unsafe {
         CreateWindowExA(
@@ -1678,10 +1678,10 @@ pub fn create_console() {
         )
     };
 
-    conbuf::s_wcd_mut().buffer_window = WindowHandle::from_win32(
+    conbuf::s_wcd_mut().buffer_window = Some(WindowHandle::from_win32(
         hwnd_buffer,
         Some(hinstance),
-    );
+    ));
 
     unsafe {
         SendMessageA(
@@ -1724,14 +1724,14 @@ pub fn create_console() {
 pub fn show_console() {
     if conbuf::s_wcd().window.is_none() {
         create_console();
-        assert!(!conbuf::s_wcd_window_is_none());
+        assert!(!conbuf::s_wcd().window.is_none());
     }
 
     show_window(conbuf::s_wcd().buffer_window.unwrap());
     unsafe {
         SendMessageA(
             HWND(
-                conbuf::s_wcd.buffer_window
+                conbuf::s_wcd().buffer_window
                     .unwrap()
                     .get_win32()
                     .unwrap()

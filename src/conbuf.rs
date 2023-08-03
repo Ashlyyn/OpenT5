@@ -6,7 +6,7 @@ use crate::*;
 use cfg_if::cfg_if;
 
 cfg_if! {
-    if #[cfg(not(target_arch = "wasm32"))] {
+    if #[cfg(native)] {
         use lazy_static::lazy_static;
         use crate::{
             platform::{FontHandle, WindowHandle},
@@ -21,7 +21,7 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(target_os = "windows")] {
+    if #[cfg(windows)] {
         use core::ptr::addr_of;
         use core::sync::atomic::Ordering;
         use windows::Win32::{
@@ -30,7 +30,7 @@ cfg_if! {
                     EM_SETSEL, EM_LINESCROLL, EM_SCROLLCARET, EM_REPLACESEL
                 }
             },
-            Foundation::{WPARAM, LPARAM, HWND, LRESULT}
+            Foundation::{WPARAM, LPARAM, HWND}
         };
         use crate::util::EasierAtomic;
     }
@@ -157,7 +157,7 @@ pub fn append_text(text: impl ToString) {
         TEXT_APPENDED.load_relaxed() + clean_len
     );
 
-    let buffer_window_handle = s_wcd_buffer_window().unwrap();
+    let buffer_window_handle = s_wcd().buffer_window.unwrap();
     let hwnd = buffer_window_handle.get_win32().unwrap().hwnd;
 
     // SAFETY:
