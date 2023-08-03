@@ -13,9 +13,9 @@ use icrate::{
     AppKit::{
         NSApp, NSApplication, NSApplicationDelegate,
         NSApplicationTerminateReply, NSEvent, NSEventTypeApplicationDefined,
-        NSResponder, NSWindowDelegate, NSWindow, NSBitsPerPixelFromDepth,
+        NSResponder, NSWindowDelegate, NSWindow, NSBitsPerPixelFromDepth, NSEventTypeKeyDown, NSEventTypeKeyUp, NSEventTypeLeftMouseDown, NSEventTypeLeftMouseUp, NSEventTypeRightMouseDown, NSEventTypeRightMouseUp, NSEventTypeOtherMouseDown, NSEventTypeOtherMouseUp, NSEventTypeScrollWheel, NSEventTypeMouseMoved, NSEventTypeFlagsChanged,
     },
-    Foundation::{CGPoint, NSDate, NSNotification, NSSize},
+    Foundation::{CGPoint, NSDate, NSNotification, NSSize, NSRect, CGSize},
 };
 use objc2::{
     declare::{Ivar, IvarEncode},
@@ -213,6 +213,7 @@ impl WindowDelegate {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 struct KeyCode(u16);
 
 impl TryFrom<KeyCode> for KeyboardScancode {
@@ -331,6 +332,32 @@ impl TryFrom<KeyCode> for KeyboardScancode {
     }
 }
 
+struct NSModifiers(u16);
+
+impl TryFrom<NSModifiers> for sys::Modifiers {
+    type Error = ();
+    fn try_from(value: NSModifiers) -> Result<Self, Self::Error> {
+        let mut modifiers = sys::Modifiers::empty();
+        if value.0 & 0x02 != 0 {
+            modifiers |= sys::Modifiers::LSHIFT;
+        }
+
+        if value.0 & 0x04 != 0 {
+            modifiers |= sys::Modifiers::LCTRL;
+        }
+
+        if value.0 & 0x08 != 0 {
+            modifiers |= sys::Modifiers::LALT;
+        }
+
+        if value.0 & 0x10 != 0 {
+            modifiers |= sys::Modifiers::LSYS;
+        }
+
+        Ok(modifiers)
+    }
+}
+
 impl TryFrom<&NSEvent> for WindowEvent {
     type Error = ();
     fn try_from(value: &NSEvent) -> Result<Self, Self::Error> {
@@ -364,8 +391,58 @@ impl TryFrom<&NSEvent> for WindowEvent {
             }
             // Other events, like keyboard and mouse events are sent straight
             // to the event loop, and we'll translate them here.
-            
-            _ => todo!(),
+            NSEventTypeKeyDown => {
+                let code = KeyCode(unsafe { value.keyCode() });
+                Ok(WindowEvent::KeyDown { 
+                    logical_scancode: code.try_into().unwrap(),
+                    physical_scancode: Some(code.try_into().unwrap()),
+                })
+            },
+            NSEventTypeKeyUp => {
+                let code = KeyCode(unsafe { value.keyCode() });
+                Ok(WindowEvent::KeyUp { 
+                    logical_scancode: code.try_into().unwrap(),
+                    physical_scancode: Some(code.try_into().unwrap()),
+                })
+            },
+            NSEventTypeLeftMouseDown => Ok(WindowEvent::MouseButtonDown(sys::MouseScancode::LClick)),
+            NSEventTypeLeftMouseUp => Ok(WindowEvent::MouseButtonUp(sys::MouseScancode::LClick)),
+            NSEventTypeRightMouseDown => Ok(WindowEvent::MouseButtonDown(sys::MouseScancode::RClick)),
+            NSEventTypeRightMouseUp => Ok(WindowEvent::MouseButtonUp(sys::MouseScancode::RClick)),
+            NSEventTypeOtherMouseDown => match unsafe { value.buttonNumber() } {
+                2 => Ok(WindowEvent::MouseButtonDown(sys::MouseScancode::MClick)),
+                _ => Err(())
+            },
+            NSEventTypeOtherMouseUp => match unsafe { value.buttonNumber() } {
+                2 => Ok(WindowEvent::MouseButtonUp(sys::MouseScancode::MClick)),
+                _ => Err(())
+            },
+            NSEventTypeScrollWheel => {
+                let scroll_factor = if unsafe { value.hasPreciseScrollingDeltas() } {
+                    0.1
+                } else {
+                    1.0
+                };
+                let dy = unsafe { value.scrollingDeltaY() } * scroll_factor;
+                Ok(WindowEvent::MouseWheelScroll(dy as _))
+            },
+            NSEventTypeMouseMoved => {
+                let current_window = unsafe { NSApp.unwrap().keyWindow() }.unwrap();
+                    let current_window_content_view =
+                        unsafe { current_window.contentView().unwrap() };
+                    let adjust_frame = unsafe { current_window_content_view.frame() };
+                    let p = unsafe { current_window.mouseLocationOutsideOfEventStream() };
+                    let p = CGPoint::new(
+                        p.x.clamp(0.0, adjust_frame.size.width),
+                        p.y.clamp(0.0, adjust_frame.size.height),
+                    );
+                    let r = NSRect::new(p, CGSize::new(0.0, 0.0));
+                    let r = unsafe { current_window_content_view.convertRectToBacking(r) };
+                    let p = r.origin;
+                    Ok(WindowEvent::CursorMoved { x: p.x, y: p.y })
+            },
+            NSEventTypeFlagsChanged => todo!(),
+            _ => todo!(),   
         }
     }
 }
