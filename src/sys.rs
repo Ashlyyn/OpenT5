@@ -5,7 +5,7 @@ extern crate alloc;
 use crate::{
     platform::WindowHandle,
     util::{EasierAtomicBool, SignalState, SmpEvent},
-    *,
+    *, cl::Connstate,
 };
 use num_derive::FromPrimitive;
 
@@ -98,7 +98,7 @@ cfg_if! {
     } else if #[cfg(appkit)] {
         use crate::platform::os::target::AppKitWindowHandleExt;
         use icrate::{
-            AppKit::{NSApp, NSAlert}, 
+            AppKit::{NSApp, NSAlert},
             Foundation::{NSDefaultRunLoopMode, NSDate, NSString}
         };
         use objc2::ffi::NSUIntegerMax;
@@ -1400,18 +1400,23 @@ pub fn message_box(
     msg_box_type: MessageBoxType,
     _msg_icon_type: Option<MessageBoxIcon>,
 ) -> Option<MessageBoxResult> {
-    // defining these here the NSAlertXXXButtonReturn constants are defined as 
+    // defining these here the NSAlertXXXButtonReturn constants are defined as
     // statics instead of consts and wouldn't play nice
     const FIRST_BUTTON: isize = 1000;
     const SECOND_BUTTON: isize = 1001;
     const THIRD_BUTTON: isize = 1002;
 
     let alert = unsafe { NSAlert::new() };
-    unsafe { alert.setMessageText(&NSString::from_str(&format!("{}\n\n{}", title, text))) };
+    unsafe {
+        alert.setMessageText(&NSString::from_str(&format!(
+            "{}\n\n{}",
+            title, text
+        )))
+    };
     let buttons = match msg_box_type {
-        MessageBoxType::Ok => vec![ "Ok" ],
-        MessageBoxType::YesNo => vec![ "Yes", "No" ],
-        MessageBoxType::YesNoCancel => vec![ "Yes", "No", "Cancel" ],
+        MessageBoxType::Ok => vec!["Ok"],
+        MessageBoxType::YesNo => vec!["Yes", "No"],
+        MessageBoxType::YesNoCancel => vec!["Yes", "No", "Cancel"],
     };
 
     for button in buttons {
@@ -1421,17 +1426,23 @@ pub fn message_box(
     match unsafe { alert.runModal() } {
         FIRST_BUTTON => match msg_box_type {
             MessageBoxType::Ok => Some(MessageBoxResult::Ok),
-            MessageBoxType::YesNo | MessageBoxType::YesNoCancel => Some(MessageBoxResult::Yes),
+            MessageBoxType::YesNo | MessageBoxType::YesNoCancel => {
+                Some(MessageBoxResult::Yes)
+            }
         },
         SECOND_BUTTON => match msg_box_type {
             MessageBoxType::Ok => panic!("where the fuck i am"),
-            MessageBoxType::YesNo | MessageBoxType::YesNoCancel => Some(MessageBoxResult::No),
+            MessageBoxType::YesNo | MessageBoxType::YesNoCancel => {
+                Some(MessageBoxResult::No)
+            }
         },
         THIRD_BUTTON => match msg_box_type {
-            MessageBoxType::Ok | MessageBoxType::YesNo => panic!("where the fuck i am"),
+            MessageBoxType::Ok | MessageBoxType::YesNo => {
+                panic!("where the fuck i am")
+            }
             MessageBoxType::YesNoCancel => Some(MessageBoxResult::Cancel),
         },
-        _ => panic!("where the fuck i am")
+        _ => panic!("where the fuck i am"),
     }
 }
 
@@ -1532,8 +1543,8 @@ pub fn create_console() {
     unsafe { ReleaseDC(desktop_wnd, hdc) };
     let width = rect.right - rect.left + 1 as i32;
     let height = rect.bottom - rect.top + 1 as i32;
-    conbuf::s_wcd_set_window_width(width as _);
-    conbuf::s_wcd_set_window_height(height as _);
+    conbuf::s_wcd_mut().window_width = width as _;
+    conbuf::s_wcd_mut().window_height = height as _;
     let hwnd = unsafe {
         CreateWindowExA(
             WINDOW_EX_STYLE(0),
@@ -1551,7 +1562,7 @@ pub fn create_console() {
         )
     };
 
-    conbuf::s_wcd_set_window(WindowHandle::from_win32(hwnd, Some(hinstance)));
+    conbuf::s_wcd_mut().window = WindowHandle::from_win32(hwnd, Some(hinstance));
 
     if hwnd.0 == 0 {
         return;
@@ -1559,7 +1570,7 @@ pub fn create_console() {
 
     let hdc = unsafe { GetDC(hwnd) };
     let font_height = unsafe { MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72) };
-    conbuf::s_wcd_set_buffer_font(FontHandle(unsafe {
+    conbuf::s_wcd_mut().buffer_font = FontHandle(unsafe {
         CreateFontA(
             font_height,
             0,
@@ -1577,7 +1588,7 @@ pub fn create_console() {
             s!("Courier New"),
         )
         .0
-    }));
+    });
 
     unsafe { ReleaseDC(hwnd, hdc) };
     if let Ok(image) = unsafe {
@@ -1607,10 +1618,10 @@ pub fn create_console() {
             )
         };
 
-        conbuf::s_wcd_set_cod_logo_window(WindowHandle::from_win32(
+        conbuf::s_wcd().cod_logo_window = WindowHandle::from_win32(
             cod_logo,
             Some(hinstance),
-        ));
+        );
 
         unsafe {
             SendMessageA(cod_logo, STM_SETIMAGE, WPARAM(0), LPARAM(image.0))
@@ -1637,10 +1648,10 @@ pub fn create_console() {
         )
     };
 
-    conbuf::s_wcd_set_input_line_window(WindowHandle::from_win32(
+    conbuf::s_wcd_mut().input_line_window = WindowHandle::from_win32(
         hwnd_input_line,
         Some(hinstance),
-    ));
+    );
 
     let hwnd_buffer = unsafe {
         CreateWindowExA(
@@ -1667,31 +1678,31 @@ pub fn create_console() {
         )
     };
 
-    conbuf::s_wcd_set_buffer_window(WindowHandle::from_win32(
+    conbuf::s_wcd_mut().buffer_window = WindowHandle::from_win32(
         hwnd_buffer,
         Some(hinstance),
-    ));
+    );
 
     unsafe {
         SendMessageA(
             hwnd_buffer,
             WM_SETFONT,
-            WPARAM(conbuf::s_wcd_buffer_font().unwrap().0 as _),
+            WPARAM(conbuf::s_wcd().buffer_font.unwrap().0 as _),
             LPARAM(0),
         )
     };
-    conbuf::s_wcd_set_sys_input_line_wnd_proc(unsafe {
+    conbuf::s_wcd_mut().sys_input_line_wnd_proc = unsafe {
         transmute(SetWindowLongPtrA(
             hwnd_input_line,
             GWLP_WNDPROC,
             input_line_wnd_proc as _,
         ) as *const ())
-    });
+    };
     unsafe {
         SendMessageA(
             hwnd_input_line,
             WM_SETFONT,
-            WPARAM(conbuf::s_wcd_buffer_font().unwrap().0 as _),
+            WPARAM(conbuf::s_wcd().buffer_font.unwrap().0 as _),
             LPARAM(0),
         )
     };
@@ -1711,16 +1722,16 @@ pub fn create_console() {
 
 #[cfg(windows)]
 pub fn show_console() {
-    if conbuf::s_wcd_window_is_none() {
+    if conbuf::s_wcd().window.is_none() {
         create_console();
         assert!(!conbuf::s_wcd_window_is_none());
     }
 
-    show_window(conbuf::s_wcd_buffer_window().unwrap());
+    show_window(conbuf::s_wcd().buffer_window.unwrap());
     unsafe {
         SendMessageA(
             HWND(
-                conbuf::s_wcd_buffer_window()
+                conbuf::s_wcd.buffer_window
                     .unwrap()
                     .get_win32()
                     .unwrap()
@@ -1735,9 +1746,9 @@ pub fn show_console() {
 
 #[cfg(windows)]
 pub fn destroy_console() {
-    if conbuf::s_wcd_window_handle().is_some() {
+    if conbuf::s_wcd().window.is_some() {
         let hwnd = HWND(
-            conbuf::s_wcd_window_handle()
+            conbuf::s_wcd().window
                 .unwrap()
                 .get_win32()
                 .unwrap()
@@ -1746,15 +1757,15 @@ pub fn destroy_console() {
         unsafe { ShowWindow(hwnd, SW_HIDE) };
         unsafe { CloseWindow(hwnd) };
         unsafe { DestroyWindow(hwnd) };
-        conbuf::s_wcd_clear_window();
+        conbuf::s_wcd_mut().window = None;
     }
 }
 
 #[cfg(windows)]
 fn set_error_text(error: &str) {
-    conbuf::s_wcd_set_error_string(error.into());
-    destroy_window(conbuf::s_wcd_input_line_window().unwrap());
-    conbuf::s_wcd_clear_input_line_window();
+    conbuf::s_wcd_mut().error_string = error.into();
+    destroy_window(conbuf::s_wcd().input_line_window.unwrap());
+    conbuf::s_wcd_mut().input_line_window = None;
 
     message_box(
         None,
@@ -2051,7 +2062,7 @@ lazy_static! {
 
 #[cfg(windows)]
 #[allow(clippy::undocumented_unsafe_blocks, clippy::cast_possible_wrap)]
-pub fn next_window_event() -> Option<WindowEvent> {
+pub fn next_main_window_event() -> Option<WindowEvent> {
     if query_quit_event() == SignalState::Signaled {
         com::quit_f();
     }
@@ -2080,24 +2091,26 @@ pub fn next_window_event() -> Option<WindowEvent> {
 }
 
 #[cfg(wayland)]
-pub fn next_window_event() -> Option<WindowEvent> {
+pub fn next_main_window_event() -> Option<WindowEvent> {
     None
 }
 
 #[cfg(appkit)]
-pub fn next_window_event() -> Option<WindowEvent> {
+pub fn next_main_window_event() -> Option<WindowEvent> {
     if query_quit_event() == SignalState::Signaled {
         com::quit_f();
     }
 
     if MAIN_WINDOW_EVENTS.lock().unwrap().is_empty() {
         let ns_app = unsafe { NSApp }.unwrap();
-        if let Some(ev) = unsafe { ns_app.nextEventMatchingMask_untilDate_inMode_dequeue(
-            NSUIntegerMax as _,
-            Some(&NSDate::distantPast()),
-            NSDefaultRunLoopMode,
-            true,
-        ) } {
+        if let Some(ev) = unsafe {
+            ns_app.nextEventMatchingMask_untilDate_inMode_dequeue(
+                NSUIntegerMax as _,
+                Some(&NSDate::distantPast()),
+                NSDefaultRunLoopMode,
+                true,
+            )
+        } {
             WindowEvent::try_from(ev.as_ref()).ok()
         } else {
             None
@@ -2127,7 +2140,7 @@ lazy_static! {
     clippy::single_match_else,
     clippy::cast_possible_wrap
 )]
-pub fn next_window_event() -> Option<WindowEvent> {
+pub fn next_main_window_event() -> Option<WindowEvent> {
     if query_quit_event() == SignalState::Signaled {
         com::quit_f();
     }
@@ -2171,7 +2184,7 @@ pub fn next_window_event() -> Option<WindowEvent> {
                 } else {
                     None
                 }
-            },
+            }
             _ => {
                 let context = *XLIB_CONTEXT.read().unwrap();
                 if let Ok((mut evs, new_context)) =
@@ -2240,7 +2253,13 @@ pub fn destroy_window(handle: WindowHandle) {
 
 #[cfg(appkit)]
 pub fn show_window(handle: WindowHandle) {
-    unsafe { handle.get_appkit().unwrap().ns_window().orderFrontRegardless() };
+    unsafe {
+        handle
+            .get_appkit()
+            .unwrap()
+            .ns_window()
+            .orderFrontRegardless()
+    };
 }
 
 #[cfg(appkit)]
@@ -2283,8 +2302,106 @@ pub fn destroy_window(handle: WindowHandle) {
     unsafe {
         XDestroyWindow(display, handle.window);
     }
-    
 }
+
+static MODIFIERS: RwLock<Modifiers> = RwLock::new(Modifiers::empty());
+
+pub fn handle_main_window_event(ev: WindowEvent) {
+    match ev {
+        WindowEvent::Created(handle) => {
+            platform::set_window_handle(handle);
+            if dvar::get_bool("r_reflectionProbeGenerate").unwrap()
+                && dvar::get_bool("r_fullscreen").unwrap()
+            {
+                dvar::set_bool("r_fullscreen", false).unwrap();
+                cbuf::add_textln(0, "vid_restart");
+            }
+            dvar::register_bool(
+                "r_autopriority",
+                false,
+                dvar::DvarFlags::ARCHIVE,
+                Some(
+                    "Automatically set the priority of the windows \
+                     process when the game is minimized",
+                ),
+            )
+            .unwrap();
+        }
+        WindowEvent::CloseRequested => {
+            cbuf::add_textln(0, "quit");
+            sys::set_quit_event();
+        }
+        WindowEvent::Destroyed => {
+            // FUN_004dfd60()
+            platform::clear_window_handle();
+        }
+        WindowEvent::Moved { x, y } => {
+            if dvar::get_bool("r_fullscreen").unwrap() {
+                input::mouse::activate(0);
+            } else {
+                dvar::set_int_internal("vid_xpos", x as _).unwrap();
+                dvar::set_int_internal("vid_ypos", y as _).unwrap();
+                dvar::clear_modified("vid_xpos").unwrap();
+                dvar::clear_modified("vid_ypos").unwrap();
+                if platform::get_platform_vars().active_app {
+                    input::activate(true);
+                }
+            }
+        }
+        WindowEvent::ModifiersChanged { modifier, down } => {
+            if modifier == Modifiers::CAPSLOCK
+                || modifier == Modifiers::NUMLOCK
+                || modifier == Modifiers::SCRLOCK
+            {
+                *MODIFIERS.write().unwrap() ^= modifier;
+            } else if down {
+                *MODIFIERS.write().unwrap() |= modifier;
+            } else {
+                *MODIFIERS.write().unwrap() &= !modifier;
+            }
+            sys::enqueue_event(sys::Event::new(
+                Some(platform::get_msg_time() as _),
+                sys::EventType::Key(modifier.try_into().unwrap(), down),
+            ));
+        }
+        WindowEvent::KeyDown {
+            logical_scancode, ..
+        } => {
+            if logical_scancode == KeyboardScancode::Enter
+                && MODIFIERS.read().unwrap().contains(Modifiers::LALT)
+            {
+                if cl::get_local_client_connection_state(0)
+                    == Connstate::LOADING
+                {
+                    return;
+                }
+
+                if dvar::get_int("developer").unwrap() != 0 {
+                    // FUN_005a5360()
+                    dvar::set_bool(
+                        "r_fullscreen",
+                        dvar::get_bool("r_fullscreen").unwrap() == false,
+                    )
+                    .unwrap();
+                    cbuf::add_textln(0, "vid_restart");
+                }
+            }
+            sys::enqueue_event(sys::Event::new(
+                Some(platform::get_msg_time() as _),
+                sys::EventType::Key(logical_scancode, true),
+            ));
+        }
+        WindowEvent::KeyUp {
+            logical_scancode, ..
+        } => {
+            sys::enqueue_event(sys::Event::new(
+                Some(platform::get_msg_time() as _),
+                sys::EventType::Key(logical_scancode, false),
+            ));
+        }
+        _ => {}
+    }
+} 
 
 static THREAD_ID: RwLock<[Option<ThreadId>; 15]> = RwLock::new([None; 15]);
 

@@ -10,21 +10,21 @@ cfg_if! {
     if #[cfg(windows)] {
         pub mod win32;
         pub use win32 as target;
-    } else if #[cfg(target_os = "linux")] {
+    } else if #[cfg(linux)] {
         pub mod linux;
         pub use linux as target;
-    } else if #[cfg(target_os = "macos")] {
+    } else if #[cfg(macos)] {
         pub mod macos;
         pub use macos as target;
-    } else if #[cfg(unix)] {
+    } else if #[cfg(other_unix)] {
         pub mod other_unix;
         pub use other_unix as target;
-    } else if #[cfg(target_arch = "wasm32")] {
-        pub mod none;
-        pub use none as target;
-    } else {
+    } else if #[cfg(other_os)] {
         pub mod other;
         pub use other as target;
+    } else if #[cfg(no_os)] {
+        pub mod none;
+        pub use none as target;
     }
 }
 

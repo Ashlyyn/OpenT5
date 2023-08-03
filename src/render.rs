@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::{
-    gfx::{WindowTarget, R_GLOB},
+    gfx::WindowTarget,
     platform::{os::target::MonitorHandle, WindowHandle},
     sys::show_window,
     util::{EasierAtomic, SignalState},
@@ -47,7 +47,7 @@ use sscanf::scanf;
 extern crate alloc;
 use alloc::collections::VecDeque;
 use core::sync::atomic::AtomicUsize;
-use std::{collections::HashSet, sync::RwLock};
+use std::{collections::HashSet, sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}};
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u32 = 480;
@@ -109,8 +109,8 @@ cfg_if! {
             ns_string,
             AppKit::{
                 NSApp, NSApplication, NSApplicationActivationPolicyRegular,
-                NSBackingStoreBuffered, NSClosableWindowMask, NSMenu, 
-                NSMenuItem, NSResizableWindowMask, NSTitledWindowMask, 
+                NSBackingStoreBuffered, NSClosableWindowMask, NSMenu,
+                NSMenuItem, NSResizableWindowMask, NSTitledWindowMask,
                 NSWindow, NSWindowController,
             },
             Foundation::{CGPoint, CGSize, NSProcessInfo, NSRect, NSString},
@@ -163,16 +163,16 @@ pub fn begin_remote_screen_update() {
         && sys::is_main_thread()
         && dvar::get_bool("sys_smp_allowed").unwrap()
     {
-        assert!(R_GLOB.read().unwrap().remote_screen_update_nesting >= 0);
-        if R_GLOB.read().unwrap().started_render_thread
+        assert!(r_glob().remote_screen_update_nesting >= 0);
+        if r_glob().started_render_thread
             && (cl::local_client_is_in_game(0) == false
-                || R_GLOB.read().unwrap().remote_screen_update_in_game != 0)
+                || r_glob().remote_screen_update_in_game != 0)
         {
-            assert_ne!(R_GLOB.read().unwrap().screen_update_notify, false);
-            R_GLOB.write().unwrap().remote_screen_update_nesting += 1;
+            assert_ne!(r_glob().screen_update_notify, false);
+            r_glob_mut().remote_screen_update_nesting += 1;
             sys::notify_renderer();
         } else {
-            R_GLOB.write().unwrap().remote_screen_update_nesting = 1;
+            r_glob_mut().remote_screen_update_nesting = 1;
         }
     }
 }
@@ -191,43 +191,43 @@ pub fn end_remote_screen_update_with(f: impl Fn()) {
         return;
     }
 
-    assert!(R_GLOB.read().unwrap().remote_screen_update_nesting >= 0);
+    assert!(r_glob().remote_screen_update_nesting >= 0);
 
-    if R_GLOB.read().unwrap().started_render_thread == false {
-        assert_eq!(R_GLOB.read().unwrap().remote_screen_update_nesting, 0);
+    if r_glob().started_render_thread == false {
+        assert_eq!(r_glob().remote_screen_update_nesting, 0);
         return;
     }
 
     if cl::local_client_is_in_game(0)
-        && R_GLOB.read().unwrap().remote_screen_update_in_game == 0
+        && r_glob().remote_screen_update_in_game == 0
     {
-        assert_eq!(R_GLOB.read().unwrap().remote_screen_update_nesting, 0);
+        assert_eq!(r_glob().remote_screen_update_nesting, 0);
         return;
     }
 
-    assert!(R_GLOB.read().unwrap().remote_screen_update_nesting > 0);
+    assert!(r_glob().remote_screen_update_nesting > 0);
 
-    if R_GLOB.read().unwrap().remote_screen_update_nesting != 1 {
-        R_GLOB.write().unwrap().remote_screen_update_nesting -= 1;
+    if r_glob().remote_screen_update_nesting != 1 {
+        r_glob_mut().remote_screen_update_nesting -= 1;
         return;
     }
 
-    while R_GLOB.read().unwrap().screen_update_notify == false {
+    while r_glob().screen_update_notify == false {
         net::sleep(Duration::from_millis(1));
         f();
         sys::wait_renderer();
     }
-    R_GLOB.write().unwrap().screen_update_notify = false;
-    assert!(R_GLOB.read().unwrap().remote_screen_update_nesting > 0);
-    R_GLOB.write().unwrap().remote_screen_update_nesting -= 1;
-    while R_GLOB.read().unwrap().screen_update_notify == false {
+    r_glob_mut().screen_update_notify = false;
+    assert!(r_glob().remote_screen_update_nesting > 0);
+    r_glob_mut().remote_screen_update_nesting -= 1;
+    while r_glob().screen_update_notify == false {
         G_MAIN_THREAD_BLOCKED.increment_wrapping();
         net::sleep(Duration::from_millis(1));
         f();
         sys::wait_renderer();
         G_MAIN_THREAD_BLOCKED.decrement_wrapping();
     }
-    R_GLOB.write().unwrap().screen_update_notify = false;
+    r_glob_mut().screen_update_notify = false;
 }
 
 fn register() {
@@ -1231,7 +1231,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
         unsafe { window.setReleasedWhenClosed(false) };
 
-        let wdg = WindowDelegate::new();
+        let wdg = WindowDelegate::new(unsafe { window.windowNumber() });
         unsafe { window.setDelegate(Some(&ProtocolObject::from_id(wdg))) };
 
         let title = NSString::from_str(com::get_official_build_name_r());
@@ -2713,4 +2713,16 @@ fn create_device(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
     let rg = RENDER_GLOBALS.read().unwrap();
     assert!(rg.device.is_some());
     Ok(())
+}
+
+lazy_static! {
+    static ref R_GLOB: RwLock<gfx::Globals> = RwLock::new(gfx::Globals::default());
+}
+
+pub fn r_glob() -> RwLockReadGuard<'static, gfx::Globals> {
+    R_GLOB.read().unwrap()
+}
+
+pub fn r_glob_mut() -> RwLockWriteGuard<'static, gfx::Globals> {
+    R_GLOB.write().unwrap()
 }

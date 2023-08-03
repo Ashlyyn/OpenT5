@@ -18,13 +18,13 @@ cfg_if! {
     if #[cfg(windows)] {
         pub mod win32;
         pub use win32 as target;
-    } else if #[cfg(all(target_os = "linux", feature = "linux_use_wayland"))] {
+    } else if #[cfg(wayland)] {
         pub mod wayland;
         pub use wayland as target;
-    } else if #[cfg(all(target_os = "macos", feature = "macos_use_appkit"))] {
+    } else if #[cfg(appkit)] {
         pub mod appkit;
         pub use appkit as target;
-    } else if #[cfg(unix)] {
+    } else if #[cfg(xlib)] {
         pub mod xlib;
         pub use xlib as target;
     }

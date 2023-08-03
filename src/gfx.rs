@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use std::sync::RwLock;
-
 use crate::{
     platform::{os::target::MonitorHandle, WindowHandle},
     render::{MIN_HORIZONTAL_RESOLUTION, MIN_VERTICAL_RESOLUTION},
@@ -13,7 +11,7 @@ use num::complex::Complex;
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, Default)]
-struct GfxDrawSurf {
+struct DrawSurf {
     object_id: u16,             // 16 bits
     fade: u8,                   // 4 bits
     custom_index: u8,           // 5 bits
@@ -36,7 +34,7 @@ struct MaterialInfo {
     sort_key: u8,
     texture_atlas_row_count: u8,
     texture_atlas_column_count: u8,
-    draw_surf: GfxDrawSurf,
+    draw_surf: DrawSurf,
     surface_type_bits: u32,
     layered_surface_types: u32,
 }
@@ -68,7 +66,7 @@ struct MaterialVertexDeclaration {
 struct VertexShaderProgram;
 
 #[derive(Copy, Clone, Default)]
-struct GfxVertexShaderLoadDef {
+struct VertexShaderLoadDef {
     program: VertexShaderProgram,
     program_size: u16,
 }
@@ -79,7 +77,7 @@ struct VertexShader;
 #[derive(Clone, Default)]
 struct MaterialVertexShaderProgram {
     vs: VertexShader,
-    load_def: GfxVertexShaderLoadDef,
+    load_def: VertexShaderLoadDef,
 }
 
 #[derive(Clone, Default)]
@@ -90,7 +88,7 @@ struct MaterialVertexShader {
 
 struct PixelShaderProgram;
 
-struct GfxPixelShaderLoadDef {
+struct PixelShaderLoadDef {
     program: PixelShaderProgram,
     program_size: u16,
 }
@@ -99,7 +97,7 @@ struct PixelShader;
 
 struct MaterialVertexPixelProgram {
     ps: VertexShader,
-    load_def: GfxPixelShaderLoadDef,
+    load_def: PixelShaderLoadDef,
 }
 
 #[derive(Clone, Default)]
@@ -160,7 +158,7 @@ struct MaterialTechniqueSet {
 struct BaseTexture;
 
 #[derive(Clone)]
-struct Texture;
+struct TextureDef;
 
 #[derive(Clone)]
 struct VolumeTexture;
@@ -169,7 +167,7 @@ struct VolumeTexture;
 struct CubeTexture;
 
 #[derive(Clone)]
-struct GfxImageLoadDef {
+struct ImageLoadDef {
     level_count: u8,
     flags: u8,
     format: i32,
@@ -177,17 +175,17 @@ struct GfxImageLoadDef {
 }
 
 #[derive(Clone)]
-enum GfxTexture {
+enum Texture {
     BaseMap(BaseTexture),
-    Map(Texture),
+    Map(TextureDef),
     VolumeMap(VolumeTexture),
     CubeMap(CubeTexture),
-    LoadDef(GfxImageLoadDef),
+    LoadDef(ImageLoadDef),
 }
 
 #[derive(Clone)]
-struct GfxImage {
-    texture: GfxTexture,
+struct Image {
+    texture: Texture,
     map_type: u8,
     semantic: u8,
     category: u8,
@@ -226,12 +224,12 @@ struct Water {
     winddir: Vec2f32,
     amplitude: f32,
     code_constant: Vec4f32,
-    image: GfxImage,
+    image: Image,
 }
 
 #[derive(Clone)]
 enum MaterialTextureDefInfo {
-    Image(GfxImage),
+    Image(Image),
     Water(Water),
 }
 
@@ -252,7 +250,7 @@ struct MaterialConstantDef {
 }
 
 #[derive(Copy, Clone, Default)]
-struct GfxStateBits {
+struct StateBits {
     load_bits: [u32; 2],
 }
 
@@ -269,7 +267,7 @@ pub struct Material {
     technique_set: MaterialTechniqueSet,
     texture_table: Vec<MaterialTextureDef>,
     constant_table: Vec<MaterialConstantDef>,
-    state_bits_table: Vec<GfxStateBits>,
+    state_bits_table: Vec<StateBits>,
 }
 
 #[derive(Clone, Default)]
@@ -454,8 +452,4 @@ pub struct Globals {
     pub display_buffer: u8,
     pub ui_3d_use_frame_buffer: u8,
     pub ui_3d_render_target: u8,
-}
-
-lazy_static! {
-    pub static ref R_GLOB: RwLock<Globals> = RwLock::new(Globals::default());
 }

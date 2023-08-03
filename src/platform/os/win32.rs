@@ -710,7 +710,7 @@ pub unsafe extern "system" fn con_wnd_proc(
             let cx = lparam.low_word() - 0xf;
             SetWindowPos(
                 HWND(
-                    conbuf::s_wcd_buffer_window()
+                    conbuf::s_wcd().buffer_window
                         .unwrap()
                         .get_win32()
                         .unwrap()
@@ -725,7 +725,7 @@ pub unsafe extern "system" fn con_wnd_proc(
             );
             SetWindowPos(
                 HWND(
-                    conbuf::s_wcd_input_line_window()
+                    conbuf::s_wcd().input_line_window
                         .unwrap()
                         .get_win32()
                         .unwrap()
@@ -738,14 +738,14 @@ pub unsafe extern "system" fn con_wnd_proc(
                 20,
                 SET_WINDOW_POS_FLAGS(0),
             );
-            conbuf::s_wcd_set_window_width(lparam.low_word() as _);
-            conbuf::s_wcd_set_window_height(height as _);
+            conbuf::s_wcd_mut().window_width = lparam.low_word() as _;
+            conbuf::s_wcd_mut().window_height = height as _;
             DefWindowProcA(hwnd, msg, wparam, lparam)
         }
         WM_ACTIVATE => {
             if wparam.low_word() as u32 != WA_INACTIVE {
                 SetFocus(HWND(
-                    conbuf::s_wcd_input_line_window()
+                    conbuf::s_wcd().input_line_window
                         .unwrap()
                         .get_win32()
                         .unwrap()
@@ -773,7 +773,7 @@ pub unsafe extern "system" fn input_line_wnd_proc(
 ) -> LRESULT {
     match msg {
         WM_KILLFOCUS => {
-            if conbuf::s_wcd_window_handle()
+            if conbuf::s_wcd().window
                 .unwrap()
                 .get_win32()
                 .unwrap()
@@ -781,7 +781,7 @@ pub unsafe extern "system" fn input_line_wnd_proc(
                 == wparam.0
             {
                 SetFocus(HWND(
-                    conbuf::s_wcd_window_handle()
+                    conbuf::s_wcd().window
                         .unwrap()
                         .get_win32()
                         .unwrap()
@@ -795,7 +795,7 @@ pub unsafe extern "system" fn input_line_wnd_proc(
                 let mut buf = [0u8; 1024];
                 GetWindowTextA(
                     HWND(
-                        conbuf::s_wcd_input_line_window()
+                        conbuf::s_wcd().input_line_window
                             .unwrap()
                             .get_win32()
                             .unwrap()
@@ -804,10 +804,10 @@ pub unsafe extern "system" fn input_line_wnd_proc(
                     &mut buf,
                 );
                 let text = String::from_utf8_lossy(&buf).to_string();
-                conbuf::s_wcd_append_console_text(text.clone());
+                conbuf::s_wcd_mut().append_console_text(text.clone());
                 SetWindowTextA(
                     HWND(
-                        conbuf::s_wcd_input_line_window()
+                        conbuf::s_wcd().input_line_window
                             .unwrap()
                             .get_win32()
                             .unwrap()
@@ -819,7 +819,7 @@ pub unsafe extern "system" fn input_line_wnd_proc(
                 LRESULT(0)
             } else {
                 CallWindowProcA(
-                    conbuf::s_wcd_sys_input_line_wnd_proc(),
+                    conbuf::s_wcd().sys_input_line_wnd_proc,
                     hwnd,
                     msg,
                     wparam,
@@ -828,7 +828,7 @@ pub unsafe extern "system" fn input_line_wnd_proc(
             }
         }
         _ => CallWindowProcA(
-            conbuf::s_wcd_sys_input_line_wnd_proc(),
+            conbuf::s_wcd().sys_input_line_wnd_proc,
             hwnd,
             msg,
             wparam,

@@ -213,16 +213,6 @@ impl WindowDelegate {
     }
 }
 
-pub trait WindowEventExtAppkit {
-    unsafe fn from_nsevent(ev: &NSEvent) -> Self;
-}
-
-impl WindowEventExtAppkit for WindowEvent {
-    unsafe fn from_nsevent(ev: &NSEvent) -> Self {
-        *Box::<Self>::from_raw(ev.data1() as _)
-    }
-}
-
 struct KeyCode(u16);
 
 impl TryFrom<KeyCode> for KeyboardScancode {
@@ -352,12 +342,29 @@ impl TryFrom<&NSEvent> for WindowEvent {
             NSEventTypeApplicationDefined => {
                 // Sanity check - whenever we post events, subtype and d2 are
                 // always set to 0. If they aren't zero, we're getting events
-                // we shouldn't be getting
+                // we shouldn't be getting.
                 assert!(unsafe { value.subtype() == 0 && value.data2() == 0 });
-                Ok(unsafe { WindowEvent::from_nsevent(value) })
+                // Additionally, d1 will contain a pointer (obtained in the
+                // WindowDelegate handlers from [`Box::into_raw`]) to the
+                // translated [`WindowEvent`]. We don't want to deref null,
+                // so first we make sure it's not null...
+                assert_ne!(unsafe { value.data1() }, 0);
+                // And if it's not, and the previous sanity check succeeded
+                // (we wouldn't be here if it hadn't), we'll assume the event
+                // *is* in fact one we created in the WindowDelegate handlers,
+                // and therefore valid. If it's not, I don't know what to say.
+                // Maybe we should change subtype and/or d2 to some magic
+                // numbers for extra security? 
+                let ev = unsafe { Box::<Self>::from_raw(value.data1() as _) };
+                // The [`Box`] created in the above line will take ownership of
+                // the pointer that we relinquished in the WindowDelegate
+                // handlers and deallocate when it's dropped in this function,
+                // so no memory will be leaked.
+                Ok(*ev)
             }
             // Other events, like keyboard and mouse events are sent straight
             // to the event loop, and we'll translate them here.
+            
             _ => todo!(),
         }
     }

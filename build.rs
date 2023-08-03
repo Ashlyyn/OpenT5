@@ -4,7 +4,7 @@ fn main() {
     // Setup cfg aliases
     cfg_aliases! {
         // OSes
-        // windows and unix already defined by rust
+        // Windows and unix already defined by rust
         macos: { target_os = "macos" },
         linux: { target_os = "linux" },
         bsd: { any(
@@ -14,10 +14,13 @@ fn main() {
         other_unix: {
             all(unix, not(target_os = "macos"), not(target_os = "linux"))
         },
-        // we'll have to update this if we add support for OSes
+        // We'll have to update this if we add support for OSes
         // that aren't Windows or Unix
         // No, this is not the PS3's OtherOS
         other_os: { not(any(windows, unix)) },
+        // This might have to be updated later, but right now the only even
+        // remotely-supported OS-less platform is wasm
+        no_os: { target_arch = "wasm32" },
         // Display servers
         xlib: { any(other_unix, feature = "linux_use_xlib", feature = "macos_use_xlib") },
         wayland: { all(target_os = "linux", feature = "linux_use_wayland") },
