@@ -3,9 +3,10 @@
 extern crate alloc;
 
 use crate::{
+    cl::Connstate,
     platform::WindowHandle,
     util::{EasierAtomicBool, SignalState, SmpEvent},
-    *, cl::Connstate,
+    *,
 };
 use num_derive::FromPrimitive;
 
@@ -1562,7 +1563,8 @@ pub fn create_console() {
         )
     };
 
-    conbuf::s_wcd_mut().window = Some(WindowHandle::from_win32(hwnd, Some(hinstance)));
+    conbuf::s_wcd_mut().window =
+        Some(WindowHandle::from_win32(hwnd, Some(hinstance)));
 
     if hwnd.0 == 0 {
         return;
@@ -1618,10 +1620,8 @@ pub fn create_console() {
             )
         };
 
-        conbuf::s_wcd_mut().cod_logo_window = Some(WindowHandle::from_win32(
-            cod_logo,
-            Some(hinstance),
-        ));
+        conbuf::s_wcd_mut().cod_logo_window =
+            Some(WindowHandle::from_win32(cod_logo, Some(hinstance)));
 
         unsafe {
             SendMessageA(cod_logo, STM_SETIMAGE, WPARAM(0), LPARAM(image.0))
@@ -1648,10 +1648,8 @@ pub fn create_console() {
         )
     };
 
-    conbuf::s_wcd_mut().input_line_window = Some(WindowHandle::from_win32(
-        hwnd_input_line,
-        Some(hinstance),
-    ));
+    conbuf::s_wcd_mut().input_line_window =
+        Some(WindowHandle::from_win32(hwnd_input_line, Some(hinstance)));
 
     let hwnd_buffer = unsafe {
         CreateWindowExA(
@@ -1678,10 +1676,8 @@ pub fn create_console() {
         )
     };
 
-    conbuf::s_wcd_mut().buffer_window = Some(WindowHandle::from_win32(
-        hwnd_buffer,
-        Some(hinstance),
-    ));
+    conbuf::s_wcd_mut().buffer_window =
+        Some(WindowHandle::from_win32(hwnd_buffer, Some(hinstance)));
 
     unsafe {
         SendMessageA(
@@ -1731,7 +1727,8 @@ pub fn show_console() {
     unsafe {
         SendMessageA(
             HWND(
-                conbuf::s_wcd().buffer_window
+                conbuf::s_wcd()
+                    .buffer_window
                     .unwrap()
                     .get_win32()
                     .unwrap()
@@ -1748,11 +1745,7 @@ pub fn show_console() {
 pub fn destroy_console() {
     if conbuf::s_wcd().window.is_some() {
         let hwnd = HWND(
-            conbuf::s_wcd().window
-                .unwrap()
-                .get_win32()
-                .unwrap()
-                .hwnd as _,
+            conbuf::s_wcd().window.unwrap().get_win32().unwrap().hwnd as _,
         );
         unsafe { ShowWindow(hwnd, SW_HIDE) };
         unsafe { CloseWindow(hwnd) };
@@ -1968,6 +1961,45 @@ impl TryFrom<Modifiers> for KeyboardScancode {
     }
 }
 
+impl Modifiers {
+    pub fn each(self) -> Vec<Modifiers> {
+        let mut v = vec![];
+
+        if self.contains(Self::CAPSLOCK) {
+            v.push(Self::CAPSLOCK)
+        }
+        if self.contains(Self::LALT) {
+            v.push(Self::LALT)
+        }
+        if self.contains(Self::LCTRL) {
+            v.push(Self::LCTRL)
+        }
+        if self.contains(Self::LSYS) {
+            v.push(Self::LSYS)
+        }
+        if self.contains(Self::NUMLOCK) {
+            v.push(Self::NUMLOCK)
+        }
+        if self.contains(Self::RALT) {
+            v.push(Self::RALT)
+        }
+        if self.contains(Self::RCTRL) {
+            v.push(Self::RCTRL)
+        }
+        if self.contains(Self::RSHIFT) {
+            v.push(Self::RSHIFT)
+        }
+        if self.contains(Self::RSYS) {
+            v.push(Self::RSYS)
+        }
+        if self.contains(Self::SCRLOCK) {
+            v.push(Self::SCRLOCK)
+        }
+
+        v
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MouseScancode {
     LClick,
@@ -2050,8 +2082,7 @@ pub enum WindowEvent {
     MouseButtonUp(MouseScancode),
     MouseWheelScroll(f32),
     ModifiersChanged {
-        modifier: Modifiers,
-        down: bool,
+        modifiers: Modifiers,
     },
 }
 
@@ -2321,8 +2352,8 @@ pub fn handle_main_window_event(ev: WindowEvent) {
                 false,
                 dvar::DvarFlags::ARCHIVE,
                 Some(
-                    "Automatically set the priority of the windows \
-                     process when the game is minimized",
+                    "Automatically set the priority of the windows process \
+                     when the game is minimized",
                 ),
             )
             .unwrap();
@@ -2348,21 +2379,28 @@ pub fn handle_main_window_event(ev: WindowEvent) {
                 }
             }
         }
-        WindowEvent::ModifiersChanged { modifier, down } => {
-            if modifier == Modifiers::CAPSLOCK
-                || modifier == Modifiers::NUMLOCK
-                || modifier == Modifiers::SCRLOCK
-            {
-                *MODIFIERS.write().unwrap() ^= modifier;
-            } else if down {
-                *MODIFIERS.write().unwrap() |= modifier;
-            } else {
-                *MODIFIERS.write().unwrap() &= !modifier;
+        WindowEvent::ModifiersChanged { modifiers } => {
+            let diff = *MODIFIERS.read().unwrap() ^ modifiers;
+
+            if diff.is_empty() {
+                return;
             }
-            sys::enqueue_event(sys::Event::new(
-                Some(platform::get_msg_time() as _),
-                sys::EventType::Key(modifier.try_into().unwrap(), down),
-            ));
+
+            for m in diff.each() {
+                sys::enqueue_event(sys::Event::new(
+                    Some(platform::get_msg_time() as _),
+                    // diff will have all the modifiers that changed set
+                    // however, to detect if they were pressed or released
+                    // we have to check if the new modifiers, not diff,
+                    // contains them
+                    sys::EventType::Key(
+                        m.try_into().unwrap(),
+                        modifiers.contains(m),
+                    ),
+                ));
+            }
+
+            *MODIFIERS.write().unwrap() = modifiers;
         }
         WindowEvent::KeyDown {
             logical_scancode, ..
@@ -2401,7 +2439,7 @@ pub fn handle_main_window_event(ev: WindowEvent) {
         }
         _ => {}
     }
-} 
+}
 
 static THREAD_ID: RwLock<[Option<ThreadId>; 15]> = RwLock::new([None; 15]);
 

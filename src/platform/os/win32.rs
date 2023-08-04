@@ -177,6 +177,8 @@ fn register_class(hinstance: HMODULE) {
     }
 }
 
+static MODIFIERS: RwLock<Modifiers> = RwLock::new(Modifiers::empty());
+
 impl TryFrom<MSG> for WindowEvent {
     type Error = ();
     #[allow(
@@ -264,7 +266,15 @@ impl TryFrom<MSG> for WindowEvent {
                 }
 
                 if let Some(k) = Modifiers::try_from_vk(vk, kpi.scancode) {
-                    return Ok(Self::ModifiersChanged { modifier: k, down });
+                    let modifiers = MODIFIERS.write().unwrap();
+                    if down {
+                        *modifiers |= k;
+                    } else {
+                        *modifiers &= !k;
+                    }
+                    return Ok(Self::ModifiersChanged {
+                        modifiers: *modifiers,
+                    });
                 }
 
                 Err(())
@@ -710,7 +720,8 @@ pub unsafe extern "system" fn con_wnd_proc(
             let cx = lparam.low_word() - 0xf;
             SetWindowPos(
                 HWND(
-                    conbuf::s_wcd().buffer_window
+                    conbuf::s_wcd()
+                        .buffer_window
                         .unwrap()
                         .get_win32()
                         .unwrap()
@@ -725,7 +736,8 @@ pub unsafe extern "system" fn con_wnd_proc(
             );
             SetWindowPos(
                 HWND(
-                    conbuf::s_wcd().input_line_window
+                    conbuf::s_wcd()
+                        .input_line_window
                         .unwrap()
                         .get_win32()
                         .unwrap()
@@ -745,7 +757,8 @@ pub unsafe extern "system" fn con_wnd_proc(
         WM_ACTIVATE => {
             if wparam.low_word() as u32 != WA_INACTIVE {
                 SetFocus(HWND(
-                    conbuf::s_wcd().input_line_window
+                    conbuf::s_wcd()
+                        .input_line_window
                         .unwrap()
                         .get_win32()
                         .unwrap()
@@ -773,19 +786,13 @@ pub unsafe extern "system" fn input_line_wnd_proc(
 ) -> LRESULT {
     match msg {
         WM_KILLFOCUS => {
-            if conbuf::s_wcd().window
-                .unwrap()
-                .get_win32()
-                .unwrap()
-                .hwnd as usize
+            if conbuf::s_wcd().window.unwrap().get_win32().unwrap().hwnd
+                as usize
                 == wparam.0
             {
                 SetFocus(HWND(
-                    conbuf::s_wcd().window
-                        .unwrap()
-                        .get_win32()
-                        .unwrap()
-                        .hwnd as _,
+                    conbuf::s_wcd().window.unwrap().get_win32().unwrap().hwnd
+                        as _,
                 ));
             }
             LRESULT(0)
@@ -795,7 +802,8 @@ pub unsafe extern "system" fn input_line_wnd_proc(
                 let mut buf = [0u8; 1024];
                 GetWindowTextA(
                     HWND(
-                        conbuf::s_wcd().input_line_window
+                        conbuf::s_wcd()
+                            .input_line_window
                             .unwrap()
                             .get_win32()
                             .unwrap()
@@ -807,7 +815,8 @@ pub unsafe extern "system" fn input_line_wnd_proc(
                 conbuf::s_wcd_mut().append_console_text(text.clone());
                 SetWindowTextA(
                     HWND(
-                        conbuf::s_wcd().input_line_window
+                        conbuf::s_wcd()
+                            .input_line_window
                             .unwrap()
                             .get_win32()
                             .unwrap()

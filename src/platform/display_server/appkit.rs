@@ -12,10 +12,16 @@ use std::ptr::addr_of;
 use icrate::{
     AppKit::{
         NSApp, NSApplication, NSApplicationDelegate,
-        NSApplicationTerminateReply, NSEvent, NSEventTypeApplicationDefined,
-        NSResponder, NSWindowDelegate, NSWindow, NSBitsPerPixelFromDepth, NSEventTypeKeyDown, NSEventTypeKeyUp, NSEventTypeLeftMouseDown, NSEventTypeLeftMouseUp, NSEventTypeRightMouseDown, NSEventTypeRightMouseUp, NSEventTypeOtherMouseDown, NSEventTypeOtherMouseUp, NSEventTypeScrollWheel, NSEventTypeMouseMoved, NSEventTypeFlagsChanged,
+        NSApplicationTerminateReply, NSBitsPerPixelFromDepth,
+        NSDeviceIndependentModifierFlagsMask, NSEvent,
+        NSEventTypeApplicationDefined, NSEventTypeFlagsChanged,
+        NSEventTypeKeyDown, NSEventTypeKeyUp, NSEventTypeLeftMouseDown,
+        NSEventTypeLeftMouseUp, NSEventTypeMouseMoved,
+        NSEventTypeOtherMouseDown, NSEventTypeOtherMouseUp,
+        NSEventTypeRightMouseDown, NSEventTypeRightMouseUp,
+        NSEventTypeScrollWheel, NSResponder, NSWindow, NSWindowDelegate,
     },
-    Foundation::{CGPoint, NSDate, NSNotification, NSSize, NSRect, CGSize},
+    Foundation::{CGPoint, CGSize, NSDate, NSNotification, NSRect, NSSize},
 };
 use objc2::{
     declare::{Ivar, IvarEncode},
@@ -28,7 +34,7 @@ use objc2::{
     ClassType,
 };
 
-use crate::sys::{KeyboardScancode, WindowEvent, self};
+use crate::sys::{self, KeyboardScancode, WindowEvent};
 
 pub fn init() {}
 
@@ -125,30 +131,30 @@ declare_class!(
         unsafe fn window_did_move(&self, notification: &NSNotification) {
             let object = &*notification.object().unwrap();
             // The "object" field of NSNotification is a pointer to an NSWindow
-            // for this handler, we just have to "upcast" it ourselves. 
+            // for this handler, we just have to "upcast" it ourselves.
             let window = &*(addr_of!(*object) as *mut NSWindow);
             let pos = window.frame().origin;
-            self.post_event(
-                WindowEvent::Moved { x: pos.x as _, y: pos.y as _ }
-            );
+            self.post_event(WindowEvent::Moved {
+                x: pos.x as _,
+                y: pos.y as _,
+            });
         }
 
         #[method(windowWillResize:toSize:)]
         unsafe fn window_will_resize(
-            &self, _sender: &NSWindow, frame_size: NSSize
+            &self,
+            _sender: &NSWindow,
+            frame_size: NSSize,
         ) -> NSSize {
-            self.post_event(
-                WindowEvent::Resized { 
-                    width: frame_size.width as _, 
-                    height: frame_size.height as _ 
-                }
-            );
+            self.post_event(WindowEvent::Resized {
+                width: frame_size.width as _,
+                height: frame_size.height as _,
+            });
             frame_size
         }
 
         #[method(windowDidBecomeKey:)]
-        unsafe fn window_did_become_key(&self, _notification: &NSNotification)
-        {
+        unsafe fn window_did_become_key(&self, _notification: &NSNotification) {
             self.post_event(WindowEvent::SetFocus);
             // Until we come up with a better solution, we'll just fire both
             // SetFocus and Activated here.
@@ -156,8 +162,7 @@ declare_class!(
         }
 
         #[method(windowDidResignKey:)]
-        unsafe fn window_did_resign_key(&self, _notification: &NSNotification)
-        {
+        unsafe fn window_did_resign_key(&self, _notification: &NSNotification) {
             self.post_event(WindowEvent::KillFocus);
             // Same story here, with KillFocus and Deactivate.
             self.post_event(WindowEvent::Deactivate);
@@ -165,22 +170,22 @@ declare_class!(
 
         #[method(windowDidChangeScreen:)]
         unsafe fn window_did_change_screen(
-            &self, notification: &NSNotification
+            &self,
+            notification: &NSNotification,
         ) {
             let object = &*notification.object().unwrap();
             // The "object" field of NSNotification is a pointer to an NSWindow
-            // for this handler, we just have to "upcast" it ourselves. 
+            // for this handler, we just have to "upcast" it ourselves.
             let window = &*(addr_of!(*object) as *mut NSWindow);
             let screen = window.screen().unwrap();
-            let bits_per_pixel = 
-                NSBitsPerPixelFromDepth(screen.depth()) as u32;
+            let bits_per_pixel = NSBitsPerPixelFromDepth(screen.depth()) as u32;
             let horz_res = screen.frame().size.width as u32;
             let vert_res = screen.frame().size.height as u32;
-            self.post_event(
-                WindowEvent::DisplayChange { 
-                    bits_per_pixel, horz_res, vert_res 
-                }
-            );
+            self.post_event(WindowEvent::DisplayChange {
+                bits_per_pixel,
+                horz_res,
+                vert_res,
+            });
         }
     }
 );
@@ -338,6 +343,11 @@ impl TryFrom<NSModifiers> for sys::Modifiers {
     type Error = ();
     fn try_from(value: NSModifiers) -> Result<Self, Self::Error> {
         let mut modifiers = sys::Modifiers::empty();
+
+        if value.0 & 0x01 != 0 {
+            modifiers |= sys::Modifiers::CAPSLOCK;
+        }
+
         if value.0 & 0x02 != 0 {
             modifiers |= sys::Modifiers::LSHIFT;
         }
@@ -381,7 +391,7 @@ impl TryFrom<&NSEvent> for WindowEvent {
                 // *is* in fact one we created in the WindowDelegate handlers,
                 // and therefore valid. If it's not, I don't know what to say.
                 // Maybe we should change subtype and/or d2 to some magic
-                // numbers for extra security? 
+                // numbers for extra security?
                 let ev = unsafe { Box::<Self>::from_raw(value.data1() as _) };
                 // The [`Box`] created in the above line will take ownership of
                 // the pointer that we relinquished in the WindowDelegate
@@ -393,56 +403,82 @@ impl TryFrom<&NSEvent> for WindowEvent {
             // to the event loop, and we'll translate them here.
             NSEventTypeKeyDown => {
                 let code = KeyCode(unsafe { value.keyCode() });
-                Ok(WindowEvent::KeyDown { 
+                Ok(WindowEvent::KeyDown {
                     logical_scancode: code.try_into().unwrap(),
                     physical_scancode: Some(code.try_into().unwrap()),
                 })
-            },
+            }
             NSEventTypeKeyUp => {
                 let code = KeyCode(unsafe { value.keyCode() });
-                Ok(WindowEvent::KeyUp { 
+                Ok(WindowEvent::KeyUp {
                     logical_scancode: code.try_into().unwrap(),
                     physical_scancode: Some(code.try_into().unwrap()),
                 })
-            },
-            NSEventTypeLeftMouseDown => Ok(WindowEvent::MouseButtonDown(sys::MouseScancode::LClick)),
-            NSEventTypeLeftMouseUp => Ok(WindowEvent::MouseButtonUp(sys::MouseScancode::LClick)),
-            NSEventTypeRightMouseDown => Ok(WindowEvent::MouseButtonDown(sys::MouseScancode::RClick)),
-            NSEventTypeRightMouseUp => Ok(WindowEvent::MouseButtonUp(sys::MouseScancode::RClick)),
-            NSEventTypeOtherMouseDown => match unsafe { value.buttonNumber() } {
-                2 => Ok(WindowEvent::MouseButtonDown(sys::MouseScancode::MClick)),
-                _ => Err(())
-            },
+            }
+            NSEventTypeLeftMouseDown => {
+                Ok(WindowEvent::MouseButtonDown(sys::MouseScancode::LClick))
+            }
+            NSEventTypeLeftMouseUp => {
+                Ok(WindowEvent::MouseButtonUp(sys::MouseScancode::LClick))
+            }
+            NSEventTypeRightMouseDown => {
+                Ok(WindowEvent::MouseButtonDown(sys::MouseScancode::RClick))
+            }
+            NSEventTypeRightMouseUp => {
+                Ok(WindowEvent::MouseButtonUp(sys::MouseScancode::RClick))
+            }
+            NSEventTypeOtherMouseDown => {
+                match unsafe { value.buttonNumber() } {
+                    2 => Ok(WindowEvent::MouseButtonDown(
+                        sys::MouseScancode::MClick,
+                    )),
+                    _ => Err(()),
+                }
+            }
             NSEventTypeOtherMouseUp => match unsafe { value.buttonNumber() } {
                 2 => Ok(WindowEvent::MouseButtonUp(sys::MouseScancode::MClick)),
-                _ => Err(())
+                _ => Err(()),
             },
             NSEventTypeScrollWheel => {
-                let scroll_factor = if unsafe { value.hasPreciseScrollingDeltas() } {
-                    0.1
-                } else {
-                    1.0
-                };
+                let scroll_factor =
+                    if unsafe { value.hasPreciseScrollingDeltas() } {
+                        0.1
+                    } else {
+                        1.0
+                    };
                 let dy = unsafe { value.scrollingDeltaY() } * scroll_factor;
                 Ok(WindowEvent::MouseWheelScroll(dy as _))
-            },
+            }
             NSEventTypeMouseMoved => {
-                let current_window = unsafe { NSApp.unwrap().keyWindow() }.unwrap();
-                    let current_window_content_view =
-                        unsafe { current_window.contentView().unwrap() };
-                    let adjust_frame = unsafe { current_window_content_view.frame() };
-                    let p = unsafe { current_window.mouseLocationOutsideOfEventStream() };
-                    let p = CGPoint::new(
-                        p.x.clamp(0.0, adjust_frame.size.width),
-                        p.y.clamp(0.0, adjust_frame.size.height),
-                    );
-                    let r = NSRect::new(p, CGSize::new(0.0, 0.0));
-                    let r = unsafe { current_window_content_view.convertRectToBacking(r) };
-                    let p = r.origin;
-                    Ok(WindowEvent::CursorMoved { x: p.x, y: p.y })
-            },
-            NSEventTypeFlagsChanged => todo!(),
-            _ => todo!(),   
+                let current_window =
+                    unsafe { NSApp.unwrap().keyWindow() }.unwrap();
+                let current_window_content_view =
+                    unsafe { current_window.contentView().unwrap() };
+                let adjust_frame =
+                    unsafe { current_window_content_view.frame() };
+                let p = unsafe {
+                    current_window.mouseLocationOutsideOfEventStream()
+                };
+                let p = CGPoint::new(
+                    p.x.clamp(0.0, adjust_frame.size.width),
+                    p.y.clamp(0.0, adjust_frame.size.height),
+                );
+                let r = NSRect::new(p, CGSize::new(0.0, 0.0));
+                let r = unsafe {
+                    current_window_content_view.convertRectToBacking(r)
+                };
+                let p = r.origin;
+                Ok(WindowEvent::CursorMoved { x: p.x, y: p.y })
+            }
+            NSEventTypeFlagsChanged => Ok(WindowEvent::ModifiersChanged {
+                modifiers: NSModifiers(
+                    ((unsafe { value.modifierFlags() }
+                        & NSDeviceIndependentModifierFlagsMask)
+                        >> 16) as _,
+                )
+                .try_into()?,
+            }),
+            _ => Err(()),
         }
     }
 }

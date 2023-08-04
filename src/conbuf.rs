@@ -142,20 +142,13 @@ pub fn s_wcd_mut() -> RwLockWriteGuard<'static, ConsoleData> {
     S_WCD.write().unwrap()
 }
 
-
-
 #[cfg(windows)]
-#[allow(
-    clippy::undocumented_unsafe_blocks,
-    clippy::unnecessary_safety_comment
-)]
+#[allow(clippy::undocumented_unsafe_blocks, clippy::unnecessary_safety_comment)]
 pub fn append_text(text: impl ToString) {
     let text = &text.to_string();
     let clean_text = clean_text(text);
     let clean_len = clean_text.len();
-    TEXT_APPENDED.store_relaxed(
-        TEXT_APPENDED.load_relaxed() + clean_len
-    );
+    TEXT_APPENDED.store_relaxed(TEXT_APPENDED.load_relaxed() + clean_len);
 
     let buffer_window_handle = s_wcd().buffer_window.unwrap();
     let hwnd = buffer_window_handle.get_win32().unwrap().hwnd;
@@ -166,26 +159,35 @@ pub fn append_text(text: impl ToString) {
     // with certain messages, but the ones we're passing here
     // are safe.
     if TEXT_APPENDED.load(Ordering::Relaxed) > 0x4000 {
-        unsafe { SendMessageA(
-            HWND(hwnd as _), EM_SETSEL, WPARAM(0), LPARAM(-1)
-        ); }
+        unsafe {
+            SendMessageA(HWND(hwnd as _), EM_SETSEL, WPARAM(0), LPARAM(-1));
+        }
         TEXT_APPENDED.store(clean_len, Ordering::Relaxed);
     } else {
-        unsafe { SendMessageA(
-            HWND(hwnd as _), EM_SETSEL, WPARAM(0xFFFF), LPARAM(0xFFFF)
-        ); }
+        unsafe {
+            SendMessageA(
+                HWND(hwnd as _),
+                EM_SETSEL,
+                WPARAM(0xFFFF),
+                LPARAM(0xFFFF),
+            );
+        }
     }
 
-    unsafe { SendMessageA(
-        HWND(hwnd as _), EM_LINESCROLL, WPARAM(0), LPARAM(0xFFFF)
-    ); }
-    unsafe { SendMessageA(
-        HWND(hwnd as _), EM_SCROLLCARET, WPARAM(0), LPARAM(0)
-    ); }
-    unsafe { SendMessageA(
-        HWND(hwnd as _), EM_REPLACESEL,
-        WPARAM(0), LPARAM(addr_of!(clean_text) as isize)
-    ); }
+    unsafe {
+        SendMessageA(HWND(hwnd as _), EM_LINESCROLL, WPARAM(0), LPARAM(0xFFFF));
+    }
+    unsafe {
+        SendMessageA(HWND(hwnd as _), EM_SCROLLCARET, WPARAM(0), LPARAM(0));
+    }
+    unsafe {
+        SendMessageA(
+            HWND(hwnd as _),
+            EM_REPLACESEL,
+            WPARAM(0),
+            LPARAM(addr_of!(clean_text) as isize),
+        );
+    }
 }
 
 #[cfg(not(windows))]

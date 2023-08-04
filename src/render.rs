@@ -47,7 +47,10 @@ use sscanf::scanf;
 extern crate alloc;
 use alloc::collections::VecDeque;
 use core::sync::atomic::AtomicUsize;
-use std::{collections::HashSet, sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}};
+use std::{
+    collections::HashSet,
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 pub const MIN_HORIZONTAL_RESOLUTION: u32 = 640;
 pub const MIN_VERTICAL_RESOLUTION: u32 = 480;
@@ -2716,7 +2719,8 @@ fn create_device(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
 }
 
 lazy_static! {
-    static ref R_GLOB: RwLock<gfx::Globals> = RwLock::new(gfx::Globals::default());
+    static ref R_GLOB: RwLock<gfx::Globals> =
+        RwLock::new(gfx::Globals::default());
 }
 
 pub fn r_glob() -> RwLockReadGuard<'static, gfx::Globals> {

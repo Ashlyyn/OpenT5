@@ -1,7 +1,8 @@
 use crate::{
     render::{r_glob, r_glob_mut},
+    sys::handle_main_window_event,
     util::SignalState,
-    *, sys::handle_main_window_event,
+    *,
 };
 
 #[allow(clippy::cast_possible_wrap)]
