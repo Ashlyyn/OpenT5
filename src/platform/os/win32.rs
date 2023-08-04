@@ -4,6 +4,7 @@
 #![allow(non_snake_case)]
 
 use core::{mem::size_of_val, ptr::addr_of};
+use std::sync::RwLock;
 extern crate alloc;
 use alloc::collections::VecDeque;
 
@@ -177,7 +178,7 @@ fn register_class(hinstance: HMODULE) {
     }
 }
 
-static MODIFIERS: RwLock<Modifiers> = RwLock::new(Modifiers::empty());
+static MODIFIERS: RwLock<sys::Modifiers> = RwLock::new(sys::Modifiers::empty());
 
 impl TryFrom<MSG> for WindowEvent {
     type Error = ();
@@ -265,8 +266,8 @@ impl TryFrom<MSG> for WindowEvent {
                     });
                 }
 
-                if let Some(k) = Modifiers::try_from_vk(vk, kpi.scancode) {
-                    let modifiers = MODIFIERS.write().unwrap();
+                if let Some(k) = sys::Modifiers::try_from_vk(vk, kpi.scancode) {
+                    let mut modifiers = MODIFIERS.write().unwrap();
                     if down {
                         *modifiers |= k;
                     } else {
