@@ -1961,6 +1961,26 @@ impl TryFrom<Modifiers> for KeyboardScancode {
     }
 }
 
+impl TryInto<Modifiers> for KeyboardScancode {
+    type Error = ();
+    fn try_into(self) -> Result<Modifiers, Self::Error> {
+        match self {
+            Self::CapsLk => Ok(Modifiers::CAPSLOCK),
+            Self::LAlt => Ok(Modifiers::LALT),
+            Self::LCtrl => Ok(Modifiers::LCTRL),
+            Self::LShift => Ok(Modifiers::LSHIFT),
+            Self::LSys => Ok(Modifiers::LSYS),
+            Self::NumLk => Ok(Modifiers::NUMLOCK),
+            Self::RAlt => Ok(Modifiers::RALT),
+            Self::RCtrl => Ok(Modifiers::RCTRL),
+            Self::RShift => Ok(Modifiers::RSHIFT),
+            Self::RSys => Ok(Modifiers::RSYS),
+            Self::ScrLk => Ok(Modifiers::SCRLOCK),
+            _ => Err(())
+        }
+    }
+}
+
 impl Modifiers {
     pub fn each(self) -> Vec<Modifiers> {
         let mut v = vec![];
