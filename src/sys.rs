@@ -1976,7 +1976,7 @@ impl TryInto<Modifiers> for KeyboardScancode {
             Self::RShift => Ok(Modifiers::RSHIFT),
             Self::RSys => Ok(Modifiers::RSYS),
             Self::ScrLk => Ok(Modifiers::SCRLOCK),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }

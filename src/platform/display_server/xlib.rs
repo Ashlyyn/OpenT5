@@ -431,16 +431,18 @@ impl WindowEventExtXlib for WindowEvent {
                     return Err(());
                 };
 
-                if let Ok(k) = TryInto::<Modifiers>::try_into(logical_scancode) {
+                if let Ok(k) = TryInto::<Modifiers>::try_into(logical_scancode)
+                {
                     let mut m = MODIFIERS.write().unwrap();
                     if down {
                         *m |= k;
                     } else {
                         *m &= !k;
                     }
-                    Ok((vec![Self::ModifiersChanged {
-                        modifiers: *m,
-                    }].into(), None))
+                    Ok((
+                        vec![Self::ModifiersChanged { modifiers: *m }].into(),
+                        None,
+                    ))
                 } else if down {
                     Ok((
                         vec![Self::KeyDown {
