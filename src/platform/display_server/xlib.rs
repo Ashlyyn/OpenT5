@@ -305,6 +305,8 @@ pub trait WindowEventExtXlib {
     ) -> Result<(VecDeque<WindowEvent>, Option<XlibContext>), ()>;
 }
 
+static MODIFIERS: RwLock<Modifiers> = RwLock::new(Modifiers::empty());
+
 impl WindowEventExtXlib for WindowEvent {
     // All uses of unsafe in the following function are either for FFI
     // or for accessing the members of the XEvent union. All of the
@@ -429,7 +431,17 @@ impl WindowEventExtXlib for WindowEvent {
                     return Err(());
                 };
 
-                if down {
+                if let Ok(k) = TryInto::<Modifiers>::try_into(logical_scancode) {
+                    let mut m = MODIFIERS.write().unwrap();
+                    if down {
+                        *m |= k;
+                    } else {
+                        *m &= !k;
+                    }
+                    Ok(vec![Self::ModifiersChanged {
+                        modifiers: *m,
+                    }])
+                } else if down {
                     Ok((
                         vec![Self::KeyDown {
                             logical_scancode,
