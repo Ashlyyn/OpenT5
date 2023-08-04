@@ -440,7 +440,7 @@ impl WindowEventExtXlib for WindowEvent {
                     }
                     Ok((vec![Self::ModifiersChanged {
                         modifiers: *m,
-                    }], None))
+                    }].into(), None))
                 } else if down {
                     Ok((
                         vec![Self::KeyDown {
