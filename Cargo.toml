@@ -34,6 +34,7 @@ raw-window-handle = "0.5.0"
 sscanf = "0.4.1"
 gilrs = "0.10.0"
 cstr = "0.2.11"
+ash = { version = "0.37.3", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk4 = "0.5.0"
@@ -99,13 +100,13 @@ sysinfo = "0.27.0"
 default = []
 linux_use_xlib = [ "x11" ]
 linux_use_wayland = []
-linux_use_vulkan = []
+linux_use_vulkan = [ "ash" ]
 linux_use_wgpu = [ "wgpu" ]
 macos_use_xlib = [ "x11" ]
 macos_use_appkit = [ "objc2", "icrate", "core-foundation", "core-graphics" ]
 macos_use_metal = []
-macos_use_vulkan = []
+macos_use_vulkan = [ "ash" ]
 macos_use_wgpu = [ "wgpu" ]
 windows_use_d3d9 = []
-windows_use_vulkan = []
+windows_use_vulkan = [ "ash" ]
 windows_use_wgpu = [ "wgpu" ]

@@ -3,3 +3,6 @@ pub mod d3d9;
 
 #[cfg(wgpu)]
 pub mod wgpu;
+
+#[cfg(vulkan)]
+pub mod vulkan;

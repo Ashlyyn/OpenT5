@@ -419,6 +419,7 @@ fn _fatal_init_error_internal(error: impl ToString) -> ! {
     sys::render_fatal_error();
 }
 
+#[allow(unused_macros)]
 macro_rules! fatal_init_error {
     ($($arg:tt)*) => {{
         $crate::render::_fatal_init_error_internal(core::format_args!($($arg)*));
@@ -900,7 +901,23 @@ fn get_monitor_dimensions() -> Option<(u32, u32)> {
     Some((width, height))
 }
 
-#[cfg(all(windows, wgpu))]
+#[cfg(vulkan)]
+#[allow(
+    clippy::undocumented_unsafe_blocks,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation
+)]
+fn get_monitor_dimensions() -> Option<(u32, u32)> {
+    use ash::extensions::khr;
+
+    let vk = platform::render::vulkan::vk_mut();
+    let display_ext = khr::Display::new(vk.entry.as_ref()?, vk.instance.as_ref()?);
+    let displays = unsafe { display_ext.get_physical_device_display_properties(*vk.physical_device.as_ref()?) }.ok()?;
+    let props = displays.get(0)?;
+    Some((props.physical_resolution.width, props.physical_resolution.height))
+}
+
+#[cfg(not(any(d3d9, vulkan)))]
 fn get_monitor_dimensions() -> Option<(u32, u32)> {
     todo!()
 }
@@ -2314,6 +2331,11 @@ fn pre_create_window() -> Result<(), ()> {
     Ok(())
 }
 
+#[cfg(vulkan)]
+fn pre_create_window() -> Result<(), ()> {
+    todo!()
+}
+
 static HARDWARE_INITED: AtomicBool = AtomicBool::new(false);
 
 #[allow(clippy::unnecessary_wraps)]
@@ -2371,6 +2393,36 @@ fn init_graphics_api() -> Result<(), ()> {
         let dx = platform::render::d3d9::dx();
         assert!(dx.device.is_some() == dx.d3d9.is_some());
         dx.device.is_some()
+    };
+
+    if b {
+        if pre_create_window().is_err() {
+            return Err(());
+        }
+
+        let mut wnd_parms: gfx::WindowParms = gfx::WindowParms::new();
+        loop {
+            set_wnd_parms(&mut wnd_parms);
+            if create_window(&mut wnd_parms).is_ok() {
+                break;
+            }
+            if reduce_window_settings().is_err() {
+                fatal_init_error!("Couldn't initialize renderer")
+            }
+        }
+
+        Ok(())
+    } else {
+        init_systems()
+    }
+}
+
+#[cfg(vulkan)]
+fn init_graphics_api() -> Result<(), ()> {
+    let b = {
+        let vk = platform::render::vulkan::vk();
+        assert!(vk.device.is_some() == vk.physical_device.is_some() && vk.physical_device.is_some() == vk.instance.is_some());
+        vk.device.is_some()
     };
 
     if b {

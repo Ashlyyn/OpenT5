@@ -132,6 +132,8 @@ cfg_if! {
     if #[cfg(d3d9)] {
         use cstr::cstr;
         use windows::Win32::Graphics::Direct3D9::{Direct3DCreate9, D3D_SDK_VERSION, D3DADAPTER_IDENTIFIER9, D3DADAPTER_DEFAULT};
+    } else if #[cfg(vulkan)] {
+        use cstr::cstr;
     }
 }
 
@@ -668,6 +670,27 @@ pub fn detect_video_card() -> String {
     } else {
         return String::from("Unknown video card");
     }
+}
+
+#[cfg(vulkan)]
+pub fn detect_video_card() -> String {
+    use ash::{Entry, vk};
+
+    let entry = unsafe { Entry::load().unwrap() };
+    let app_info = vk::ApplicationInfo {
+        api_version: vk::make_api_version(0, 1, 3, 0),
+        ..Default::default()
+    };
+    let create_info = vk::InstanceCreateInfo {
+        p_application_info: &app_info,
+        ..Default::default()
+    };
+    let instance = unsafe { entry.create_instance(&create_info, None) }.unwrap();
+    let pdevs = unsafe { instance.enumerate_physical_devices() }.unwrap();
+    assert!(!pdevs.is_empty());
+    let pdev = pdevs[0];
+    let props = unsafe { instance.get_physical_device_properties(pdev) };
+    CStr::from_bytes_until_nul(&props.device_name.map(|c| c as _)).unwrap_or_else(|_| cstr!("Unknown video card")).to_string_lossy().to_string()
 }
 
 cfg_if! {
