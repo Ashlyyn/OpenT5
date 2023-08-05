@@ -40,9 +40,17 @@ gtk4 = "0.5.0"
 x11 = { version = "2.21.0", features = [ "xlib", "xrandr" ], optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-icrate = { version = "0.0.3", optional = true, features = ["AppKit_all", "Foundation_all"] }
+icrate = { version = "0.0.3", optional = true, features = [ 
+    "AppKit_all", "Foundation_all" 
+] }
 objc2 = { version =  "0.4.0", optional = true, features = [ "exception" ]}
 x11 = { version = "2.21.0", features = [ "xlib", "xrandr" ], optional = true }
+core-foundation = { version = "0.9.3", optional = true, features = [ 
+    "mac_os_10_7_support", "mac_os_10_8_features", "uuid" 
+] }
+core-graphics = { version = "0.23.1", optional = true, features = [
+    "elcapitan", "highsierra"
+] }
 
 [target.'cfg(all(target_family = "unix", not(target_os = "macos"), not(target_os = "linux")))'.dependencies]
 x11 = { version = "2.21.0", features = [ "xlib", "xrandr" ] }
@@ -94,7 +102,7 @@ linux_use_wayland = []
 linux_use_vulkan = []
 linux_use_wgpu = [ "wgpu" ]
 macos_use_xlib = [ "x11" ]
-macos_use_appkit = [ "objc2", "icrate" ]
+macos_use_appkit = [ "objc2", "icrate", "core-foundation", "core-graphics" ]
 macos_use_metal = []
 macos_use_wgpu = [ "wgpu" ]
 windows_use_d3d9 = []
