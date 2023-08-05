@@ -14,18 +14,26 @@ If you're wondering what the ultimate goals of this project are (beyond just "a 
 If, after reading all of the above, you're actually interested in contributing, please don't hesitate. Any help would be *very* appreciated!
 
 ## Building
-Right now, building is as simple as:
+Until I come up with a better way to do this, certain features will have to be enabled manually on all platforms. Currently, they consist of the display server (X, Cocoa) and the rendering API (d3d9, wgpu). 
+
+* On Windows, you'll only have to enable `windows_use_d3d9` OR `windows_use_wgpu` since there's only one Windows display server. 
+* On Linux, only support for WGPU and Xlib are currently implemented (Wayland and Vulkan will come soon), so you'll have to specify `linux_use_xlib` and `linux_use_wgpu`.
+* On macOS, Xlib and AppKit support are both implemented, so you'll have to specify `macos_use_xlib` OR `macos_use_appkit` and `macos_use_wgpu` (Metal support will also come soon).
+
+(If it were possible to set default features on a per-platform basis, none of this would be an issue, but alas...)
+
+Building also requires a nightly toolchain, so once you have your features figured out, building is as simple as
 ```bash
     $ git clone https://github.com/Ashlyyn/OpenT5.git
     $ cd OpenT5
-    $ cargo +nightly build
+    $ cargo +nightly build --features <...>
 ```
-Or you can set your default toolchain to nightly and just run `cargo build` without the `+nightly`.
+Or you can set your default toolchain to nightly and just run `cargo build --features <...>` without the `+nightly`.
 
 None of the game files are required yet (you will get some weird-looking localization references if `localization.txt` isn't present though).
 
-Linux and macOS builds currently require `libgtk4`, so you'll want to grab that from your package manager if you don't have it installed (might swap it out for something else or implement the necessary functionality from scratch later). Windows doesn't require anything special.
+Linux builds currently require `libgtk4`, so you'll want to grab that from your package manager if you don't have it installed (might swap it out for something else or implement the necessary functionality from scratch later). Windows and macOS don't require anything special on their own.
 
-Unix and Unix-like OSes will use Xlib by default. Wayland support can be enabled on Linux with the `linux_use_wayland` feature, and AppKit support can be enabled on macOS with the `macos_use_appkit` feature. The rest will only use Xlib. *Technically*, then, Xlib/Wayland/AppKit could be considered dependencies you'll need to install, but you probably wouldn't be reading this without having a display server installed, so there's not really a need to state them explicitly. If you're running Wayland without having Xorg installed or you're on macOS without XQuartz installed, you'll get build errors since both platforms default to using Xlib by default, so you'll either need to install Xorg/XQuartz or enable the features to use Wayland/AppKit. Wayland/AppKit builds will currently pull in the `x11` crate since it's a default feature. It won't harm anything by being there, and it won't get compiled in if building for Wayland/AppKit, but if you *really* want to cut down on bandwidth or disk space or whatever, you can disable default features (pass `--no-default-features` to `cargo`).
+For builds with Xlib, you'll need `libx11` and `libxrandr` (and XQuartz on macOS). I'm not sure what dependencies Wayland will have yet.
 
 The project will currently *build* for WASM, but it's entirely untested, and there are some things that will *definitely* need to be changed (e.g. use of stdlib threads, blocking the main thread, etc.) to get it to work correctly in the browser, so it's by no means functional.

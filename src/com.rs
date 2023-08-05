@@ -446,6 +446,85 @@ pub const fn get_build_display_name() -> &'static str {
     "Call of Duty Singleplayer - Ship"
 }
 
+// TODO - use host build info instead of hardcoding
+pub const fn get_build_version() -> &'static str {
+    "7.0.61 CL(794515) CODPCAB-V6 Fri Nov 05 11:33:52 2010"
+}
+
+pub const fn get_build_name() -> &'static str {
+    "COD_T5_R SP"
+}
+
+#[cfg(i686)]
+pub const fn get_build_arch() -> &'static str {
+    "x86"
+}
+
+#[cfg(x86_64)]
+pub const fn get_build_arch() -> &'static str {
+    "x86_64"
+}
+
+#[cfg(aarch64)]
+pub const fn get_build_arch() -> &'static str {
+    "aarch64"
+}
+
+#[cfg(wasm)]
+pub const fn get_build_arch() -> &'static str {
+    "wasm32"
+}
+
+#[cfg(windows)]
+pub const fn get_build_os() -> &'static str {
+    "win"
+}
+
+#[cfg(macos)]
+pub const fn get_build_os() -> &'static str {
+    "macOS"
+}
+
+#[cfg(linux)]
+pub const fn get_build_os() -> &'static str {
+    "linux"
+}
+
+#[cfg(freebsd)]
+pub const fn get_build_os() -> &'static str {
+    "FreeBSD"
+}
+
+#[cfg(openbsd)]
+pub const fn get_build_os() -> &'static str {
+    "OpenBSD"
+}
+
+#[cfg(dragonflybsd)]
+pub const fn get_build_os() -> &'static str {
+    "DragonflyBSD"
+}
+
+#[cfg(netbsd)]
+pub const fn get_build_os() -> &'static str {
+    "NetBSD"
+}
+
+#[cfg(other_unix)]
+pub const fn get_build_os() -> &'static str {
+    "unix"
+}
+
+#[cfg(any(no_os, other_os))]
+pub const fn get_build_os() -> &'static str {
+    "unknown"
+}
+
+// TODO - get at compile time instead of hardcoding
+pub const fn get_build_date() -> &'static str {
+    "Nov  5 2010"
+}
+
 thread_local! {
     static G_ERROR: Arc<RwLock<ArrayVec<i32, 16>>> = Arc::new(RwLock::new(ArrayVec::new()));
 }
@@ -504,6 +583,12 @@ fn init_dvars() {
 }
 
 fn init_try_block_function() {
+    let build_date = get_build_date();
+    let arch = get_build_arch();
+    let os = get_build_os();
+    let build_name = get_build_name();
+    let build_version = get_build_version();
+    self::println!(16.into(), "{build_version} {build_name} build {os}-{arch} {build_date}");
     init_dvars();
     fs::init_filesystem(true);
     cl::init_once_for_all_clients();
