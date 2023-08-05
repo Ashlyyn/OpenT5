@@ -15,6 +15,16 @@ use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct WindowHandle(pub RawWindowHandle);
 
+impl WindowHandle {
+    pub const fn new(handle: RawWindowHandle) -> Self {
+        Self(handle)
+    }
+
+    pub fn get(&self) -> RawWindowHandle {
+        self.0
+    }
+}
+
 // SAFETY:
 // Really don't know if this is safe. It hasn't created any problems in
 // testing, we'll see if any pop up later.

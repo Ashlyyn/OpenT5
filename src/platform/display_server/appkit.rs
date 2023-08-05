@@ -6,9 +6,16 @@
 #[link(name = "Cocoa", kind = "framework")]
 extern "C" {}
 
+#[link(name = "ApplicationServices", kind = "framework")]
+extern "C" {
+    pub fn CGDisplayCreateUUIDFromDisplayID(display: CGDirectDisplayID) -> CFUUIDRef;
+}
+
 use core::ptr::{addr_of_mut, NonNull};
 use std::ptr::addr_of;
 
+use core_foundation::uuid::CFUUIDRef;
+use core_graphics::display::CGDirectDisplayID;
 use icrate::{
     AppKit::{
         NSApp, NSApplication, NSApplicationDelegate,
@@ -33,8 +40,61 @@ use objc2::{
     runtime::{NSObject, NSObjectProtocol},
     ClassType,
 };
+use raw_window_handle::{AppKitDisplayHandle, RawDisplayHandle, AppKitWindowHandle, RawWindowHandle};
 
-use crate::sys::{self, KeyboardScancode, WindowEvent};
+use crate::{sys::{self, KeyboardScancode, WindowEvent}, platform::WindowHandle};
+
+pub trait AppKitWindowHandleExt {
+    fn ns_window(&self) -> Id<NSWindow>;
+}
+
+#[cfg(appkit)]
+impl AppKitWindowHandleExt for AppKitWindowHandle {
+    fn ns_window(&self) -> Id<NSWindow> {
+        unsafe { Id::new(self.ns_window as *mut NSWindow) }.unwrap()
+    }
+}
+
+pub trait WindowHandleExt {
+    fn get_appkit(&self) -> Option<AppKitWindowHandle>;
+}
+
+impl WindowHandleExt for WindowHandle {
+    fn get_appkit(&self) -> Option<AppKitWindowHandle> {
+        match self.get() {
+            RawWindowHandle::AppKit(handle) => Some(handle),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, Hash)]
+pub enum MonitorHandle {
+    AppKit(CGDirectDisplayID),
+}
+
+impl PartialEq for MonitorHandle {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe {
+            CGDisplayCreateUUIDFromDisplayID(self.get_appkit().unwrap())
+                == CGDisplayCreateUUIDFromDisplayID(other.get_appkit().unwrap())
+        }
+    }
+}
+
+impl MonitorHandle {
+    pub fn get(&self) -> RawDisplayHandle {
+        match *self {
+            Self::AppKit(_) => RawDisplayHandle::AppKit(AppKitDisplayHandle::empty()),
+        }
+    }
+
+    pub const fn get_appkit(&self) -> Option<CGDirectDisplayID> {
+        match *self {
+            Self::AppKit(handle) => Some(handle),
+        }
+    }
+}
 
 pub fn init() {}
 

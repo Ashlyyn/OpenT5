@@ -15,7 +15,7 @@ use raw_window_handle::{
     HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
 
-use crate::platform::{os::target::MonitorHandle, WindowHandle};
+use crate::platform::{display_server::target::MonitorHandle, WindowHandle};
 
 use cfg_if::cfg_if;
 

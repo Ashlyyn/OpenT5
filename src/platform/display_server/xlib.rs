@@ -63,6 +63,62 @@ use crate::{
     util::EasierAtomic,
 };
 
+use raw_window_handle::{
+    RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle,
+    WaylandWindowHandle, XlibDisplayHandle, XlibWindowHandle,
+};
+
+pub trait WindowHandleExt {
+    fn get_xlib(&self) -> Option<XlibWindowHandle>;
+}
+
+impl WindowHandleExt for WindowHandle {
+    fn get_xlib(&self) -> Option<XlibWindowHandle> {
+        match self.get() {
+            RawWindowHandle::Xlib(handle) => Some(handle),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub enum MonitorHandle {
+    Xlib(XlibDisplayHandle),
+}
+
+#[allow(clippy::missing_trait_methods)]
+impl Ord for MonitorHandle {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        match *self {
+            Self::Xlib(handle) => handle
+                .display
+                .cmp(&other.get_xlib().unwrap().display)
+                .then(handle.screen.cmp(&other.get_xlib().unwrap().screen)),
+        }
+    }
+}
+
+#[allow(clippy::missing_trait_methods)]
+impl PartialOrd for MonitorHandle {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl MonitorHandle {
+    pub fn get(&self) -> RawDisplayHandle {
+        match *self {
+            Self::Xlib(handle) => RawDisplayHandle::Xlib(handle),
+        }
+    }
+
+    pub const fn get_xlib(&self) -> Option<XlibDisplayHandle> {
+        match *self {
+            Self::Xlib(handle) => Some(handle),
+        }
+    }
+}
+
 lazy_static! {
     static ref DISPLAY: RwLock<Option<OsString>> = RwLock::new(None);
 }

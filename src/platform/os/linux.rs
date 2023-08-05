@@ -5,39 +5,8 @@ extern crate alloc;
 
 use cfg_if::cfg_if;
 
-use raw_window_handle::{
-    RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle,
-    WaylandWindowHandle, XlibDisplayHandle, XlibWindowHandle,
-};
-
-use crate::platform::WindowHandle;
-
 pub fn main() {
     gtk4::init().unwrap();
-}
-
-impl WindowHandle {
-    pub const fn new(handle: RawWindowHandle) -> Self {
-        Self(handle)
-    }
-
-    pub const fn get(&self) -> RawWindowHandle {
-        self.0
-    }
-
-    pub const fn get_wayland(&self) -> Option<WaylandWindowHandle> {
-        match self.get() {
-            RawWindowHandle::Wayland(handle) => Some(handle),
-            _ => None,
-        }
-    }
-
-    pub const fn get_xlib(&self) -> Option<XlibWindowHandle> {
-        match self.get() {
-            RawWindowHandle::Xlib(handle) => Some(handle),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]

@@ -2,7 +2,7 @@
 
 use crate::{
     gfx::WindowTarget,
-    platform::{os::target::MonitorHandle, WindowHandle},
+    platform::{display_server::target::MonitorHandle, WindowHandle},
     sys::show_window,
     util::{EasierAtomic, SignalState},
     *,
