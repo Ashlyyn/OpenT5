@@ -6,6 +6,9 @@ use raw_window_handle::{
     HasRawDisplayHandle, RawDisplayHandle, RawWindowHandle, Win32WindowHandle,
     WindowsDisplayHandle,
 };
+use windows::Win32::{Foundation::{HWND, HMODULE}, Graphics::Gdi::HMONITOR};
+
+use crate::platform::WindowHandle;
 
 pub fn init() {}
 
@@ -15,7 +18,7 @@ pub trait WindowHandleExt {
 }
 
 impl WindowHandleExt for WindowHandle {
-    const fn get_win32(&self) -> Option<Win32WindowHandle> {
+    fn get_win32(&self) -> Option<Win32WindowHandle> {
         match self.get() {
             RawWindowHandle::Win32(handle) => Some(handle),
             _ => None,
@@ -70,6 +73,12 @@ unsafe impl Sync for MonitorHandle {}
 unsafe impl Send for MonitorHandle {}
 
 impl MonitorHandle {
+    pub fn get(&self) -> RawDisplayHandle {
+        match *self {
+            Self::Win32(_) => RawDisplayHandle::Windows(WindowsDisplayHandle::empty()),
+        }
+    }
+
     #[allow(clippy::unnecessary_wraps, clippy::trivially_copy_pass_by_ref)]
     pub const fn get_win32(&self) -> Option<HMONITOR> {
         match *self {

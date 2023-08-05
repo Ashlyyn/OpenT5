@@ -9,8 +9,7 @@ extern crate alloc;
 use alloc::collections::VecDeque;
 
 use raw_window_handle::{
-    HasRawDisplayHandle, RawDisplayHandle, RawWindowHandle, Win32WindowHandle,
-    WindowsDisplayHandle,
+    RawWindowHandle, Win32WindowHandle,
 };
 use windows::{
     core::PCSTR,
@@ -64,7 +63,7 @@ use libc::c_int;
 use crate::{
     com::{self, ErrorParm},
     conbuf,
-    platform::WindowHandle,
+    platform::{WindowHandle, display_server::target::WindowHandleExt},
     sys::{self, KeyboardScancode, Modifiers, MouseScancode, WindowEvent},
     util::{CharFromUtf16Char, HighWord, LowWord},
 };

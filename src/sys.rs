@@ -4,7 +4,7 @@ extern crate alloc;
 
 use crate::{
     cl::Connstate,
-    platform::WindowHandle,
+    platform::{WindowHandle, display_server::target::WindowHandleExt},
     util::{EasierAtomicBool, SignalState, SmpEvent},
     *,
 };

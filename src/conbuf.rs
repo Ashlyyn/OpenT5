@@ -4,6 +4,7 @@
 
 use crate::*;
 use cfg_if::cfg_if;
+use crate::platform::display_server::target::WindowHandleExt;
 
 cfg_if! {
     if #[cfg(native)] {
@@ -16,7 +17,6 @@ cfg_if! {
         use core::sync::atomic::AtomicUsize;
         use arrayvec::ArrayString;
         use std::sync::{RwLockReadGuard, RwLockWriteGuard};
-
     }
 }
 
