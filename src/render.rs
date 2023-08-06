@@ -918,7 +918,7 @@ fn get_monitor_dimensions() -> Option<(u32, u32)> {
     Some((props.physical_resolution.width, props.physical_resolution.height))
 }
 
-#[cfg(not(any(d3d9, vulkan, appkit)))]
+#[cfg(not(any(d3d9, vulkan, xlib, appkit)))]
 fn get_monitor_dimensions() -> Option<(u32, u32)> {
     todo!()
 }

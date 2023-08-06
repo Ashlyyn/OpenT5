@@ -97,7 +97,6 @@ cfg_if! {
         use util::EasierAtomic;
         use core::ptr::addr_of_mut;
     } else if #[cfg(appkit)] {
-        use crate::platform::display_server::target::AppKitWindowHandleExt;
         use crate::platform::display_server::appkit::WindowHandleExt;
         use icrate::{
             AppKit::{NSApp, NSAlert},
