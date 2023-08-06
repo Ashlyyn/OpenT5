@@ -1,7 +1,7 @@
-use std::sync::{RwLock, RwLockWriteGuard, RwLockReadGuard};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+use ash::{vk, Entry, Instance};
 use lazy_static::lazy_static;
-use ash::{Entry, Instance, vk};
 
 #[derive(Default)]
 pub struct VkGlobals {

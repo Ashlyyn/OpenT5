@@ -6,7 +6,10 @@ use raw_window_handle::{
     HasRawDisplayHandle, RawDisplayHandle, RawWindowHandle, Win32WindowHandle,
     WindowsDisplayHandle,
 };
-use windows::Win32::{Foundation::{HWND, HMODULE}, Graphics::Gdi::HMONITOR};
+use windows::Win32::{
+    Foundation::{HMODULE, HWND},
+    Graphics::Gdi::HMONITOR,
+};
 
 use crate::platform::WindowHandle;
 
@@ -75,7 +78,9 @@ unsafe impl Send for MonitorHandle {}
 impl MonitorHandle {
     pub fn get(&self) -> RawDisplayHandle {
         match *self {
-            Self::Win32(_) => RawDisplayHandle::Windows(WindowsDisplayHandle::empty()),
+            Self::Win32(_) => {
+                RawDisplayHandle::Windows(WindowsDisplayHandle::empty())
+            }
         }
     }
 

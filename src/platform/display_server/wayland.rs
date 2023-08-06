@@ -5,9 +5,9 @@
 // support just due to the effort it's going to take and the state of the
 // various Wayland crates.
 
-
 use raw_window_handle::{
-    RawWindowHandle, RawDisplayHandle, WaylandWindowHandle, WaylandDisplayHandle,
+    RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle,
+    WaylandWindowHandle,
 };
 
 use crate::platform::WindowHandle;
@@ -54,7 +54,7 @@ impl MonitorHandle {
     pub const fn get(&self) -> RawDisplayHandle {
         match *self {
             Self::Wayland(handle) => RawDisplayHandle::Wayland(handle),
-            _ => panic!()
+            _ => panic!(),
         }
     }
 

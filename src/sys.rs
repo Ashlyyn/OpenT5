@@ -4,7 +4,7 @@ extern crate alloc;
 
 use crate::{
     cl::Connstate,
-    platform::{WindowHandle, display_server::target::WindowHandleExt},
+    platform::{display_server::target::WindowHandleExt, WindowHandle},
     util::{EasierAtomicBool, SignalState, SmpEvent},
     *,
 };
@@ -673,7 +673,7 @@ pub fn detect_video_card() -> String {
 
 #[cfg(vulkan)]
 pub fn detect_video_card() -> String {
-    use ash::{Entry, vk};
+    use ash::{vk, Entry};
 
     let entry = unsafe { Entry::load().unwrap() };
     let app_info = vk::ApplicationInfo {
@@ -684,12 +684,16 @@ pub fn detect_video_card() -> String {
         p_application_info: &app_info,
         ..Default::default()
     };
-    let instance = unsafe { entry.create_instance(&create_info, None) }.unwrap();
+    let instance =
+        unsafe { entry.create_instance(&create_info, None) }.unwrap();
     let pdevs = unsafe { instance.enumerate_physical_devices() }.unwrap();
     assert!(!pdevs.is_empty());
     let pdev = pdevs[0];
     let props = unsafe { instance.get_physical_device_properties(pdev) };
-    CStr::from_bytes_until_nul(&props.device_name.map(|c| c as _)).unwrap_or_else(|_| cstr!("Unknown video card")).to_string_lossy().to_string()
+    CStr::from_bytes_until_nul(&props.device_name.map(|c| c as _))
+        .unwrap_or_else(|_| cstr!("Unknown video card"))
+        .to_string_lossy()
+        .to_string()
 }
 
 cfg_if! {

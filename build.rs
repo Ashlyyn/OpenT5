@@ -16,9 +16,9 @@ fn main() {
             target_os = "openbsd", target_os = "netbsd"
         ) },
         other_unix: { all(
-            unix, 
-            not(target_os = "macos"), 
-            not(target_os = "linux"), 
+            unix,
+            not(target_os = "macos"),
+            not(target_os = "linux"),
             not(any(
                     target_os = "freebsd", target_os = "dragonfly",
                     target_os = "openbsd", target_os = "netbsd"
@@ -33,7 +33,7 @@ fn main() {
         no_os: { target_arch = "wasm32" },
         // Display servers
         xlib: { any(
-            other_unix, 
+            other_unix,
             all(target_os = "macos", feature = "macos_use_xlib"),
             all(target_os = "linux", feature = "linux_use_xlib")
         ) },
@@ -42,14 +42,14 @@ fn main() {
         // Rendering backends
         d3d9: { all(windows, feature = "windows_use_d3d9") },
         wgpu: { any(
-            all(windows, feature = "windows_use_wgpu"), 
-            all(target_os = "linux", feature = "linux_use_wgpu"), 
+            all(windows, feature = "windows_use_wgpu"),
+            all(target_os = "linux", feature = "linux_use_wgpu"),
             all(target_os = "macos", feature = "macos_use_wgpu")
         ) },
         metal: { all(target_os = "macos", feature = "macos_use_metal") },
         vulkan: { any(
-            all(windows, feature = "windows_use_vulkan"), 
-            all(target_os = "macos", feature = "macos_use_vulkan"), 
+            all(windows, feature = "windows_use_vulkan"),
+            all(target_os = "macos", feature = "macos_use_vulkan"),
             all(target_os = "linux", feature = "linux_use_vulkan")
         ) },
         // Arches

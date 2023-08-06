@@ -8,9 +8,7 @@ use std::sync::RwLock;
 extern crate alloc;
 use alloc::collections::VecDeque;
 
-use raw_window_handle::{
-    RawWindowHandle, Win32WindowHandle,
-};
+use raw_window_handle::{RawWindowHandle, Win32WindowHandle};
 use windows::{
     core::PCSTR,
     s,
@@ -63,7 +61,7 @@ use libc::c_int;
 use crate::{
     com::{self, ErrorParm},
     conbuf,
-    platform::{WindowHandle, display_server::target::WindowHandleExt},
+    platform::{display_server::target::WindowHandleExt, WindowHandle},
     sys::{self, KeyboardScancode, Modifiers, MouseScancode, WindowEvent},
     util::{CharFromUtf16Char, HighWord, LowWord},
 };

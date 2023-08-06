@@ -17,7 +17,9 @@ use std::{
 use lazy_static::lazy_static;
 
 use cstr::cstr;
-use raw_window_handle::{RawWindowHandle, RawDisplayHandle, XlibWindowHandle, XlibDisplayHandle};
+use raw_window_handle::{
+    RawDisplayHandle, RawWindowHandle, XlibDisplayHandle, XlibWindowHandle,
+};
 use x11::{
     keysym::{
         XK_Alt_L, XK_Alt_R, XK_BackSpace, XK_Break, XK_Caps_Lock, XK_Control_L,

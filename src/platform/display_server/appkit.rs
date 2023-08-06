@@ -8,7 +8,9 @@ extern "C" {}
 
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
-    pub fn CGDisplayCreateUUIDFromDisplayID(display: CGDirectDisplayID) -> CFUUIDRef;
+    pub fn CGDisplayCreateUUIDFromDisplayID(
+        display: CGDirectDisplayID,
+    ) -> CFUUIDRef;
 }
 
 use core::ptr::{addr_of_mut, NonNull};
@@ -40,9 +42,14 @@ use objc2::{
     runtime::{NSObject, NSObjectProtocol},
     ClassType,
 };
-use raw_window_handle::{AppKitDisplayHandle, RawDisplayHandle, AppKitWindowHandle, RawWindowHandle};
+use raw_window_handle::{
+    AppKitDisplayHandle, AppKitWindowHandle, RawDisplayHandle, RawWindowHandle,
+};
 
-use crate::{sys::{self, KeyboardScancode, WindowEvent}, platform::WindowHandle};
+use crate::{
+    platform::WindowHandle,
+    sys::{self, KeyboardScancode, WindowEvent},
+};
 
 pub trait AppKitWindowHandleExt {
     fn ns_window(&self) -> Id<NSWindow>;
@@ -85,7 +92,9 @@ impl PartialEq for MonitorHandle {
 impl MonitorHandle {
     pub fn get(&self) -> RawDisplayHandle {
         match *self {
-            Self::AppKit(_) => RawDisplayHandle::AppKit(AppKitDisplayHandle::empty()),
+            Self::AppKit(_) => {
+                RawDisplayHandle::AppKit(AppKitDisplayHandle::empty())
+            }
         }
     }
 

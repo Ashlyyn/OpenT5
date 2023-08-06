@@ -588,7 +588,10 @@ fn init_try_block_function() {
     let os = get_build_os();
     let build_name = get_build_name();
     let build_version = get_build_version();
-    self::println!(16.into(), "{build_version} {build_name} build {os}-{arch} {build_date}");
+    self::println!(
+        16.into(),
+        "{build_version} {build_name} build {os}-{arch} {build_date}"
+    );
     init_dvars();
     fs::init_filesystem(true);
     cl::init_once_for_all_clients();

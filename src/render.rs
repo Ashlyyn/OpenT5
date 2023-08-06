@@ -363,11 +363,23 @@ pub struct RenderGlobals {
     resolution_names: HashSet<String>,
     refresh_rate_names: HashSet<String>,
     target_window_index: i32,
-    #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
+    #[cfg(any(
+        feature = "windows_use_wgpu",
+        feature = "macos_use_wgpu",
+        feature = "linux_use_wgpu"
+    ))]
     device: Option<platform::render::wgpu::Device>,
-    #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
+    #[cfg(any(
+        feature = "windows_use_wgpu",
+        feature = "macos_use_wgpu",
+        feature = "linux_use_wgpu"
+    ))]
     adapter: Option<platform::render::wgpu::Adapter>,
-    #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
+    #[cfg(any(
+        feature = "windows_use_wgpu",
+        feature = "macos_use_wgpu",
+        feature = "linux_use_wgpu"
+    ))]
     instance: Option<platform::render::wgpu::Instance>,
     windows: Vec<WindowTarget>,
 }
@@ -383,11 +395,23 @@ impl RenderGlobals {
             resolution_names: HashSet::new(),
             refresh_rate_names: HashSet::new(),
             target_window_index: 0,
-            #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
+            #[cfg(any(
+                feature = "windows_use_wgpu",
+                feature = "macos_use_wgpu",
+                feature = "linux_use_wgpu"
+            ))]
             device: None,
-            #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
+            #[cfg(any(
+                feature = "windows_use_wgpu",
+                feature = "macos_use_wgpu",
+                feature = "linux_use_wgpu"
+            ))]
             adapter: None,
-            #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
+            #[cfg(any(
+                feature = "windows_use_wgpu",
+                feature = "macos_use_wgpu",
+                feature = "linux_use_wgpu"
+            ))]
             instance: None,
             windows: Vec::new(),
         }
@@ -912,10 +936,19 @@ fn get_monitor_dimensions() -> Option<(u32, u32)> {
 )]
 fn get_monitor_dimensions() -> Option<(u32, u32)> {
     let vk = platform::render::vulkan::vk_mut();
-    let display_ext = khr::Display::new(vk.entry.as_ref()?, vk.instance.as_ref()?);
-    let displays = unsafe { display_ext.get_physical_device_display_properties(*vk.physical_device.as_ref()?) }.ok()?;
+    let display_ext =
+        khr::Display::new(vk.entry.as_ref()?, vk.instance.as_ref()?);
+    let displays = unsafe {
+        display_ext.get_physical_device_display_properties(
+            *vk.physical_device.as_ref()?,
+        )
+    }
+    .ok()?;
     let props = displays.get(0)?;
-    Some((props.physical_resolution.width, props.physical_resolution.height))
+    Some((
+        props.physical_resolution.width,
+        props.physical_resolution.height,
+    ))
 }
 
 #[cfg(not(any(d3d9, vulkan, xlib)))]
@@ -2412,7 +2445,10 @@ fn init_graphics_api() -> Result<(), ()> {
 fn init_graphics_api() -> Result<(), ()> {
     let b = {
         let vk = platform::render::vulkan::vk();
-        assert!(vk.device.is_some() == vk.physical_device.is_some() && vk.physical_device.is_some() == vk.instance.is_some());
+        assert!(
+            vk.device.is_some() == vk.physical_device.is_some()
+                && vk.physical_device.is_some() == vk.instance.is_some()
+        );
         vk.device.is_some()
     };
 
