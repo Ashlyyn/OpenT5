@@ -10,6 +10,8 @@ use raw_window_handle::{
     RawWindowHandle, RawDisplayHandle, WaylandWindowHandle, WaylandDisplayHandle,
 };
 
+use crate::platform::WindowHandle;
+
 pub fn init() {}
 
 pub trait WindowHandleExt {

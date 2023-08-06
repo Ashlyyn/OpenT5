@@ -2,7 +2,7 @@
 
 use crate::{
     gfx::WindowTarget,
-    platform::{display_server::target::{MonitorHandle, WindowHandleExt}, WindowHandle},
+    platform::{display_server::target::MonitorHandle, WindowHandle},
     sys::show_window,
     util::{EasierAtomic, SignalState},
     *,
@@ -91,7 +91,7 @@ cfg_if! {
             XDefaultScreen, XCreateSimpleWindow, XDefaultVisual, XScreenCount,
             XRootWindow, XScreenOfDisplay, XWhitePixel, XWidthOfScreen,
             XHeightOfScreen, XDestroyWindow, XDefaultDepth, XSetInputFocus,
-            RevertToParent, CurrentTime, XVisualIDFromVisual, _XDisplay,
+            RevertToParent, CurrentTime, XVisualIDFromVisual,
         };
         use x11::xrandr::{
             XRRGetMonitors, XRRFreeMonitors, XRRConfigCurrentRate,
@@ -360,11 +360,11 @@ pub struct RenderGlobals {
     resolution_names: HashSet<String>,
     refresh_rate_names: HashSet<String>,
     target_window_index: i32,
-    #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+    #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
     device: Option<platform::render::wgpu::Device>,
-    #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+    #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
     adapter: Option<platform::render::wgpu::Adapter>,
-    #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+    #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
     instance: Option<platform::render::wgpu::Instance>,
     windows: Vec<WindowTarget>,
 }
@@ -380,11 +380,11 @@ impl RenderGlobals {
             resolution_names: HashSet::new(),
             refresh_rate_names: HashSet::new(),
             target_window_index: 0,
-            #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+            #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
             device: None,
-            #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+            #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
             adapter: None,
-            #[cfg(any(not(windows), feature = "windows_use_wgpu"))]
+            #[cfg(any(feature = "windows_use_wgpu", feature = "macos_use_wgpu", feature = "linux_use_wgpu"))]
             instance: None,
             windows: Vec::new(),
         }
@@ -917,7 +917,7 @@ fn get_monitor_dimensions() -> Option<(u32, u32)> {
     Some((props.physical_resolution.width, props.physical_resolution.height))
 }
 
-#[cfg(not(any(d3d9, vulkan)))]
+#[cfg(not(any(d3d9, vulkan, xlib)))]
 fn get_monitor_dimensions() -> Option<(u32, u32)> {
     todo!()
 }

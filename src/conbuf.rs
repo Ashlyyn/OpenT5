@@ -4,7 +4,6 @@
 
 use crate::*;
 use cfg_if::cfg_if;
-use crate::platform::display_server::target::WindowHandleExt;
 
 cfg_if! {
     if #[cfg(native)] {

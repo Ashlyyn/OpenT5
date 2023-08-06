@@ -17,7 +17,7 @@ use std::{
 use lazy_static::lazy_static;
 
 use cstr::cstr;
-use raw_window_handle::{RawWindowHandle, XlibWindowHandle};
+use raw_window_handle::{RawWindowHandle, RawDisplayHandle, XlibWindowHandle, XlibDisplayHandle};
 use x11::{
     keysym::{
         XK_Alt_L, XK_Alt_R, XK_BackSpace, XK_Break, XK_Caps_Lock, XK_Control_L,
@@ -61,11 +61,6 @@ use crate::{
     platform::WindowHandle,
     sys::{KeyboardScancode, Modifiers, MouseScancode, WindowEvent},
     util::EasierAtomic,
-};
-
-use raw_window_handle::{
-    RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle,
-    WaylandWindowHandle, XlibDisplayHandle, XlibWindowHandle,
 };
 
 pub trait WindowHandleExt {
