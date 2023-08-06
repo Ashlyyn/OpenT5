@@ -35,7 +35,7 @@ jobs:
     - name: Install Nightly
       run: rustup toolchain add nightly
     - name: Install Dependencies
-      run: sudo apt install libgtk-4-dev libudev-dev
+      run: sudo apt-get update && sudo apt install libgtk-4-dev libudev-dev
     - name: Build
       run: cargo +nightly build --verbose --features linux_use_wayland,linux_use_wgpu
       
@@ -46,7 +46,7 @@ jobs:
     - name: Install Nightly
       run: rustup toolchain add nightly
     - name: Install Dependencies
-      run: sudo apt install libgtk-4-dev libudev-dev
+      run: sudo apt-get update && sudo apt install libgtk-4-dev libudev-dev
     - name: Build
       run: cargo +nightly build --verbose --features linux_use_xlib,linux_use_wgpu
       
