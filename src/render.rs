@@ -40,6 +40,8 @@ cfg_if! {
             System::Threading::Sleep,
             UI::WindowsAndMessaging::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN},
         };
+    } else if #[cfg(vulkan)] {
+        use ash::extensions::khr;
     }
 }
 
@@ -82,6 +84,7 @@ cfg_if! {
         use raw_window_handle::RawWindowHandle;
         use alloc::ffi::CString;
         use core::ptr::addr_of_mut;
+        use crate::platform::display_server::target::WindowHandleExt;
     } else if #[cfg(xlib)] {
         use raw_window_handle::{
             RawWindowHandle, XlibWindowHandle, XlibDisplayHandle
@@ -908,8 +911,6 @@ fn get_monitor_dimensions() -> Option<(u32, u32)> {
     clippy::cast_possible_truncation
 )]
 fn get_monitor_dimensions() -> Option<(u32, u32)> {
-    use ash::extensions::khr;
-
     let vk = platform::render::vulkan::vk_mut();
     let display_ext = khr::Display::new(vk.entry.as_ref()?, vk.instance.as_ref()?);
     let displays = unsafe { display_ext.get_physical_device_display_properties(*vk.physical_device.as_ref()?) }.ok()?;
@@ -917,7 +918,7 @@ fn get_monitor_dimensions() -> Option<(u32, u32)> {
     Some((props.physical_resolution.width, props.physical_resolution.height))
 }
 
-#[cfg(not(any(d3d9, vulkan, xlib)))]
+#[cfg(not(any(d3d9, vulkan, appkit)))]
 fn get_monitor_dimensions() -> Option<(u32, u32)> {
     todo!()
 }
@@ -1115,11 +1116,6 @@ fn choose_monitor() -> MonitorHandle {
 }
 
 #[cfg(wayland)]
-fn get_monitor_dimensions() -> Option<(u32, u32)> {
-    todo!()
-}
-
-#[cfg(wayland)]
 fn monitor_info(_monitor: MonitorHandle) -> Option<MonitorInfo> {
     todo!()
 }
@@ -1146,11 +1142,6 @@ fn current_monitor(_: Option<WindowHandle>) -> Option<MonitorHandle> {
 
 #[cfg(appkit)]
 fn choose_monitor() -> MonitorHandle {
-    todo!()
-}
-
-#[cfg(appkit)]
-fn get_monitor_dimensions() -> Option<(u32, u32)> {
     todo!()
 }
 

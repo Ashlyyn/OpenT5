@@ -32,6 +32,7 @@ cfg_if! {
             Foundation::{WPARAM, LPARAM, HWND}
         };
         use crate::util::EasierAtomic;
+        use crate::platform::display_server::target::WindowHandleExt;
     }
 }
 
