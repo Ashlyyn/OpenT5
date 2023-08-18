@@ -1,64 +1,71 @@
-use cfg_aliases::cfg_aliases;
+use std::path::PathBuf;
 
-fn main() {
-    // Setup cfg aliases
-    cfg_aliases! {
-        // OSes
-        // Windows and unix already defined by rust
-        macos: { target_os = "macos" },
-        linux: { target_os = "linux" },
-        freebsd: { target_os = "freebsd" },
-        openbsd: { target_os = "freebsd" },
-        dragonflybsd: { target_os = "dragonfly" },
-        netbsd: { target_os = "netbsd" },
-        bsd: { any(
-            target_os = "freebsd", target_os = "dragonfly",
-            target_os = "openbsd", target_os = "netbsd"
-        ) },
-        other_unix: { all(
-            unix,
-            not(target_os = "macos"),
-            not(target_os = "linux"),
-            not(any(
-                    target_os = "freebsd", target_os = "dragonfly",
-                    target_os = "openbsd", target_os = "netbsd"
-            ))
-        ) },
-        // We'll have to update this if we add support for OSes
-        // that aren't Windows or Unix
-        // No, this is not the PS3's OtherOS
-        other_os: { not(any(windows, unix)) },
-        // This might have to be updated later, but right now the only even
-        // remotely-supported OS-less platform is wasm
-        no_os: { target_arch = "wasm32" },
-        // Display servers
-        xlib: { any(
-            other_unix,
-            all(target_os = "macos", feature = "macos_use_xlib"),
-            all(target_os = "linux", feature = "linux_use_xlib")
-        ) },
-        wayland: { all(target_os = "linux", feature = "linux_use_wayland") },
-        appkit: { all(target_os = "macos", feature = "macos_use_appkit") },
-        // Rendering backends
-        d3d9: { all(windows, feature = "windows_use_d3d9") },
-        wgpu: { any(
-            all(windows, feature = "windows_use_wgpu"),
-            all(target_os = "linux", feature = "linux_use_wgpu"),
-            all(target_os = "macos", feature = "macos_use_wgpu")
-        ) },
-        metal: { all(target_os = "macos", feature = "macos_use_metal") },
-        vulkan: { any(
-            all(windows, feature = "windows_use_vulkan"),
-            all(target_os = "macos", feature = "macos_use_vulkan"),
-            all(target_os = "linux", feature = "linux_use_vulkan")
-        ) },
-        // Arches
-        x86: { any(target_arch = "x86", target_arch = "x86_64") },
-        i686: { target_arch = "x86" },
-        x86_64: { target_arch = "x86_64" },
-        aarch64: { target_arch = "aarch64" },
-        wasm: { target_arch = "wasm32" },
+use winres::WindowsResource;
 
-        native: { not(target_arch = "wasm32") },
+fn main() -> std::io::Result<()> {
+    let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    let assets = root.join("assets");
+    let ico = assets.join("BlackOps.ico");
+
+    if std::env::var_os("CARGO_CFG_WINDOWS").is_some() {
+        if ico.exists() {
+            WindowsResource::new()
+                // This path can be absolute, or relative to your crate root.
+                .set_icon(&ico.to_string_lossy())
+                .set("InternalName", "Open T5 SP")
+                .compile()?;
+        }
+        Ok(())
+    } else if std::env::var_os("CARGO_CFG_LINUX").is_some() {
+        // TODO - create .desktop file
+        Ok(())
+    } else if std::env::var_os("CARGO_CFG_MACOS").is_some() {
+        let debug_mode = std::env::var("DEBUG").is_ok();
+        let profile = if debug_mode { "debug" } else { "release" };
+        let build = PathBuf::from(std::env::var("CARGO_TARGET_DIR").unwrap())
+            .join(profile);
+        let app = build.join("OpenT5 SP.app");
+        let contents = app.clone().join("Contents");
+        let macos = contents.join("MacOS");
+        let bin_name = std::env::var_os("CARGO_BIN_NAME").unwrap();
+        let bin = build.join(bin_name.clone());
+        match std::fs::create_dir(app.clone()) {
+            Ok(_) => {
+                std::fs::create_dir(contents.clone())?;
+                std::fs::copy(
+                    assets.join("Info.plist"),
+                    contents.clone().join("Info.plist"),
+                )?;
+                std::fs::create_dir(macos.clone())?;
+                std::fs::copy(bin, macos.join(bin_name))?;
+                let resources = contents.join("Resources");
+                if ico.exists() {
+                    // TODO - make sure we don't have to do any format
+                    // conversion for the icon
+                    std::fs::copy(
+                        assets.join("BlackOps.ico"),
+                        resources.join("AppIcons.icns"),
+                    )?;
+                }
+            }
+            // If create_dir fails, it might be because the bundle
+            // already exists
+            Err(e) => {
+                match e.kind() {
+                    // If the bundle already exists, just copy the new
+                    // executable and leave the rest alone
+                    std::io::ErrorKind::AlreadyExists => {
+                        std::fs::remove_file(macos.join(bin_name.clone()))?;
+                        std::fs::copy(bin, macos.join(bin_name))?;
+                    }
+                    // Otherwise, just fail
+                    _ => return Err(e),
+                }
+            }
+        }
+
+        Ok(())
+    } else {
+        Ok(())
     }
 }

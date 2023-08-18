@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "Running pre-commit hook..."
+
 HAS_ISSUES=0
 FIRST_FILE=1
 
