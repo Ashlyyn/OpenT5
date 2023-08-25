@@ -52,7 +52,7 @@ cfg_if! {
         use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
         use windows::Win32::Foundation::HWND;
-        use windows::Win32::System::Performance::QueryPerformanceCounter;
+        use windows::Win32::System::Performance::QueryPerformanceFrequency;
         use windows::Win32::System::Threading::Sleep;
         use windows::Win32::UI::WindowsAndMessaging::{
             MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
@@ -121,6 +121,8 @@ cfg_if! {
         use std::ffi::OsStr;
     } else if #[cfg(macos)] {
         use std::ffi::CString;
+        use cstr::cstr;
+        use core::mem::size_of_val;
     }
 }
 
@@ -673,6 +675,8 @@ pub fn detect_video_card() -> String {
 
 #[cfg(vulkan)]
 pub fn detect_video_card() -> String {
+    use std::ffi::CStr;
+
     use ash::{vk, Entry};
 
     let entry = unsafe { Entry::load().unwrap() };
@@ -696,19 +700,67 @@ pub fn detect_video_card() -> String {
         .to_string()
 }
 
-cfg_if! {
-    if #[cfg(windows)] {
-        fn seconds_per_tick() -> f64 {
-            unsafe { Sleep(0) };
-            let mut frequency = 0i64;
-            unsafe { QueryPerformanceCounter(addr_of_mut!(frequency)) };
-            1.0f64 / frequency as f64
-        }
-    } else {
-        fn seconds_per_tick() -> f64 {
-            todo!()
-        }
+#[cfg(windows)] 
+fn seconds_per_tick() -> f64 {
+    unsafe { Sleep(0) };
+    let mut frequency = 0i64;
+    unsafe { QueryPerformanceFrequency(addr_of_mut!(frequency)) };
+    1.0f64 / frequency as f64
+}
+
+#[cfg(linux)]
+fn seconds_per_tick() -> f64 {
+    use std::{io::BufReader, ffi::CString};
+
+    use sscanf::scanf;
+
+    let Ok(cpuinfo) = File::open("/proc/cpuinfo") else {
+        return 0.0f64;
+    };
+
+    // We can't just use std::fs::read_to_string since there's no *guarantee*
+    // the contents of /proc/cpuinfo are valid UTF-8 (it probably is, but we
+    // don't want to rely on that). So instead, we read it into a CString and 
+    // use CString::to_string_lossy and parse whatever valid UTF-8 it gives.
+    let mut reader = BufReader::new(cpuinfo);
+    let mut buf = Vec::new();
+    if reader.read_to_end(&mut buf).is_err() {
+        return 0.0f64;
     }
+
+    let Ok(buf_str) = CString::from_vec_with_nul(buf) else {
+        return 0.0f64;
+    };
+
+    let s = buf_str.to_string_lossy();
+
+    let Some(line) = s.lines().find(|l| l.contains("cpu MHz")) else {
+        return 0.0f64;
+    };
+
+    let Ok(mhz) = scanf!(line, "cpu MHz         : {f64}") else {
+        return 0.0f64;
+    };
+
+    let hz = mhz * 1_000_000f64;
+
+    1.0f64 / hz
+}
+
+#[cfg(macos)]
+fn seconds_per_tick() -> f64 {
+    let mut hz = 0;
+    libc::sysctlbyname(cstr!("hw.cpufrequency").as_ptr(), addr_of_mut!(hz), size_of_val(&hz), core::ptr::null_mut(), 0);
+    if hz == 0 {
+        return 0.0f64;
+    }
+    
+    1.0f64 / hz as f64
+}
+
+#[cfg(any(other_unix, other_os, no_os))]
+fn seconds_per_tick() -> f64 {
+    todo!()
 }
 
 pub fn init_timing() {
