@@ -1404,7 +1404,7 @@ fn choose_monitor() -> MonitorHandle {
     MonitorHandle::Xlib(handle)
 }
 
-#[cfg(xlib)]
+#[cfg(all(xlib, not(vulkan)))]
 #[allow(clippy::undocumented_unsafe_blocks, clippy::cast_sign_loss)]
 fn get_monitor_dimensions() -> Option<(u32, u32)> {
     todo!()
