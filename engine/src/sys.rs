@@ -700,7 +700,7 @@ pub fn detect_video_card() -> String {
         .to_string()
 }
 
-#[cfg(windows)] 
+#[cfg(windows)]
 fn seconds_per_tick() -> f64 {
     unsafe { Sleep(0) };
     let mut frequency = 0i64;
@@ -710,7 +710,7 @@ fn seconds_per_tick() -> f64 {
 
 #[cfg(linux)]
 fn seconds_per_tick() -> f64 {
-    use std::{io::BufReader, ffi::CString};
+    use std::{ffi::CString, io::BufReader};
 
     use sscanf::scanf;
 
@@ -720,7 +720,7 @@ fn seconds_per_tick() -> f64 {
 
     // We can't just use std::fs::read_to_string since there's no *guarantee*
     // the contents of /proc/cpuinfo are valid UTF-8 (it probably is, but we
-    // don't want to rely on that). So instead, we read it into a CString and 
+    // don't want to rely on that). So instead, we read it into a CString and
     // use CString::to_string_lossy and parse whatever valid UTF-8 it gives.
     let mut reader = BufReader::new(cpuinfo);
     let mut buf = Vec::new();
@@ -750,11 +750,17 @@ fn seconds_per_tick() -> f64 {
 #[cfg(macos)]
 fn seconds_per_tick() -> f64 {
     let mut hz = 0;
-    libc::sysctlbyname(cstr!("hw.cpufrequency").as_ptr(), addr_of_mut!(hz), size_of_val(&hz), core::ptr::null_mut(), 0);
+    libc::sysctlbyname(
+        cstr!("hw.cpufrequency").as_ptr(),
+        addr_of_mut!(hz),
+        size_of_val(&hz),
+        core::ptr::null_mut(),
+        0,
+    );
     if hz == 0 {
         return 0.0f64;
     }
-    
+
     1.0f64 / hz as f64
 }
 
