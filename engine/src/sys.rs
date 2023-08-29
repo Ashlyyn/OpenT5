@@ -5,7 +5,7 @@ extern crate alloc;
 use crate::{
     cl::Connstate,
     platform::{display_server::target::WindowHandleExt, WindowHandle},
-    util::{EasierAtomicBool, SignalState, SmpEvent},
+    util::{EasierAtomic, EasierAtomicBool, SignalState, SmpEvent},
     *,
 };
 use num_derive::FromPrimitive;
@@ -23,64 +23,80 @@ use std::{
     path::PathBuf,
     sync::{Mutex, RwLock},
     thread::{JoinHandle, ThreadId},
-    time::{SystemTime, UNIX_EPOCH},
 };
+
+#[cfg(not(windows))]
+use std::time::{SystemTime, UNIX_EPOCH};
+
+#[allow(unused_imports)]
+use core::ffi::CStr;
+
+use alloc::ffi::CString;
+use core::{
+    mem::{size_of_val, transmute},
+    ptr::{addr_of, addr_of_mut},
+};
+use platform::{
+    os::win32::{con_wnd_proc, input_line_wnd_proc},
+    FontHandle,
+};
+use std::{fs::OpenOptions, os::windows::prelude::*};
 
 cfg_if! {
     if #[cfg(windows)] {
-        use platform::os::win32::{con_wnd_proc, input_line_wnd_proc};
-        use platform::FontHandle;
-        use core::ffi::{CStr};
-        use alloc::ffi::CString;
-        use core::mem::{transmute, size_of_val};
-        use core::ptr::{addr_of, addr_of_mut};
-        use std::fs::OpenOptions;
-        use std::os::windows::prelude::*;
-        use windows::Win32::Foundation::MAX_PATH;
-        use windows::Win32::System::LibraryLoader::GetModuleFileNameA;
-        use windows::Win32::System::SystemInformation::{
-            MEMORYSTATUS, GlobalMemoryStatus, SYSTEM_INFO, GetNativeSystemInfo
-        };
-        use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_HIDDEN;
-        use windows::core::PCSTR;
-        use windows::Win32::System::Diagnostics::Debug::OutputDebugStringA;
-        use windows::Win32::UI::WindowsAndMessaging::{
-            PeekMessageA, MSG, PM_NOREMOVE,
-            GetMessageA, TranslateMessage, DispatchMessageA,
-        };
-        use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
-        use windows::Win32::UI::WindowsAndMessaging::ShowWindow;
-        use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
-        use windows::Win32::Foundation::HWND;
-        use windows::Win32::System::Performance::QueryPerformanceFrequency;
-        use windows::Win32::System::Threading::Sleep;
-        use windows::Win32::UI::WindowsAndMessaging::{
-            MessageBoxA, IDCANCEL, IDNO, IDOK, IDYES,
-            MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO, MB_YESNOCANCEL,
-            MESSAGEBOX_STYLE,
-        };
         use windows::{
-            s,
+            core::PCSTR,
+            s, w,
             Win32::{
-                Foundation::{LPARAM, RECT, WPARAM},
+                Media::timeGetTime,
+                Foundation::{HWND, LPARAM, MAX_PATH, RECT, WPARAM, CloseHandle},
                 Graphics::Gdi::{
-                    CreateFontA, GetDC, GetDeviceCaps, ReleaseDC, CLIP_DEFAULT_PRECIS,
-                    COLOR_WINDOW, DEFAULT_CHARSET, DEFAULT_PITCH, DEFAULT_QUALITY,
-                    FF_MODERN, FW_LIGHT, HBRUSH, HORZRES, LOGPIXELSY,
-                    OUT_DEFAULT_PRECIS, VERTRES,
+                    CreateFontW, GetDC, GetDeviceCaps, ReleaseDC,
+                    CLIP_DEFAULT_PRECIS, COLOR_WINDOW, DEFAULT_CHARSET,
+                    DEFAULT_PITCH, DEFAULT_QUALITY, FF_MODERN, FW_LIGHT,
+                    HBRUSH, HORZRES, LOGPIXELSY, OUT_DEFAULT_PRECIS, VERTRES,
                 },
-                System::{LibraryLoader::GetModuleHandleA, WindowsProgramming::MulDiv},
+                Storage::FileSystem::FILE_ATTRIBUTE_HIDDEN,
+                System::{
+                    Diagnostics::{
+                        Debug::OutputDebugStringA,
+                        ToolHelp::{
+                            CreateToolhelp32Snapshot, TH32CS_SNAPMODULE,
+                            MODULEENTRY32W, Module32FirstW, Module32NextW
+                        }
+                    },
+                    LibraryLoader::{
+                        GetModuleFileNameA,
+                        GetModuleFileNameW,
+                        GetModuleHandleA
+                    },
+                    Performance::QueryPerformanceFrequency,
+                    SystemInformation::{
+                        GetNativeSystemInfo, GlobalMemoryStatus, MEMORYSTATUS,
+                        SYSTEM_INFO,
+                    },
+                    Threading::{OpenProcess, PROCESS_ALL_ACCESS, Sleep},
+                    WindowsProgramming::MulDiv,
+                },
                 UI::{
                     Controls::EM_LINESCROLL,
+                    Input::KeyboardAndMouse::SetFocus,
                     WindowsAndMessaging::{
-                        AdjustWindowRect, CloseWindow, CreateWindowExA, DestroyWindow,
-                        GetDesktopWindow, LoadCursorA, LoadIconA, LoadImageA,
-                        RegisterClassA, SendMessageA, SetWindowLongPtrA,
-                        SetWindowTextA, ES_AUTOHSCROLL, ES_AUTOVSCROLL, ES_MULTILINE,
-                        ES_READONLY, GWLP_WNDPROC, HMENU, IDC_ARROW, IMAGE_BITMAP,
-                        LR_LOADFROMFILE, STM_SETIMAGE, SW_HIDE, WINDOW_EX_STYLE,
-                        WINDOW_STYLE, WM_SETFONT, WNDCLASSA, WS_BORDER, WS_CAPTION,
-                        WS_CHILD, WS_POPUPWINDOW, WS_VISIBLE, WS_VSCROLL,
+                        AdjustWindowRect, CloseWindow, CreateWindowExA,
+                        DestroyWindow, DispatchMessageA, GetDesktopWindow,
+                        GetMessageA, LoadCursorA, LoadIconA, LoadImageA,
+                        MessageBoxA, PeekMessageA, RegisterClassA,
+                        SendMessageA, SetWindowLongPtrA, SetWindowTextA,
+                        ShowWindow, TranslateMessage, ES_AUTOHSCROLL,
+                        ES_AUTOVSCROLL, ES_MULTILINE, ES_READONLY,
+                        GWLP_WNDPROC, HMENU, IDCANCEL, IDC_ARROW, IDNO, IDOK,
+                        IDYES, IMAGE_BITMAP, LR_LOADFROMFILE,
+                        MB_ICONINFORMATION, MB_ICONSTOP, MB_OK, MB_YESNO,
+                        MB_YESNOCANCEL, MESSAGEBOX_STYLE, MSG, PM_NOREMOVE,
+                        STM_SETIMAGE, SW_HIDE, SW_SHOW, WINDOW_EX_STYLE,
+                        WINDOW_STYLE, WM_SETFONT, WNDCLASSA, WS_BORDER,
+                        WS_CAPTION, WS_CHILD, WS_POPUPWINDOW, WS_VISIBLE,
+                        WS_VSCROLL,
                     },
                 },
             },
@@ -132,7 +148,10 @@ use platform::arch::x86::target::cpuid;
 cfg_if! {
     if #[cfg(d3d9)] {
         use cstr::cstr;
-        use windows::Win32::Graphics::Direct3D9::{Direct3DCreate9, D3D_SDK_VERSION, D3DADAPTER_IDENTIFIER9, D3DADAPTER_DEFAULT};
+        use windows::Win32::Graphics::Direct3D9::{
+            Direct3DCreate9, D3D_SDK_VERSION, D3DADAPTER_IDENTIFIER9,
+            D3DADAPTER_DEFAULT
+        };
     } else if #[cfg(vulkan)] {
         use cstr::cstr;
     }
@@ -223,11 +242,25 @@ lazy_static! {
     pub static ref TIME_BASE: AtomicIsize = AtomicIsize::new(0);
 }
 
+#[cfg(windows)]
+pub fn milliseconds() -> isize {
+    if BASE_TIME_ACQUIRED.load(SeqCst) == false {
+        let now = unsafe { timeGetTime() };
+        TIME_BASE.store_relaxed(now as _);
+        BASE_TIME_ACQUIRED.store_relaxed(true);
+    }
+
+    let now = unsafe { timeGetTime() };
+    now as isize - TIME_BASE.load_relaxed()
+}
+
+#[cfg(not(windows))]
 pub fn milliseconds() -> isize {
     if BASE_TIME_ACQUIRED.load(SeqCst) == false {
         let now = SystemTime::now();
         let time = now.duration_since(UNIX_EPOCH).unwrap().as_millis();
         TIME_BASE.store(time.try_into().unwrap(), SeqCst);
+        BASE_TIME_ACQUIRED.store_relaxed(true);
     }
 
     let time: isize = SystemTime::now()
@@ -262,7 +295,7 @@ pub fn get_executable_name() -> String {
 #[cfg(linux)]
 pub fn get_executable_name() -> String {
     let pid = std::process::id();
-    let proc_path = format!("/proc/{}/exe", pid);
+    let proc_path = format!("/proc/{pid}/exe");
     std::fs::read_link(proc_path).map_or_else(
         |_| String::new(),
         |f| {
@@ -390,7 +423,48 @@ pub fn no_free_files_error() -> ! {
     std::process::exit(-1);
 }
 
-// TODO - implement
+#[cfg(windows)]
+fn is_game_process(pid: u32) -> bool {
+    let Ok(hprocess) = (unsafe { OpenProcess(PROCESS_ALL_ACCESS, false, pid) })
+    else {
+        return false;
+    };
+
+    unsafe { CloseHandle(hprocess) };
+
+    let Ok(hsnapshot) =
+        (unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid) })
+    else {
+        return false;
+    };
+
+    let mut me = MODULEENTRY32W::default();
+    me.dwSize = size_of_val(&me) as _;
+    if unsafe { Module32FirstW(hsnapshot, addr_of_mut!(me)) }.0 != 0 {
+        let mut buf = [0u16; MAX_PATH as _];
+        unsafe { GetModuleFileNameW(None, &mut buf) };
+        buf[buf.len() - 1] = 0x0000;
+        let filename = PathBuf::from(String::from_utf16_lossy(&buf));
+        let exe = filename.file_name().unwrap();
+        let ret = loop {
+            if String::from_utf16_lossy(&me.szModule) == exe.to_string_lossy() {
+                break true;
+            }
+
+            if unsafe { Module32NextW(hsnapshot, addr_of_mut!(me)) }.0 == 0 {
+                break false;
+            }
+        };
+
+        unsafe { CloseHandle(hsnapshot) };
+
+        ret
+    } else {
+        false
+    }
+}
+
+#[cfg(not(windows))]
 const fn is_game_process(_pid: u32) -> bool {
     true
 }
@@ -675,8 +749,6 @@ pub fn detect_video_card() -> String {
 
 #[cfg(vulkan)]
 pub fn detect_video_card() -> String {
-    use std::ffi::CStr;
-
     use ash::{vk, Entry};
 
     let entry = unsafe { Entry::load().unwrap() };
@@ -1658,7 +1730,7 @@ pub fn create_console() {
     let hdc = unsafe { GetDC(hwnd) };
     let font_height = unsafe { MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72) };
     conbuf::s_wcd_mut().buffer_font = Some(FontHandle(unsafe {
-        CreateFontA(
+        CreateFontW(
             font_height,
             0,
             0,
@@ -1672,7 +1744,7 @@ pub fn create_console() {
             CLIP_DEFAULT_PRECIS.0 as _,
             DEFAULT_QUALITY.0 as _,
             DEFAULT_PITCH.0 as u32 + FF_MODERN.0 as u32,
-            s!("Courier New"),
+            w!("Courier New"),
         )
         .0
     }));
