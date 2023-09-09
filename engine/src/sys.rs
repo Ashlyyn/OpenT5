@@ -504,7 +504,43 @@ fn is_game_process(pid: u32) -> bool {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(linux)]
+fn is_game_process(pid: u32) -> bool {
+    let this_pid = std::process::id();
+    let this_proc_path = format!("/proc/{this_pid}/exe");
+    let this = std::fs::read_link(this_proc_path).map_or_else(
+        |_| String::new(),
+        |f| {
+            let file_name = f
+                .file_name()
+                .unwrap_or_else(|| OsStr::new(""))
+                .to_str()
+                .unwrap_or("")
+                .to_owned();
+            let pos = file_name.find('.').unwrap_or(file_name.len());
+            file_name.get(..pos).unwrap().to_owned()
+        },
+    );
+
+    let other_proc_path = format!("/proc/{pid}/exe");
+    let other = std::fs::read_link(other_proc_path).map_or_else(
+        |_| String::new(),
+        |f| {
+            let file_name = f
+                .file_name()
+                .unwrap_or_else(|| OsStr::new(""))
+                .to_str()
+                .unwrap_or("")
+                .to_owned();
+            let pos = file_name.find('.').unwrap_or(file_name.len());
+            file_name.get(..pos).unwrap().to_owned()
+        },
+    );
+
+    this == other
+}
+
+#[cfg(not(any(windows, linux)))]
 const fn is_game_process(_pid: u32) -> bool {
     true
 }
