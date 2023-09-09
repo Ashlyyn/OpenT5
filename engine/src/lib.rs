@@ -4,6 +4,7 @@
 #![feature(int_roundings)]
 #![feature(const_fn_floating_point_arithmetic)]
 #![feature(const_trait_impl)]
+#![feature(let_chains)]
 #![warn(
     clippy::all,
     clippy::restriction,
