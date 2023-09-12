@@ -24,7 +24,6 @@ use lazy_static::lazy_static;
 use std::path::Path;
 #[allow(unused_imports)]
 use std::{
-    fs::File,
     io::{Read, Write},
     path::PathBuf,
     sync::{Mutex, RwLock},
@@ -142,7 +141,6 @@ cfg_if! {
         use gtk4::builders::MessageDialogBuilder;
         use core::cell::RefCell;
         use std::ffi::OsStr;
-        use std::io::BufReader;
         use std::io::BufReader;
     } else if #[cfg(macos)] {
         use std::ffi::CString;
@@ -560,7 +558,7 @@ pub fn check_crash_or_rerun() -> bool {
     let semaphore_file_exists = semaphore_file_path.exists();
 
     if semaphore_file_exists {
-        if let Ok(mut f) = File::open(semaphore_file_path.clone()) {
+        if let Ok(mut f) = std::fs::File::open(semaphore_file_path.clone()) {
             let mut buf = [0u8; 4];
             if let Ok(4) = f.read(&mut buf) {
                 // let pid_read = u32::from_ne_bytes(buf);
@@ -596,13 +594,14 @@ pub fn check_crash_or_rerun() -> bool {
     // already have been done by get_semaphore_file_name.
     cfg_if! {
         if #[cfg(windows)] {
-            let file = OpenOptions::new()
+            let file = std::fs::File::options()
                 .write(true)
                 .create(true)
                 .attributes(FILE_ATTRIBUTE_HIDDEN.0)
+                .create(true)
                 .open(semaphore_file_path);
         } else {
-            let file = File::create(semaphore_file_path);
+            let file = std::fs::File::create(semaphore_file_path);
         }
     }
 
@@ -860,7 +859,7 @@ fn seconds_per_tick() -> f64 {
 
 #[cfg(linux)]
 fn seconds_per_tick() -> f64 {
-    let Ok(cpuinfo) = File::open("/proc/cpuinfo") else {
+    let Ok(cpuinfo) = std::fs::File::open("/proc/cpuinfo") else {
         return 0.0f64;
     };
 
