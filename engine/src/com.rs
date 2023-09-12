@@ -13,7 +13,6 @@ use std::{
 };
 extern crate alloc;
 use alloc::sync::Arc;
-use cfg_if::cfg_if;
 
 pub static ERROR_ENTERED: AtomicBool = AtomicBool::new(false);
 
@@ -109,19 +108,91 @@ pub enum MessageType {
     Error,
 }
 
+// We put these in their own submodule so that, e.g., Rust Analyzer doesn't
+// see them. They still have to be public for their associated macros to work.
+
 #[doc(hidden)]
-#[allow(clippy::print_stdout, clippy::needless_pass_by_value)]
-pub fn _print_internal(
-    channel: Channel,
-    _message_type: MessageType,
-    arguments: core::fmt::Arguments,
-) {
-    if channel.get() > 32 {
-        return;
+pub mod _internals {
+    use crate::util::EasierAtomic;
+    use cfg_if::cfg_if;
+
+    #[doc(hidden)]
+    #[allow(clippy::print_stdout, clippy::needless_pass_by_value)]
+    pub fn _print(
+        channel: super::Channel,
+        _message_type: super::MessageType,
+        arguments: core::fmt::Arguments,
+    ) {
+        if channel.get() > 32 {
+            return;
+        }
+
+        std::print!("({}) - {}", channel.get(), arguments);
     }
 
-    std::print!("({}) - {}", channel.get(), arguments);
+    cfg_if! {
+        if #[cfg(debug_assertions)] {
+            #[doc(hidden)]
+            pub fn _dprint(channel: super::Channel, arguments: core::fmt::Arguments) {
+                _print(channel, super::MessageType::Print, arguments);
+            }
+        } else {
+            pub fn _dprint(_channel: Channel, _arguments: core::fmt::Arguments) {
+
+            }
+        }
+    }
+
+    #[doc(hidden)]
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn _warn(channel: super::Channel, arguments: core::fmt::Arguments) {
+        _print(
+            channel,
+            super::MessageType::Warn,
+            format_args!("^3{}", arguments),
+        );
+    }
+
+    #[doc(hidden)]
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn _print_error(
+        channel: super::Channel,
+        arguments: core::fmt::Arguments,
+    ) {
+        let prefix = if arguments.to_string().contains("error") {
+            "^1Error: "
+        } else {
+            "^1"
+        };
+
+        super::COM_ERROR_PRINTS_COUNT.increment_wrapping();
+        _print(
+            channel,
+            super::MessageType::Error,
+            format_args!("{}{}", prefix, arguments),
+        );
+    }
+
+    // Also needs to be actually implemented
+    // Currently just a wrapper for panic
+    #[allow(clippy::panic, clippy::needless_pass_by_value)]
+    #[doc(hidden)]
+    pub fn _error(err_type: super::ErrorParm, arguments: core::fmt::Arguments) {
+        panic!("{} ({:?})", arguments, err_type);
+    }
 }
+
+// For some reason, rustc doesn't like creating macros named `print!` and
+// `println!` (and probably other stdlib macros too), but naming them an unused
+// name (in this case, adding two leading underscores) and then exporting them
+// as `print!` and `println!` works just fine.
+//
+// The `print!` and `println!` macros defined here also have a naming collision
+// with the `print!` and `println!` macros defined in `sys`. Thus, we prefix
+// them with `com` to differentiate them from their `sys` cousins. The other
+// macros defined here, while not strictly needing the `com` prefix since they
+// have no equivalents in `sys`, are defined with said prefix to keep them
+// consistent with `print!` and `println!`.
 
 /// Prints text.
 ///
@@ -138,12 +209,12 @@ pub fn _print_internal(
 /// com::print!("Hello to com!");
 /// ```
 #[macro_export]
-macro_rules! __print {
+macro_rules! __com_print {
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_print_internal($channel, $crate::com::MessageType::Print, core::format_args!($($arg)*));
+        $crate::com::_internals::_print($channel, $crate::com::MessageType::Print, core::format_args!($($arg)*));
     }};
 }
-pub use __print as print;
+pub use __com_print as print;
 
 /// Prints text with a newline.
 ///
@@ -160,7 +231,7 @@ pub use __print as print;
 /// com::println!("Hello to com!");
 /// ```
 #[macro_export]
-macro_rules! __println {
+macro_rules! __com_println {
     ($channel:expr) => {
         $crate::com::print!($channel, "\n")
     };
@@ -168,20 +239,7 @@ macro_rules! __println {
         $crate::com::print!($channel, "{}\n", core::format_args!($($arg)*));
     }};
 }
-pub use __println as println;
-
-cfg_if! {
-    if #[cfg(debug_assertions)] {
-        #[doc(hidden)]
-        pub fn _dprint(channel: Channel, arguments: core::fmt::Arguments) {
-            _print_internal(channel, MessageType::Print, arguments);
-        }
-    } else {
-        pub fn _dprint(_channel: Channel, _arguments: core::fmt::Arguments) {
-
-        }
-    }
-}
+pub use __com_println as println;
 
 /// Prints text if the executable is compiled in debug mode.
 ///
@@ -200,13 +258,13 @@ cfg_if! {
 /// com::dprint!("Hello to com from debug mode!");
 /// ```
 #[macro_export]
-macro_rules! __dprint {
+macro_rules! __com_dprint {
     ($channel:expr, $($arg:tt)*) => {{
         $crate::com::_dprint($channel, core::format_args!($($arg)*));
     }};
 }
 #[allow(unused_imports)]
-pub use __dprint as dprint;
+pub use __com_dprint as dprint;
 
 /// Prints text with a newline appended if the executable is compiled
 /// in debug mode.
@@ -226,7 +284,7 @@ pub use __dprint as dprint;
 /// com::dprintln!("Hello to com from debug mode!");
 /// ```
 #[macro_export]
-macro_rules! __dprintln {
+macro_rules! __com_dprintln {
     ($channel:expr) => {
         $crate::com::dprint!($channel, "\n")
     };
@@ -234,17 +292,7 @@ macro_rules! __dprintln {
         $crate::com::dprint!($channel, "{}\n", core::format_args!($($arg)*));
     }};
 }
-pub use __dprintln as dprintln;
-
-#[doc(hidden)]
-#[allow(clippy::needless_pass_by_value)]
-pub fn _warn(channel: Channel, arguments: core::fmt::Arguments) {
-    _print_internal(
-        channel,
-        MessageType::Warn,
-        format_args!("^3{}", arguments),
-    );
-}
+pub use __com_dprintln as dprintln;
 
 /// Prints a warning.
 ///
@@ -259,13 +307,13 @@ pub fn _warn(channel: Channel, arguments: core::fmt::Arguments) {
 /// ```
 /// com::warn!("Warning to com!");
 /// ```
-macro_rules! __warn {
+macro_rules! __com_warn {
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_warn($channel, core::format_args!($($arg)*));
+        $crate::com::_internals::_warn($channel, core::format_args!($($arg)*));
     }};
 }
 #[allow(unused_imports)]
-pub(crate) use __warn as warn;
+pub(crate) use __com_warn as warn;
 
 /// Prints a warning with a newline appended.
 ///
@@ -280,7 +328,7 @@ pub(crate) use __warn as warn;
 /// ```
 /// com::warnln!("Warning to com!");
 /// ```
-macro_rules! __warnln {
+macro_rules! __com_warnln {
     ($channel:expr) => {
         $crate::com::warn!(channel, "\n")
     };
@@ -288,26 +336,9 @@ macro_rules! __warnln {
         $crate::com::warn!($channel, "{}\n", core::format_args!($($arg)*));
     }};
 }
-pub(crate) use __warnln as warnln;
+pub(crate) use __com_warnln as warnln;
 
 static COM_ERROR_PRINTS_COUNT: AtomicUsize = AtomicUsize::new(0);
-
-#[doc(hidden)]
-#[allow(clippy::needless_pass_by_value)]
-pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
-    let prefix = if arguments.to_string().contains("error") {
-        "^1Error: "
-    } else {
-        "^1"
-    };
-
-    COM_ERROR_PRINTS_COUNT.increment_wrapping();
-    _print_internal(
-        channel,
-        MessageType::Error,
-        format_args!("{}{}", prefix, arguments),
-    );
-}
 
 /// Prints an error.
 ///
@@ -322,13 +353,13 @@ pub fn _print_error(channel: Channel, arguments: core::fmt::Arguments) {
 /// ```
 /// com::print_error!("Error to com!");
 /// ```
-macro_rules! __print_error {
+macro_rules! __com_print_error {
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_print_error($channel, core::format_args!($($arg)*));
+        $crate::com::_internals::_print_error($channel, core::format_args!($($arg)*));
     }};
 }
 #[allow(unused_imports)]
-pub(crate) use __print_error as print_error;
+pub(crate) use __com_print_error as print_error;
 
 /// Prints an error with a newline appended.
 ///
@@ -343,7 +374,7 @@ pub(crate) use __print_error as print_error;
 /// ```
 /// com::print_errorln!("Error to com!");
 /// ```
-macro_rules! __print_errorln {
+macro_rules! __com_print_errorln {
     ($channel:expr) => {
         $crate::com::print_error!(channel, "\n")
     };
@@ -351,7 +382,7 @@ macro_rules! __print_errorln {
         $crate::com::print_error!($channel, "{}\n", core::format_args!($($arg)*));
     }};
 }
-pub(crate) use __print_errorln as print_errorln;
+pub(crate) use __com_print_errorln as print_errorln;
 
 lazy_static! {
     static ref LOG_FILE: Arc<RwLock<Option<File>>> =
@@ -363,14 +394,6 @@ pub fn log_file_open() -> bool {
     return LOG_FILE.clone().read().unwrap().is_some();
 }
 
-// Also needs to be actually implemented
-// Currently just a wrapper for panic
-#[allow(clippy::panic, clippy::needless_pass_by_value)]
-#[doc(hidden)]
-pub fn _error_internal(err_type: ErrorParm, arguments: core::fmt::Arguments) {
-    panic!("{} ({:?})", arguments, err_type);
-}
-
 /// Throws an error. Not the same as [`com::print_error!`].
 ///
 /// # Panics
@@ -380,15 +403,15 @@ pub fn _error_internal(err_type: ErrorParm, arguments: core::fmt::Arguments) {
 /// # Example
 ///
 /// ```
-/// com::error!("Error to com!");
+/// com::error!(com::ErrorParm::FATAL, "Error to com!");
 /// ```
-macro_rules! __error {
+macro_rules! __com_error {
     ($err_parm:expr, $($arg:tt)*) => {{
-        $crate::com::_error_internal($err_parm, core::format_args!($($arg)*));
+        $crate::com::_internals::_error($err_parm, core::format_args!($($arg)*));
     }};
 }
 #[allow(unused_imports)]
-pub(crate) use __error as error;
+pub(crate) use __com_error as error;
 
 /// Throws an error with a newline appended. Not the same as
 /// [`com::print_error!`].
@@ -400,9 +423,9 @@ pub(crate) use __error as error;
 /// # Example
 ///
 /// ```
-/// com::errorln!("Error to com!");
+/// com::errorln!(com::ErrorParm::FATAL, "Error to com!");
 /// ```
-macro_rules! __errorln {
+macro_rules! __com_errorln {
     ($err_parm:expr) => {
         $crate::com::error!($err_parm, "\n")
     };
@@ -410,7 +433,7 @@ macro_rules! __errorln {
         $crate::com::error!($err_parm, "{}\n", core::format_args!($($arg)*));
     }};
 }
-pub(crate) use __errorln as errorln;
+pub(crate) use __com_errorln as errorln;
 
 // Implement these two later
 // (not integral to the program, look annoying to implement)

@@ -31,6 +31,7 @@ raw-window-handle = "0.5.0"
 sscanf = "0.4.1"
 gilrs = "0.10.0"
 cstr = "0.2.11"
+zip = "0.6.6"
 ash = { version = "0.37.3", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]

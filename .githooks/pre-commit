@@ -4,4 +4,5 @@ echo "Running pre-commit hook..."
 
 cargo fmt --check \
     || (echo "Commit denied: Some files haven't been formatted.\
- Format and retry." && exit 1)
+ Format and retry." && exit 1) \
+    && echo "Hook passed."

@@ -8,15 +8,21 @@ use crate::{
     util::{EasierAtomic, EasierAtomicBool, SignalState, SmpEvent},
     *,
 };
+
+#[allow(unused_imports)]
 use num_derive::FromPrimitive;
 
 use alloc::collections::VecDeque;
+#[allow(unused_imports)]
 use cfg_if::cfg_if;
 use core::{
     fmt::Display,
     sync::atomic::{AtomicBool, AtomicIsize, Ordering::SeqCst},
 };
+#[allow(unused_imports)]
 use lazy_static::lazy_static;
+use std::path::Path;
+#[allow(unused_imports)]
 use std::{
     fs::File,
     io::{Read, Write},
@@ -29,18 +35,17 @@ use std::{
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[allow(unused_imports)]
-use core::ffi::CStr;
-
 use alloc::ffi::CString;
+#[allow(unused_imports)]
+use core::ffi::CStr;
+#[allow(unused_imports)]
 use core::{
     mem::{size_of_val, transmute},
     ptr::{addr_of, addr_of_mut},
 };
-use platform::{
-    os::win32::{con_wnd_proc, input_line_wnd_proc},
-    FontHandle,
-};
-use std::{fs::OpenOptions, os::windows::prelude::*};
+
+#[allow(unused_imports)]
+use std::fs::OpenOptions;
 
 cfg_if! {
     if #[cfg(windows)] {
@@ -101,6 +106,11 @@ cfg_if! {
                 },
             },
         };
+        use std::os::windows::prelude::*;
+        use platform::{
+            os::win32::{con_wnd_proc, input_line_wnd_proc},
+            FontHandle,
+        };
     } else if #[cfg(xlib)] {
         use x11::xlib::{
             CurrentTime, RevertToParent, XMapWindow, XOpenDisplay,
@@ -110,8 +120,6 @@ cfg_if! {
         use platform::display_server::target::{
             WindowEventExtXlib, XlibContext, WM_DELETE_WINDOW
         };
-        use util::EasierAtomic;
-        use core::ptr::addr_of_mut;
     } else if #[cfg(appkit)] {
         use platform::display_server::appkit::AppKitWindowHandleExt;
         use icrate::{
@@ -119,7 +127,6 @@ cfg_if! {
             Foundation::{NSDefaultRunLoopMode, NSDate, NSString}
         };
         use objc2::ffi::NSUIntegerMax;
-        use core::ptr::addr_of_mut;
     }
 }
 
@@ -135,6 +142,7 @@ cfg_if! {
         use gtk4::builders::MessageDialogBuilder;
         use core::cell::RefCell;
         use std::ffi::OsStr;
+        use std::io::BufReader;
         use std::io::BufReader;
     } else if #[cfg(macos)] {
         use std::ffi::CString;
@@ -271,6 +279,38 @@ pub fn milliseconds() -> isize {
         .try_into()
         .unwrap();
     time - TIME_BASE.load(SeqCst)
+}
+
+pub fn directory_has_contents(dir: impl AsRef<Path>) -> bool {
+    if let Ok(mut d) = dir.as_ref().read_dir() {
+        d.next().is_none()
+    } else {
+        false
+    }
+}
+
+pub fn list_files(
+    dir: impl AsRef<Path>,
+    ext: impl AsRef<str>,
+    _filter: impl AsRef<str>,
+    _pure: bool,
+) -> Vec<PathBuf> {
+    if let Ok(d) = dir.as_ref().read_dir() {
+        d.filter(|d| d.is_ok())
+            .map(|d| d.unwrap().path())
+            .filter(|d| {
+                if ext.as_ref() == "" {
+                    true
+                } else if let Some(e) = d.extension() {
+                    e == ext.as_ref()
+                } else {
+                    false
+                }
+            })
+            .collect()
+    } else {
+        Vec::new()
+    }
 }
 
 #[cfg(windows)]
@@ -580,7 +620,7 @@ pub fn check_crash_or_rerun() -> bool {
 }
 
 pub fn get_cmdline() -> String {
-    let mut cmd_line: String = String::new();
+    let mut cmd_line = String::new();
     std::env::args().for_each(|arg| {
         cmd_line.push_str(&arg);
     });
@@ -780,7 +820,7 @@ pub fn detect_video_card() -> String {
             .to_string_lossy()
             .to_string()
     } else {
-        return String::from("Unknown video card");
+        String::from("Unknown video card")
     }
 }
 
@@ -813,14 +853,13 @@ pub fn detect_video_card() -> String {
 fn seconds_per_tick() -> f64 {
     unsafe { Sleep(0) };
     let mut frequency = 0i64;
-    unsafe { QueryPerformanceFrequency(addr_of_mut!(frequency)) };
+    let _ =
+        unsafe { QueryPerformanceFrequency(addr_of_mut!(frequency)) }.unwrap();
     1.0f64 / frequency as f64
 }
 
 #[cfg(linux)]
 fn seconds_per_tick() -> f64 {
-    use sscanf::scanf;
-
     let Ok(cpuinfo) = File::open("/proc/cpuinfo") else {
         return 0.0f64;
     };
@@ -831,23 +870,23 @@ fn seconds_per_tick() -> f64 {
     // use CString::to_string_lossy and parse whatever valid UTF-8 it gives.
     let mut reader = BufReader::new(cpuinfo);
     let mut buf = Vec::new();
-    if reader.read_to_end(&mut buf).is_err() {
-        return 0.0f64;
-    }
-
-    let Ok(buf_str) = CString::from_vec_with_nul(buf) else {
-        return 0.0f64;
-    };
-
+    let _ = reader.read_to_end(&mut buf).unwrap();
+    // The file isn't guaranteed to be null-terminated, so tack a
+    // null-terminator on here just in case
+    buf.push(b'\0');
+    let buf_str = CString::from_vec_with_nul(buf).unwrap();
     let s = buf_str.to_string_lossy();
 
-    let Some(line) = s.lines().find(|l| l.contains("cpu MHz")) else {
-        return 0.0f64;
-    };
+    // Now that we have some valid UTF-8, find the line containing the CPU
+    // frequency.
+    let mut lines = s.lines();
+    let line = lines.find(|l| l.contains("cpu MHz\t\t: ")).unwrap();
 
-    let Ok(mhz) = scanf!(line, "cpu MHz         : {f64}") else {
-        return 0.0f64;
-    };
+    // scanf! failed kept giving a MatchFailed error, so we're doing this the
+    // old fashioned way. split_whitespace will yield the frequency as its 3rd
+    // element
+    let toks = line.split_whitespace().collect::<Vec<_>>();
+    let mhz = toks[3].parse::<f64>().unwrap();
 
     let hz = mhz * 1_000_000f64;
 
@@ -2655,8 +2694,54 @@ pub fn handle_main_window_event(ev: WindowEvent) {
 
 static THREAD_ID: RwLock<[Option<ThreadId>; 15]> = RwLock::new([None; 15]);
 
+struct ThreadContext(usize);
+
+impl Display for ThreadContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self.0 {
+                0 => "Main",
+                1 => "Backend",
+                2 => "Worker0",
+                3 => "Worker1",
+                4 => "Worker2",
+                5 => "Worker3",
+                6 => "Worker4",
+                7 => "Worker5",
+                8 => "Worker6",
+                9 => "Worker7",
+                10 => "Server",
+                11 => "occlusion",
+                12 => "TitleServer",
+                13 => "Database",
+                14 => "Stream",
+                _ => unreachable!(),
+            }
+        )
+    }
+}
+
 fn get_current_thread_id() -> ThreadId {
     std::thread::current().id()
+}
+
+fn get_thread_context() -> ThreadContext {
+    let tid = get_current_thread_id();
+    let tids = THREAD_ID.read().unwrap();
+    for (i, t) in tids.iter().enumerate() {
+        if let Some(id) = *t && id == tid {
+            return ThreadContext(i);
+        }
+    }
+
+    com::println!(1.into(), "Current thread is not in thread table");
+    panic!()
+}
+
+pub fn get_current_thread_name() -> String {
+    get_thread_context().to_string()
 }
 
 pub fn init_main_thread() {
@@ -2666,6 +2751,21 @@ pub fn init_main_thread() {
 
 pub fn is_main_thread() -> bool {
     Some(get_current_thread_id()) == *THREAD_ID.read().unwrap().get(0).unwrap()
+}
+
+pub fn is_render_thread() -> bool {
+    Some(get_current_thread_id()) == *THREAD_ID.read().unwrap().get(1).unwrap()
+}
+pub fn is_server_thread() -> bool {
+    Some(get_current_thread_id()) == *THREAD_ID.read().unwrap().get(10).unwrap()
+}
+
+pub fn is_database_thread() -> bool {
+    Some(get_current_thread_id()) == *THREAD_ID.read().unwrap().get(13).unwrap()
+}
+
+pub fn is_stream_thread() -> bool {
+    Some(get_current_thread_id()) == *THREAD_ID.read().unwrap().get(14).unwrap()
 }
 
 pub fn notify_renderer() {

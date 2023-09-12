@@ -4,6 +4,7 @@
 #![feature(int_roundings)]
 #![feature(const_fn_floating_point_arithmetic)]
 #![feature(const_trait_impl)]
+#![feature(let_chains)]
 #![warn(
     clippy::all,
     clippy::restriction,
@@ -46,7 +47,7 @@
     clippy::self_named_module_files,
     clippy::equatable_if_let,
     clippy::pattern_type_mismatch,
-    clippy::semicolon_outside_block,
+    clippy::semicolon_inside_block,
     clippy::iter_nth_zero,
     clippy::missing_inline_in_public_items,
     clippy::semicolon_if_nothing_returned,
@@ -56,7 +57,12 @@
     clippy::question_mark_used,
     clippy::missing_assert_message,
     clippy::significant_drop_tightening,
-    clippy::impl_trait_in_params
+    clippy::impl_trait_in_params,
+    clippy::single_call_fn,
+    clippy::min_ident_chars,
+    clippy::field_reassign_with_default,
+    clippy::too_many_lines,
+    clippy::let_underscore_untyped
 )]
 #![deny(missing_debug_implementations, clippy::separated_literal_suffix)]
 
