@@ -5,6 +5,7 @@
 #![feature(const_fn_floating_point_arithmetic)]
 #![feature(const_trait_impl)]
 #![feature(let_chains)]
+#![feature(os_str_bytes)]
 #![warn(
     clippy::all,
     clippy::restriction,
