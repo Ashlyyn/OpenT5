@@ -447,7 +447,7 @@ fn handle_for_file(thread: Thread) -> std::io::Result<Fd> {
             .as_ref()
             .unwrap()
             .name()
-            .to_string_lossy()
+            .display()
     );
     com::warnln!(
         10.into(),
@@ -460,7 +460,7 @@ fn handle_for_file(thread: Thread) -> std::io::Result<Fd> {
             10.into(),
             "FILE {:2}: '{}'",
             i,
-            f.as_ref().unwrap().name().to_string_lossy()
+            f.as_ref().unwrap().name().display(),
         );
     }
 
@@ -624,8 +624,8 @@ fn add_game_directory(
                 com::warnln!(
                     10.into(),
                     "WARNING: game folder {}/{} added as both localized & non-localized. Using folder as {}",
-                    base.as_ref().to_string_lossy(),
-                    gamedir.to_string_lossy(),
+                    base.as_ref().display(),
+                    gamedir.display(),
                     s
                 );
             }
@@ -633,8 +633,8 @@ fn add_game_directory(
                 com::warnln!(
                     10.into(),
                     "WARNING: game folder {}/{} re-added as localized folder with different language", 
-                    base.as_ref().to_string_lossy(),
-                    gamedir.to_string_lossy()
+                    base.as_ref().display(),
+                    gamedir.display()
                 );
             }
             return Err(std::io::ErrorKind::Other.into());
@@ -799,9 +799,9 @@ fn open_file_read_for_thread(
                              '{}', {} (found in '{}/{}')",
                             sys::get_current_thread_name(),
                             fd.as_usize(),
-                            filename.as_ref().to_string_lossy(),
-                            dir.path.to_string_lossy(),
-                            dir.gamedir.to_string_lossy()
+                            filename.as_ref().display(),
+                            dir.path.display(),
+                            dir.gamedir.display()
                         );
                     }
 
@@ -856,8 +856,8 @@ fn open_file_read_for_thread(
                              '{}', {} (found in '{}')",
                             sys::get_current_thread_name(),
                             fd.as_usize(),
-                            filename.as_ref().to_string_lossy(),
-                            iwd_name.to_string_lossy()
+                            filename.as_ref().display(),
+                            iwd_name.display()
                         );
                     }
 
@@ -868,11 +868,7 @@ fn open_file_read_for_thread(
     }
 
     if dvar::get_int("fs_debug").unwrap() != 0 && thread == Thread::Main {
-        com::println!(
-            10.into(),
-            "Can't find {}",
-            filename.as_ref().to_string_lossy()
-        );
+        com::println!(10.into(), "Can't find {}", filename.as_ref().display());
     }
 
     if impure_iwd {
@@ -883,7 +879,7 @@ fn open_file_read_for_thread(
                 .as_ref()
                 .unwrap()
                 .name()
-                .to_string_lossy()
+                .display()
         );
     }
 
@@ -897,14 +893,14 @@ fn open_file_read_for_thread(
         com::println!(
             10.into(),
             "Error: {} must be in an IWD or not in the main directory",
-            filename.as_ref().to_string_lossy()
+            filename.as_ref().display()
         );
         return Err(std::io::ErrorKind::Other.into());
     } else {
         com::println!(
             10.into(),
             "Error: {} must be in an IWD",
-            filename.as_ref().to_string_lossy()
+            filename.as_ref().display()
         );
         return Err(std::io::ErrorKind::Other.into());
     }
@@ -947,11 +943,7 @@ pub fn open_file_append(filename: impl AsRef<Path>) -> std::io::Result<Fd> {
         &filename,
     );
     if dvar::get_int("fs_debug").unwrap() != 0 {
-        com::println!(
-            10.into(),
-            "fs::open_file_append: {}",
-            ospath.to_string_lossy()
-        );
+        com::println!(10.into(), "fs::open_file_append: {}", ospath.display());
     }
     let path = create_path(ospath)?;
     let file = file_open_append(path)?;
@@ -1046,7 +1038,7 @@ fn open_file_write_to_dir_for_thread(
         com::println!(
             10.into(),
             "fs::open_file_write_to_dir_for_thread: {}",
-            ospath.clone().to_string_lossy()
+            ospath.clone().display()
         );
     }
 
@@ -1228,11 +1220,7 @@ pub fn write_file(
 
         r
     } else {
-        com::println!(
-            10.into(),
-            "Failed to open {}",
-            path.as_ref().to_string_lossy()
-        );
+        com::println!(10.into(), "Failed to open {}", path.as_ref().display());
         Err(std::io::ErrorKind::NotFound.into())
     }
 }
