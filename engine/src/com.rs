@@ -260,7 +260,7 @@ pub use __com_println as println;
 #[macro_export]
 macro_rules! __com_dprint {
     ($channel:expr, $($arg:tt)*) => {{
-        $crate::com::_dprint($channel, core::format_args!($($arg)*));
+        $crate::com::_internals::_dprint($channel, core::format_args!($($arg)*));
     }};
 }
 #[allow(unused_imports)]
@@ -546,6 +546,12 @@ pub const fn get_build_os() -> &'static str {
 // TODO - get at compile time instead of hardcoding
 pub const fn get_build_date() -> &'static str {
     "Nov  5 2010"
+}
+
+static FILE_ACCESSED: AtomicUsize = AtomicUsize::new(0);
+
+pub fn file_accessed() -> &'static AtomicUsize {
+    &FILE_ACCESSED
 }
 
 thread_local! {
