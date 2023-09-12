@@ -135,6 +135,7 @@ cfg_if! {
         use gtk4::builders::MessageDialogBuilder;
         use core::cell::RefCell;
         use std::ffi::OsStr;
+        use std::io::BufReader;
     } else if #[cfg(macos)] {
         use std::ffi::CString;
         use cstr::cstr;
@@ -239,7 +240,7 @@ pub fn init() {
 
 lazy_static! {
     static ref BASE_TIME_ACQUIRED: AtomicBool = AtomicBool::new(false);
-    pub static ref TIME_BASE: AtomicIsize = AtomicIsize::new(0);
+    static ref TIME_BASE: AtomicIsize = AtomicIsize::new(0);
 }
 
 #[cfg(windows)]
@@ -818,8 +819,6 @@ fn seconds_per_tick() -> f64 {
 
 #[cfg(linux)]
 fn seconds_per_tick() -> f64 {
-    use std::{ffi::CString, io::BufReader};
-
     use sscanf::scanf;
 
     let Ok(cpuinfo) = File::open("/proc/cpuinfo") else {
