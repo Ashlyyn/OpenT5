@@ -619,7 +619,7 @@ pub fn check_crash_or_rerun() -> bool {
 }
 
 pub fn get_cmdline() -> String {
-    let mut cmd_line: String = String::new();
+    let mut cmd_line = String::new();
     std::env::args().for_each(|arg| {
         cmd_line.push_str(&arg);
     });
@@ -819,7 +819,7 @@ pub fn detect_video_card() -> String {
             .to_string_lossy()
             .to_string()
     } else {
-        return String::from("Unknown video card");
+        String::from("Unknown video card")
     }
 }
 
@@ -2693,8 +2693,54 @@ pub fn handle_main_window_event(ev: WindowEvent) {
 
 static THREAD_ID: RwLock<[Option<ThreadId>; 15]> = RwLock::new([None; 15]);
 
+struct ThreadContext(usize);
+
+impl Display for ThreadContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self.0 {
+                0 => "Main",
+                1 => "Backend",
+                2 => "Worker0",
+                3 => "Worker1",
+                4 => "Worker2",
+                5 => "Worker3",
+                6 => "Worker4",
+                7 => "Worker5",
+                8 => "Worker6",
+                9 => "Worker7",
+                10 => "Server",
+                11 => "occlusion",
+                12 => "TitleServer",
+                13 => "Database",
+                14 => "Stream",
+                _ => unreachable!(),
+            }
+        )
+    }
+}
+
 fn get_current_thread_id() -> ThreadId {
     std::thread::current().id()
+}
+
+fn get_thread_context() -> ThreadContext {
+    let tid = get_current_thread_id();
+    let tids = THREAD_ID.read().unwrap();
+    for (i, t) in tids.iter().enumerate() {
+        if let Some(id) = *t && id == tid {
+            return ThreadContext(i);
+        }
+    }
+
+    com::println!(1.into(), "Current thread is not in thread table");
+    panic!()
+}
+
+pub fn get_current_thread_name() -> String {
+    get_thread_context().to_string()
 }
 
 pub fn init_main_thread() {
