@@ -8,7 +8,8 @@ use cfg_if::cfg_if;
 use core::{str::FromStr, sync::atomic::AtomicUsize};
 use std::{
     ffi::OsStr,
-    io::{Read, Write},
+    io::{Read, Seek, Write},
+    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     sync::RwLock,
 };
@@ -18,11 +19,14 @@ cfg_if! {
     if #[cfg(target_os = "windows")] {
         use windows::Win32::{
             UI::Shell::{
-                SHGetFolderPathA, CSIDL_LOCAL_APPDATA, CSIDL_FLAG_CREATE,
+                SHGetFolderPathW, CSIDL_LOCAL_APPDATA, CSIDL_FLAG_CREATE,
                 CSIDL_PERSONAL, SHGFP_TYPE_CURRENT,
             },
-            Foundation::MAX_PATH};
-            use core::mem::transmute;
+            Foundation::MAX_PATH
+        };
+        use core::mem::transmute;
+        use std::ffi::OsString;
+        use std::os::windows::prelude::OsStringExt;
     }
 }
 
@@ -36,76 +40,117 @@ const MAX_PATH_LEN: usize = 4096usize;
 #[cfg(not(any(windows, unix)))]
 const MAX_PATH_LEN: usize = 256usize;
 
+/// A platform-independent representation of common directories.
+///
+/// Currently only consists of two variants [`OsFolder::UserData`] and
+/// [`OsFolder::Documents`] since that's all we'll need to use.
+///
+/// [`OsFolder::UserData`] corresponds to [`CSIDL_LOCAL_APPDATA`] on Windows
+/// and `$XDG_DATA_HOME` on Unix and Unix-like systems (defaults to
+/// `$HOME/.local/share` if `$XDG_DATA_HOME` does not exist).
+///
+/// [`OsFolder::Documents`] corresponds to [`CSIDL_PERSONAL`] on Windows and
+/// `$XDG_DOCUMENTS_DIR` on Unix and Unix-like systems (defaults to
+/// `$HOME/Documents` if `$XDG_DOCUMENTS_DIR` does not exist).
+
 #[derive(Copy, Clone, Debug)]
 pub enum OsFolder {
+    /// Corresponds to [`CSIDL_LOCAL_APPDATA`] on Windows
+    /// and `$XDG_DATA_HOME` on Unix and Unix-like systems (defaults to
+    /// `$HOME/.local/share` if `$XDG_DATA_HOME` does not exist).
     UserData,
+    /// Corresponds to [`CSIDL_PERSONAL`] on Windows
+    /// and `$XDG_DOCUMENTS_DIR` on Unix and Unix-like systems (defaults to
+    /// `$HOME/Documents` if `$XDG_DOCUMENTS_DIR` does not exist).
     Documents,
 }
 
-cfg_if! {
-    if #[cfg(target_os = "windows")] {
-        // TODO - will panic if folder path contains invalid UTF-8 characters.
-        // Fix later.
-        #[allow(
-            clippy::indexing_slicing,
-            clippy::multiple_unsafe_ops_per_block
-        )]
-        pub fn get_os_folder_path(os_folder: OsFolder) -> Option<PathBuf> {
-            let csidl: u32 = match os_folder {
-                OsFolder::UserData => CSIDL_LOCAL_APPDATA,
-                OsFolder::Documents => CSIDL_PERSONAL,
-            };
+/// Retrieves the absolute path of an [`OsFolder`].
+///
+/// Returns [`Some`] if the path is successfully retrieved, [`None`] if not.
+///
+/// [`None`] should never be returned on Windows in practice (it's probably
+/// technically possible though).
+#[cfg(windows)]
+#[allow(clippy::indexing_slicing, clippy::multiple_unsafe_ops_per_block)]
+pub fn get_os_folder_path(os_folder: OsFolder) -> Option<PathBuf> {
+    let csidl: u32 = match os_folder {
+        OsFolder::UserData => CSIDL_LOCAL_APPDATA,
+        OsFolder::Documents => CSIDL_PERSONAL,
+    };
 
-            let mut buf: [u8; MAX_PATH as usize] = [0; MAX_PATH as usize];
-            // SAFETY:
-            // SHGetFolderPathA is an FFI function, requiring use of unsafe.
-            // SHGetFolderPathA itself should never create UB, violate memory
-            // safety, etc., provided the supplied buffer is MAX_PATH bytes
-            // or more, which we've ensure it is.
-            match unsafe {
-                SHGetFolderPathA(
-                    None,
-                    transmute(csidl | CSIDL_FLAG_CREATE),
-                    None,
-                    transmute(SHGFP_TYPE_CURRENT.0),
-                    &mut buf,
-                )
-            } {
-                Ok(_) => {
-                    // Null-terminate the string, in case the folder path
-                    // was exactly MAX_PATH characters.
-                    buf[buf.len() - 1] = 0x00;
-                    Some(PathBuf::new().join(unsafe { OsStr::from_os_str_bytes_unchecked(&buf) }).join("Activision").join("CoD"))
-                },
-                Err(_) => None,
-            }
+    let mut buf: [u16; MAX_PATH as usize] = [0; MAX_PATH as usize];
+    // SAFETY:
+    // SHGetFolderPathW is an FFI function, requiring use of unsafe.
+    // SHGetFolderPathW itself should never create UB, violate memory
+    // safety, etc., provided the supplied buffer is MAX_PATH bytes
+    // or more, which we've ensure it is.
+    match unsafe {
+        SHGetFolderPathW(
+            None,
+            transmute(csidl | CSIDL_FLAG_CREATE),
+            None,
+            transmute(SHGFP_TYPE_CURRENT.0),
+            &mut buf,
+        )
+    } {
+        Ok(_) => {
+            // Null-terminate the string, in case the folder path
+            // was exactly [`MAX_PATH`] characters.
+            buf[buf.len() - 1] = 0x0000;
+            Some(
+                PathBuf::new()
+                    .join(OsString::from_wide(&buf))
+                    .join("Activision")
+                    .join("CoD"),
+            )
         }
-    } else if #[cfg(target_family = "unix")] {
-        #[allow(clippy::needless_pass_by_value)]
-        pub fn get_os_folder_path(os_folder: OsFolder) -> Option<PathBuf> {
-            let envar = match os_folder {
-                OsFolder::UserData => "XDG_DATA_HOME",
-                OsFolder::Documents => "XDG_DOCUMENTS_DIR",
-            };
-
-            let Ok(home) = std::env::var("HOME") else { return None };
-
-            let envar_default = match os_folder {
-                OsFolder::UserData => format!("{}/.local/share", home),
-                OsFolder::Documents => format!("{}/Documents", home),
-            };
-
-            Some(PathBuf::from_str(&std::env::var(envar).map_or(envar_default, |s| s)).unwrap().join("Activision").join("CoD"))
-        }
-    } else {
-        pub fn get_os_folder_path(os_folder: OsFolder) -> Option<PathBuf> {
-            compile_error!(
-                "get_os_folder_path unimplemented for OS or arch",
-            );
-        }
+        Err(_) => None,
     }
 }
 
+/// Retrieves the absolute path of an [`OsFolder`].
+///
+/// Returns [`Some`] if the path is successfully retrieved, [`None`] if not.
+///
+/// [`None`] should never be returned in practice, as it will only happen if
+/// both the XDG dir *and* $HOME cannot be retrieved.
+#[cfg(unix)]
+#[allow(clippy::needless_pass_by_value)]
+pub fn get_os_folder_path(os_folder: OsFolder) -> Option<PathBuf> {
+    let envar = match os_folder {
+        OsFolder::UserData => "XDG_DATA_HOME",
+        OsFolder::Documents => "XDG_DOCUMENTS_DIR",
+    };
+
+    let Ok(home) = std::env::var("HOME") else {
+        return None;
+    };
+
+    let envar_default = match os_folder {
+        OsFolder::UserData => format!("{}/.local/share", home),
+        OsFolder::Documents => format!("{}/Documents", home),
+    };
+
+    Some(
+        PathBuf::from_str(&std::env::var(envar).map_or(envar_default, |s| s))
+            .unwrap()
+            .join("Activision")
+            .join("CoD"),
+    )
+}
+
+#[cfg(not(any(windows, unix)))]
+pub fn get_os_folder_path(os_folder: OsFolder) -> Option<PathBuf> {
+    compile_error!("get_os_folder_path unimplemented for OS or arch",);
+}
+
+/// Creates the specified path and all parent directories.
+///
+/// Essentially the functional equivalent of `mkdir -p`.
+///
+/// Returns a [`PathBuf`] of the created path, or [`Err`] if
+/// [`std::fs::File::create`] fails.
 pub fn create_path(path: impl AsRef<Path>) -> Result<PathBuf, std::io::Error> {
     let path = path.as_ref();
 
@@ -139,6 +184,10 @@ pub fn create_path(path: impl AsRef<Path>) -> Result<PathBuf, std::io::Error> {
 }
 
 // TODO - fully implement
+
+/// Initializes the filesystem.
+///
+/// Should be called before using any other functions from this module.
 pub fn init_filesystem(dev: bool) {
     // FSH.write().unwrap().fill(None);
     startup("main", dev);
@@ -161,6 +210,9 @@ fn register_dvars() {
     .unwrap();
 }
 
+/// Representation of threads that can call functions in this module.
+///
+/// Threads not listed here should never call anything in this modules.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(i32)]
 enum Thread {
@@ -182,6 +234,7 @@ lazy_static! {
     static ref FS_GAMEDIR: RwLock<PathBuf> = RwLock::new(PathBuf::new());
 }
 
+/// Builds an OS path for [`thread`] with the supplied parameters.
 fn build_os_path_for_thread(
     base: impl AsRef<Path>,
     gamedir: Option<impl AsRef<Path>>,
@@ -214,6 +267,11 @@ fn build_os_path_for_thread(
     ospath
 }
 
+/// Constructs an absolute path from the given parameters.
+///
+/// For typical usage, [`base`] represents the root directory of the game,
+/// [`gamedir`] represents the top-level subdirectory (main, players, zone,
+/// mods, etc.), and [`qpath`] represents a file or subdirectory therein.
 pub fn build_os_path(
     base: impl AsRef<Path>,
     gamedir: Option<impl AsRef<Path>>,
@@ -222,6 +280,9 @@ pub fn build_os_path(
     build_os_path_for_thread(base, gamedir, qpath, Thread::Main)
 }
 
+/// Deletes [`filename`].
+///
+/// Only works for files, not directories.
 fn delete(filename: impl AsRef<Path>) -> Result<(), std::io::Error> {
     if filename.as_ref() == &PathBuf::new() {
         return Err(std::io::ErrorKind::InvalidFilename.into());
@@ -236,6 +297,7 @@ fn delete(filename: impl AsRef<Path>) -> Result<(), std::io::Error> {
     std::fs::remove_file(ospath)
 }
 
+/// Gets the [`Thread`] of the current thread.
 fn get_current_thread() -> Option<Thread> {
     if sys::is_main_thread() {
         Some(Thread::Main)
@@ -256,10 +318,14 @@ type Iwd = ZipArchive<std::fs::File>;
 
 enum Qfile {
     ZipFile {
+        /// Ref-counted to allow [`Qdir`] and [`Searchpath`] to use the same
+        /// archive.
         archive: Arc<RwLock<Iwd>>,
+
         // Have to embed this here to make our implementation of Read work.
         // Can't embed the ZipFile instead, since it's only valid for as long
         // as the archive's RwLock is locked.
+        /// Path associated with [`Qfile::ZipFile::archive`].
         name: PathBuf,
     },
     File {
@@ -317,8 +383,8 @@ lazy_static! {
 /// An opaque file handle used by functions in this module.
 ///
 /// [`Fd`] is intentionally not [`Copy`] or [`Clone`] to ensure unique
-/// ownership, and there is no way to retieve the underlying [`File`] it
-/// represents.
+/// ownership, and there is no way to retieve the underlying [`std::fs::File`]
+/// or [`ZipFile`] it represents.
 ///
 /// It's only use is to be passed between functions in this module.
 /// It can only be created by functions in this module, and it will
@@ -339,6 +405,10 @@ impl Drop for Fd {
 }
 
 fn handle_for_file(thread: Thread) -> std::io::Result<Fd> {
+    // Each thread gets a specific range/number of [`Fd`]s it can use from
+    // [`FSH`].
+    //
+    // So first, we get that range.
     let fd_range = match thread {
         Thread::Main => {
             assert!(sys::is_main_thread());
@@ -362,6 +432,7 @@ fn handle_for_file(thread: Thread) -> std::io::Result<Fd> {
         }
     };
 
+    // And then we try to find an [`Fd`] within said range.
     for fd in fd_range.clone() {
         if FSH.read().unwrap()[fd].is_none() {
             return Ok(Fd(fd as _));
@@ -410,8 +481,14 @@ struct Directory {
     gamedir: PathBuf,
 }
 
+/// The directory equivalent of [`Qfile`].
+///
+/// Just like [`Qfile`] can be either a normal file *or* a file within a zip
+/// file, [`Qdir`] can be a normal directory *or* a zip file.
 enum Qdir {
     Iwd {
+        /// Ref-counted to allow [`Qdir`] and [`Searchpath`] to use the same
+        /// archive.
         iwd: Arc<RwLock<Iwd>>,
         iwd_name: PathBuf,
     },
@@ -451,9 +528,14 @@ impl Qdir {
 }
 
 struct Searchpath {
+    /// The directory of the [`Searchpath`]. Can be a normal dir or an IWD.
     qdir: Qdir,
+    /// Whether the [`Searchpath`] should be ignored by functions using it.
     ignore: bool,
+    /// Whether files within the [`Searchpath`] should have their pure check
+    /// ignored.
     ignore_pure_check: bool,
+    /// The language, if any, that the [`Searchpath`] should be restricted to.
     language: Option<locale::Language>,
 }
 
@@ -468,10 +550,17 @@ lazy_static! {
         RwLock::new(Vec::new());
 }
 
+/// Takes ownership of the supplied [`Searchpath`] and adds it to the global
+/// list of [`Searchpath`]s.
 fn add_searchpath(sp: Searchpath) {
     FS_SEARCHPATHS.write().unwrap().push(sp)
 }
 
+/// Checks whether a [`Searchpath`] should be used or not.
+///
+/// Returns false if localization is enabled (fs_ignoreLocalized is false)
+/// *and* the localization of the [`Searchpath`] is different from the current
+/// locale, true otherwise.
 fn use_searchpath(sp: &Searchpath) -> bool {
     if sp.is_localized() == false
         || dvar::get_bool("fs_ignoreLocalized").unwrap() == false
@@ -487,6 +576,10 @@ fn use_searchpath(sp: &Searchpath) -> bool {
     }
 }
 
+/// Loads a zip file using the supplied file name.
+///
+/// Fails if the file is not a zip file, or if some underlying operation
+/// (e.g. reading) fails.
 fn load_zip_file(
     filename: impl AsRef<Path>,
     _basename: impl AsRef<Path>,
@@ -502,6 +595,7 @@ fn add_iwd_files_for_game_directory(
     todo!()
 }
 
+/// Adds a game directory to [`FS_SEARCHPATHS`], and any IWD files within.
 fn add_game_directory(
     base: impl AsRef<Path>,
     gamedir: impl AsRef<Path>,
@@ -607,6 +701,7 @@ fn iwd_is_pure(_iwd: &Iwd) -> bool {
     true
 }
 
+// TODO - implement
 fn add_iwd_pure_check_reference(_sp: &Searchpath) {}
 
 fn files_are_loaded_globally(filename: impl AsRef<Path>) -> bool {
@@ -627,10 +722,16 @@ fn files_are_loaded_globally(filename: impl AsRef<Path>) -> bool {
     }
 }
 
-pub fn file_get_file_size(file: &std::fs::File) -> std::io::Result<u64> {
-    Ok(file.metadata()?.len())
+/// Retrieves the size of a file in bytes.
+pub fn file_get_file_size(file: &mut impl Seek) -> std::io::Result<u64> {
+    file.seek(std::io::SeekFrom::End(0))
 }
 
+/// Reads the contents of a file into a supplied buffer.
+///
+/// At most [`data.len()`] bytes will be read.
+///
+/// Returns the number of bytes read on success.
 pub fn file_read(
     file: &mut impl Read,
     data: &mut [u8],
@@ -638,6 +739,9 @@ pub fn file_read(
     file.read(data)
 }
 
+/// Writes the contents of [`data`] into [`file`].
+///
+/// Returns the number of bytes written on success.
 fn file_write(file: &mut impl Write, data: &[u8]) -> std::io::Result<usize> {
     file.write(data)
 }
@@ -806,6 +910,9 @@ fn open_file_read_for_thread(
     }
 }
 
+/// Opens a file for reading for the calling thread.
+///
+/// Returns an opaque file descriptor and the file's size on success.
 pub fn open_file_read_current_thread(
     filename: impl AsRef<Path>,
 ) -> Result<(Fd, u64), std::io::Error> {
@@ -820,6 +927,9 @@ pub fn open_file_read_current_thread(
     }
 }
 
+/// Opens a file for reading.
+///
+/// Returns an opaque file descriptor and the file's size on success.
 pub fn open_file_read(
     filename: impl AsRef<Path>,
 ) -> std::io::Result<(Fd, u64)> {
@@ -827,6 +937,9 @@ pub fn open_file_read(
     open_file_read_current_thread(filename)
 }
 
+/// Opens a file for appending.
+///
+/// Returns an opaque file descriptor on success.
 pub fn open_file_append(filename: impl AsRef<Path>) -> std::io::Result<Fd> {
     let ospath = build_os_path(
         dvar::get_string("fs_homepath").unwrap(),
@@ -859,6 +972,9 @@ pub fn open_file_append(filename: impl AsRef<Path>) -> std::io::Result<Fd> {
     Ok(fd)
 }
 
+/// Opens [`filename`] in read mode.
+///
+/// Fails if the file does not exist.
 fn file_open_read(
     filename: impl AsRef<Path>,
 ) -> std::io::Result<std::fs::File> {
@@ -868,6 +984,9 @@ fn file_open_read(
         .open(filename)
 }
 
+/// Opens [`filename`] in write mode.
+///
+/// Creates the file it it does not exist.
 fn file_open_write(
     filename: impl AsRef<Path>,
 ) -> std::io::Result<std::fs::File> {
@@ -877,6 +996,9 @@ fn file_open_write(
         .open(filename)
 }
 
+/// Opens [`filename`] in append mode.
+///
+/// Creates the file if it does not exist.
 fn file_open_append(
     filename: impl AsRef<Path>,
 ) -> std::io::Result<std::fs::File> {
@@ -886,6 +1008,8 @@ fn file_open_append(
         .open(filename)
 }
 
+/// Opens [`filename`], failing if it does not exist, and returns a
+/// corresponding [`Fd`].
 fn get_handle_and_open_file(
     qpath: impl AsRef<Path>,
     filename: impl AsRef<Path>,
@@ -909,6 +1033,8 @@ fn get_handle_and_open_file(
     Ok(handle)
 }
 
+/// Opens a file for [`thread`], creating it if necessary, in write mode and
+/// returns a corresponding [`Fd`].
 fn open_file_write_to_dir_for_thread(
     qpath: impl AsRef<Path>,
     gamedir: Option<impl AsRef<Path>>,
@@ -931,6 +1057,9 @@ fn open_file_write_to_dir_for_thread(
     }
 }
 
+/// Opens a file for writing.
+///
+/// Returns an opaque file descriptor on success.
 pub fn open_file_write(filename: impl AsRef<Path>) -> std::io::Result<Fd> {
     open_file_write_to_dir_for_thread(
         filename,
@@ -939,14 +1068,29 @@ pub fn open_file_write(filename: impl AsRef<Path>) -> std::io::Result<Fd> {
     )
 }
 
+/// The mode to open a file in, used by [`open_file_by_mode`].
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Mode {
+    /// Opens a file in read mode.
     Read,
+    /// Opens a file in write mode.
     Write,
+    /// Opens a file in append mode.
     Append,
+    /// Opens a file in append mode and manually flushes the stream after each
+    /// write.
     AppendSync,
 }
 
+/// Opens the specified file in the specified mode.
+///
+/// [`Mode::Read`] opens the file in read mode.
+/// [`Mode::Write`] opens the file in write mode.
+/// [`Mode::Append`] opens the file in append mode.
+/// [`Mode::AppendSync`] opens the file in append mode and manually flushes the
+/// stream after each write.
+///
+/// Returns an opaque file descriptor and the file's length on success.
 pub fn open_file_by_mode(
     filename: impl AsRef<Path>,
     mode: Mode,
@@ -972,17 +1116,21 @@ pub fn open_file_by_mode(
     r
 }
 
-pub fn read(fd: &Fd) -> Result<Vec<u8>, std::io::Error> {
-    let mut buf = Vec::new();
+/// Reads contents of the file represented by [`fd`] into [`buf`].
+///
+/// Reads at most [`buf.len()`] bytes.
+pub fn read(fd: &Fd, buf: &mut [u8]) -> std::io::Result<usize> {
     FSH.write().unwrap()[fd.as_usize()]
         .as_mut()
         .unwrap()
         .file
-        .read_to_end(&mut buf)?;
-    Ok(buf)
+        .read(buf)
 }
 
-pub fn write(fd: &Fd, data: &[u8]) -> std::io::Result<()> {
+/// Writes [`data`] into the file represented by [`fd`].
+///
+/// Writes at most [`data.len()`] bytes.
+pub fn write(fd: &Fd, data: &[u8]) -> std::io::Result<usize> {
     let mut fsh = FSH.write().unwrap();
     let fh = &mut fsh[fd.as_usize()].as_mut().unwrap();
     match fh.file {
@@ -990,7 +1138,7 @@ pub fn write(fd: &Fd, data: &[u8]) -> std::io::Result<()> {
             Err(std::io::ErrorKind::InvalidFilename.into())
         }
         Qfile::File { ref mut file, .. } => {
-            let r = file.write_all(data);
+            let r = file.write(data);
 
             if fh.handle_sync {
                 file.flush()?;
@@ -1001,21 +1149,75 @@ pub fn write(fd: &Fd, data: &[u8]) -> std::io::Result<()> {
     }
 }
 
+/// Number of files currently opened by [`read_file`].
+///
+/// Incremented by  [`read_file`] and decremented when the [`ReadFile`]
+/// returned by [`read_file`] is dropped.
 static FS_LOADSTACK: AtomicUsize = AtomicUsize::new(0);
 
-pub fn read_file(path: &Path) -> Result<Vec<u8>, std::io::Error> {
-    if path == Path::new("") {
+/// Wrapper around [`Vec<u8>`] returned by [`read_file`].
+///
+/// Necessary since [`read_file`] increments a global counter, and said counter
+/// needs to be decremented on [`Drop`].
+///
+/// [`Deref`] and [`DerefMut`] are implemented, so it can be used wherever a
+/// [`Vec<u8>`] can be used.
+///
+/// It is not, however, [`repr(transparent)`] because
+/// the [`Drop`] implementation would be pointless if the data could just be
+/// cloned or the data moved out of the struct.
+///
+/// (Also, why the hell would you be *cloning* the contents of a
+/// potentially-massive file anyways?)
+///
+/// We can always change it later if it becomes a problem.
+pub struct ReadFile(Vec<u8>);
+
+impl Deref for ReadFile {
+    type Target = Vec<u8>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ReadFile {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Drop for ReadFile {
+    fn drop(&mut self) {
+        FS_LOADSTACK.decrement_wrapping();
+    }
+}
+
+/// Reads the contents of the specified file.
+///
+/// Returns a buffer containing the data read from the file.
+pub fn read_file(
+    filename: impl AsRef<Path>,
+) -> Result<ReadFile, std::io::Error> {
+    if filename.as_ref() == Path::new("") {
         com::errorln!(
             com::ErrorParm::FATAL,
             "\x15fs::read_file with empty name"
         );
     }
-    let (fd, _) = open_file_read_current_thread(path)?;
+    let (fd, file_size) = open_file_read_current_thread(filename)?;
     FS_LOADSTACK.increment_wrapping();
-    read(&fd)
+    let mut buf = Vec::with_capacity(file_size as _);
+    read(&fd, &mut buf).map(|_| ReadFile(buf))
 }
 
-pub fn write_file(path: impl AsRef<Path>, data: &[u8]) -> std::io::Result<()> {
+/// Writes [`data`] into the specified file.
+///
+/// Writes at most [`data.len()`] bytes and returns the number of bytes written
+/// on success.
+pub fn write_file(
+    path: impl AsRef<Path>,
+    data: &[u8],
+) -> std::io::Result<usize> {
     assert_ne!(path.as_ref(), Path::new(""));
 
     if let Ok(fd) = open_file_write(&path) {
@@ -1035,12 +1237,19 @@ pub fn write_file(path: impl AsRef<Path>, data: &[u8]) -> std::io::Result<()> {
     }
 }
 
+/// Copies [`src`] into [`dest`], creating [`dest`] if it doesn't already
+/// exist.
+///
+/// Returns the number of bytes written on success.
+///
+/// If the copy fails, [`dest`] is deleted, rather than being left partially
+/// written.
 pub fn copy_file(
     src: impl AsRef<Path>,
     dest: impl AsRef<Path>,
 ) -> std::io::Result<u64> {
     let mut src = file_open_read(src)?;
-    let src_size = file_get_file_size(&src)?;
+    let src_size = file_get_file_size(&mut src)?;
     let mut data = Vec::with_capacity(src_size as _);
     let bytes_read = file_read(&mut src, &mut data)?;
     if bytes_read as u64 != src_size {
