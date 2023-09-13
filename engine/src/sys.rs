@@ -21,6 +21,7 @@ use core::{
 };
 #[allow(unused_imports)]
 use lazy_static::lazy_static;
+#[allow(unused_imports)]
 use std::{ffi::OsStr, path::Path};
 #[allow(unused_imports)]
 use std::{
@@ -140,7 +141,6 @@ cfg_if! {
         use gtk4::prelude::*;
         use gtk4::builders::MessageDialogBuilder;
         use core::cell::RefCell;
-        use std::ffi::OsStr;
         use std::io::BufReader;
     } else if #[cfg(macos)] {
         use std::ffi::CString;
