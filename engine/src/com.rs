@@ -123,11 +123,7 @@ pub mod _internals {
         _message_type: super::MessageType,
         arguments: core::fmt::Arguments,
     ) {
-        if channel.get() > 32 {
-            return;
-        }
-
-        std::print!("({}) - {}", channel.get(), arguments);
+        std::print!("({:?}) - {}", channel, arguments);
     }
 
     cfg_if! {
@@ -618,7 +614,7 @@ fn init_try_block_function() {
     let build_name = get_build_name();
     let build_version = get_build_version();
     self::println!(
-        16.into(),
+        console::Channel::SYSTEM,
         "{build_version} {build_name} build {os}-{arch} {build_date}"
     );
     init_dvars();
@@ -628,7 +624,10 @@ fn init_try_block_function() {
     cl::init_renderer();
     render::begin_remote_screen_update();
     render::end_remote_screen_update();
-    self::println!(16.into(), "--- Common Initialization Complete ---");
+    self::println!(
+        console::Channel::SYSTEM,
+        "--- Common Initialization Complete ---"
+    );
 }
 
 #[allow(clippy::todo)]
@@ -643,7 +642,7 @@ pub const fn get_icon_rgba() -> Option<Vec<u8>> {
 
 // TODO - implement
 pub fn startup_variable(name: &str) {
-    com::println!(16.into(), "com::startup_variable: {}", name);
+    com::println!(console::Channel::SYSTEM, "com::startup_variable: {}", name);
 }
 
 lazy_static! {
@@ -665,7 +664,7 @@ pub fn frame_time() -> Duration {
 }
 
 pub fn quit_f() -> ! {
-    self::println!(0.into(), "quitting...");
+    self::println!(console::Channel::DONT_FILTER, "quitting...");
     if ERROR_ENTERED.load(Ordering::Relaxed) == false {}
     sys::quit();
 }

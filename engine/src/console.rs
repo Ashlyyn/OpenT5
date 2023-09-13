@@ -59,14 +59,20 @@ pub enum PrintMessageDest {
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(i32)]
-enum Channel2 {
+pub enum Channel {
+    /// A catch-all for when other channels don't apply or for when the message
+    /// shoudldn't be filtered.
     DONT_FILTER,
+    ERROR,
     GAMENOTIFY,
     BOLDGAME,
     SUBTITLE,
     LOGFILEONLY,
+    /// For graphics-related functions - mostly used in `render` and `rb`
     GFX,
+    /// Used in `snd`
     SOUND,
+    /// Used in `fs`
     FILES,
     DEVGUI,
     PROFILE,
@@ -81,44 +87,11 @@ enum Channel2 {
     TASK,
 }
 
-impl Channel2 {
-    pub const fn as_i32(self) -> i32 {
+impl Channel {
+    const fn as_i32(self) -> i32 {
         self as _
     }
 }
-
-#[derive(Copy, Clone, Default, Debug)]
-pub struct Channel(u8);
-
-impl Channel {
-    pub const fn new(value: u8) -> Self {
-        Self(value)
-    }
-
-    pub const fn get(self) -> u8 {
-        self.0
-    }
-}
-
-macro_rules! channel_from {
-    ($t:tt) => {
-        impl core::convert::From<$t> for $crate::console::Channel {
-            fn from(value: $t) -> Self {
-                Self(value as u8)
-            }
-        }
-    };
-}
-
-channel_from!(u8);
-channel_from!(u16);
-channel_from!(u32);
-channel_from!(u64);
-channel_from!(usize);
-channel_from!(i16);
-channel_from!(i32);
-channel_from!(i64);
-channel_from!(isize);
 
 #[allow(clippy::indexing_slicing)]
 pub fn is_channel_visible(
@@ -129,23 +102,29 @@ pub fn is_channel_visible(
     let lock = PC_GLOB.clone();
     let pcglob = lock.read().unwrap();
 
-    if pcglob.open_channels[channel.get() as usize].name.is_empty() {
+    if pcglob.open_channels[channel.as_i32() as usize]
+        .name
+        .is_empty()
+    {
         return false;
     }
 
     if msg_dest == PrintMessageDest::MINICON {
-        if channel.get() == 2 || channel.get() == 3 || channel.get() == 4 {
+        if channel == Channel::GAMENOTIFY
+            || channel == Channel::BOLDGAME
+            || channel == Channel::SUBTITLE
+        {
             return false;
         }
         msg_dest = PrintMessageDest::CONSOLE;
     }
 
-    if msg_dest == PrintMessageDest::CONSOLE && channel.get() == 0 {
+    if msg_dest == PrintMessageDest::CONSOLE && channel.as_i32() == 0 {
         return true;
     }
 
-    if (pcglob.filters[msg_dest as usize][channel.get() as usize >> 5]
-        & 1 << channel.get())
+    if (pcglob.filters[msg_dest as usize][channel.as_i32() as usize >> 5]
+        & 1 << channel.as_i32())
     .trailing_zeros()
         >= 5
         && ((param_3 >> 5 & 0x1F != 3 && param_3 >> 5 & 0x1F != 2)

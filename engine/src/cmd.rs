@@ -107,7 +107,7 @@ pub fn exists(name: &str) -> bool {
 pub fn add_command_internal(name: &str, function: fn()) -> Option<CmdFunction> {
     if exists(name) {
         com::println!(
-            16.into(),
+            console::Channel::SYSTEM,
             "cmd::add_internal: {} is already defined",
             name,
         );

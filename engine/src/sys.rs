@@ -206,14 +206,22 @@ pub fn init() {
     cmd::add_command_internal("net_listen", listen_f).unwrap();
     cmd::add_command_internal("net_connect", connect_f).unwrap();
 
-    com::println!(16.into(), "CPU vendor is \"{}\"", get_cpu_vendor(),);
-    com::println!(16.into(), "CPU name is \"{}\"", get_cpu_name());
+    com::println!(
+        console::Channel::SYSTEM,
+        "CPU vendor is \"{}\"",
+        get_cpu_vendor(),
+    );
+    com::println!(
+        console::Channel::SYSTEM,
+        "CPU name is \"{}\"",
+        get_cpu_name()
+    );
 
     let info = find_info();
 
     let c = if info.logical_cpu_count == 1 { "" } else { "s" };
     com::println!(
-        16.into(),
+        console::Channel::SYSTEM,
         "{} logical CPU{} reported",
         info.logical_cpu_count,
         c,
@@ -225,25 +233,33 @@ pub fn init() {
         "s"
     };
     com::println!(
-        16.into(),
+        console::Channel::SYSTEM,
         "{} physical CPU{} detected",
         info.physical_cpu_count,
         c,
     );
-    com::println!(16.into(), "Measured CPU speed is {:.2} GHz", info.cpu_ghz,);
     com::println!(
-        16.into(),
+        console::Channel::SYSTEM,
+        "Measured CPU speed is {:.2} GHz",
+        info.cpu_ghz,
+    );
+    com::println!(
+        console::Channel::SYSTEM,
         "Total CPU performance is estimated as {:.2} GHz",
         info.configure_ghz,
     );
     com::println!(
-        16.into(),
+        console::Channel::SYSTEM,
         "System memory is {} MB (capped at 1 GB)",
         info.sys_mb,
     );
-    com::println!(16.into(), "Video card is \"{}\"", info.gpu_description,);
+    com::println!(
+        console::Channel::SYSTEM,
+        "Video card is \"{}\"",
+        info.gpu_description,
+    );
     // TODO - vector support
-    com::println!(16.into(), "");
+    com::println!(console::Channel::SYSTEM, "");
     input::init();
 }
 
@@ -448,7 +464,7 @@ pub fn get_semaphore_file_name() -> String {
 #[cfg(other_os)]
 pub fn get_semaphore_file_name() -> String {
     com::dprintln!(
-        0.into(),
+        console::Channel::DONT_FILTER,
         "sys::get_semaphore_file: using default implementation."
     );
     format!("__{}", get_executable_name())
@@ -632,8 +648,12 @@ pub fn get_cmdline() -> String {
 }
 
 pub fn start_minidump(b: bool) {
-    com::println!(0.into(), "Starting minidump with b = {}...", b);
-    com::println!(0.into(), "TODO: implement.");
+    com::println!(
+        console::Channel::DONT_FILTER,
+        "Starting minidump with b = {}...",
+        b
+    );
+    com::println!(console::Channel::DONT_FILTER, "TODO: implement.");
 }
 
 fn normal_exit() {
@@ -1149,7 +1169,7 @@ pub fn create_thread<T, F: Fn() -> T + Send + Sync + 'static>(
         Ok(h) => Some(h),
         Err(e) => {
             com::println!(
-                1.into(),
+                console::Channel::ERROR,
                 "error {} while creating thread {}",
                 e,
                 name,
@@ -1728,7 +1748,7 @@ cfg_if! {
         }
     } else {
         fn output_debug_string(string: impl ToString) {
-            com::dprint!(0.into(), "sys::print: {}", string.to_string());
+            com::dprint!(console::Channel::DONT_FILTER, "sys::print: {}", string.to_string());
         }
     }
 }
@@ -2766,7 +2786,10 @@ fn get_thread_context() -> ThreadContext {
         }
     }
 
-    com::println!(1.into(), "Current thread is not in thread table");
+    com::println!(
+        console::Channel::ERROR,
+        "Current thread is not in thread table"
+    );
     panic!()
 }
 

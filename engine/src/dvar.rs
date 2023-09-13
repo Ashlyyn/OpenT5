@@ -303,13 +303,17 @@ impl Dvar {
         }
 
         if self.flags.contains(DvarFlags::READ_ONLY) {
-            com::println!(1.into(), "{} is read only.", self.name);
+            com::println!(
+                console::Channel::ERROR,
+                "{} is read only.",
+                self.name
+            );
             return false;
         }
 
         if self.flags.contains(DvarFlags::WRITE_PROTECTED) {
             com::println!(
-                1.into(),
+                console::Channel::ERROR,
                 "{} is write protected protected.",
                 self.name,
             );
@@ -324,7 +328,11 @@ impl Dvar {
             if (set_source == SetSource::External)
                 || (set_source == SetSource::Script)
             {
-                com::println!(1.into(), "{} is cheat protected.", self.name,);
+                com::println!(
+                    console::Channel::ERROR,
+                    "{} is cheat protected.",
+                    self.name,
+                );
             }
             false
         }
@@ -346,7 +354,7 @@ impl Dvar {
                 self.latched = value.clone();
                 if self.current != self.latched {
                     com::println!(
-                        16.into(),
+                        console::Channel::SYSTEM,
                         "{} will be changed upon restarting.",
                         self.name,
                     );
@@ -451,7 +459,7 @@ impl Dvar {
 
         if com::log_file_open() && self.current != value {
             com::println!(
-                16.into(),
+                console::Channel::SYSTEM,
                 "      dvar set {} {}",
                 self.name,
                 self.current,
@@ -460,12 +468,12 @@ impl Dvar {
 
         if !Self::value_is_in_domain(&self.domain, value.clone()) {
             com::println!(
-                1.into(),
+                console::Channel::ERROR,
                 "\'{}\' is not a valid value for dvar \'{}\'",
                 value,
                 self.name,
             );
-            com::println!(1.into(), "{}", self.domain);
+            com::println!(console::Channel::ERROR, "{}", self.domain);
             if let DvarValue::Enumeration(_) = value {
                 self.set_variant(self.reset.clone(), source);
             }
@@ -479,7 +487,7 @@ impl Dvar {
                 self.latched = value;
                 if self.latched != self.current {
                     com::println!(
-                        16.into(),
+                        console::Channel::SYSTEM,
                         "{} will be changed upon restarting.",
                         self.name,
                     );

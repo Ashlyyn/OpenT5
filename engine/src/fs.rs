@@ -159,7 +159,7 @@ pub fn create_path(path: impl AsRef<Path>) -> Result<PathBuf, std::io::Error> {
 
     if path.is_relative() {
         com::warnln!(
-            10.into(),
+            console::Channel::FILES,
             "WARNING: refusing to create relative path \"{}\"",
             path.display(),
         );
@@ -205,7 +205,10 @@ fn shutdown() {
 
 fn set_restrictions() {
     if dvar::get_bool("fs_restrict").unwrap() {
-        com::println!(10.into(), "\nRunning in restricted demo mode.\n");
+        com::println!(
+            console::Channel::FILES,
+            "\nRunning in restricted demo mode.\n"
+        );
         shutdown();
         startup("demomain", true);
         for sp in FS_SEARCHPATHS.read().unwrap().iter() {
@@ -243,7 +246,10 @@ fn full_path_f() {
 fn dir_f() {
     let argc = cmd::argc();
     if argc <= 1 || argc > 4 {
-        com::println!(0.into(), "usage: dir <directory> [extension]");
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "usage: dir <directory> [extension]"
+        );
     }
 
     todo!()
@@ -252,8 +258,11 @@ fn dir_f() {
 fn new_dir_f() {
     let argc = cmd::argc();
     if argc < 2 {
-        com::println!(0.into(), "usage: fdir <filter>");
-        com::println!(0.into(), "example: fdir *q3dm*.bsp");
+        com::println!(console::Channel::DONT_FILTER, "usage: fdir <filter>");
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "example: fdir *q3dm*.bsp"
+        );
         return;
     }
 
@@ -266,7 +275,7 @@ fn touch_file_f() {
         let file = cmd::argv(1);
         let _ = touch_file(file);
     } else {
-        com::println!(0.into(), "Usage: touchFile <file>");
+        com::println!(console::Channel::DONT_FILTER, "Usage: touchFile <file>");
     }
 }
 
@@ -280,7 +289,7 @@ fn add_commands() {
 
 // TODO - fully implement
 fn startup(gamedir: impl AsRef<Path>, _dev: bool) {
-    com::println!(16.into(), "----- fs::startup -----");
+    com::println!(console::Channel::SYSTEM, "----- fs::startup -----");
     register_dvars();
     if dvar::get_bool("fs_usedevdir").unwrap() {
         // add dev game dirs
@@ -340,9 +349,9 @@ fn startup(gamedir: impl AsRef<Path>, _dev: bool) {
     add_commands();
     path_f();
     dvar::clear_modified("fs_gameDirVar").unwrap();
-    com::println!(10.into(), "-----------------------");
+    com::println!(console::Channel::FILES, "-----------------------");
     com::println!(
-        10.into(),
+        console::Channel::FILES,
         "{} files in iwd files",
         FS_IWD_FILE_COUNT.load_relaxed()
     )
@@ -588,7 +597,7 @@ fn handle_for_file(thread: Thread) -> std::io::Result<Fd> {
     }
 
     com::warnln!(
-        10.into(),
+        console::Channel::FILES,
         "FILE {:2}: '{}'",
         fd_range.start(),
         FSH.read().unwrap()[*fd_range.start()]
@@ -598,14 +607,14 @@ fn handle_for_file(thread: Thread) -> std::io::Result<Fd> {
             .display()
     );
     com::warnln!(
-        10.into(),
+        console::Channel::FILES,
         "fs::handle_for_file: none free ({})",
         thread.as_i32()
     );
 
     for (i, f) in FSH.read().unwrap().iter().enumerate() {
         com::println!(
-            10.into(),
+            console::Channel::FILES,
             "FILE {:2}: '{}'",
             i,
             f.as_ref().unwrap().name().display(),
@@ -818,7 +827,7 @@ fn add_iwd_files_for_game_directory(
 
     if iwds.len() > MAX_IWD_FILES_IN_GAME_DIRECTORY {
         com::warnln!(
-            10.into(),
+            console::Channel::FILES,
             "WARNING: Exceeded max number of iwd files in {}/{} ({}/{})",
             base.as_ref().display(),
             gamedir.as_ref().display(),
@@ -861,7 +870,7 @@ fn add_iwd_files_for_game_directory(
                     add_searchpath(sp);
                 } else {
                     com::warnln!(
-                        10.into(),
+                        console::Channel::FILES,
                         "WARNING: Localized assets iwd file {}/{}/{} has \
                          invalid name (bad language name specified). Proper \
                          naming convention is: localized_[language]_iwd#.iwd",
@@ -873,18 +882,25 @@ fn add_iwd_files_for_game_directory(
                     static LANGUAGES_LISTED: AtomicBool =
                         AtomicBool::new(false);
                     if LANGUAGES_LISTED.load_relaxed() == false {
-                        com::println!(10.into(), "Supported languages are:");
+                        com::println!(
+                            console::Channel::FILES,
+                            "Supported languages are:"
+                        );
                         for i in 0..locale::Language::CZECH.as_u8() {
                             let lang =
                                 locale::Language::try_from_u8(i).unwrap();
-                            com::println!(10.into(), "    {}", lang);
+                            com::println!(
+                                console::Channel::FILES,
+                                "    {}",
+                                lang
+                            );
                         }
                         LANGUAGES_LISTED.store_relaxed(true);
                     }
                 }
             } else {
                 com::warnln!(
-                    10.into(),
+                    console::Channel::FILES,
                     "WARNING: Localized assets iwd file {}/{}/{} has invalid \
                      name (no language specified). Proper naming convention \
                      is: localized_[language]_iwd#.iwd",
@@ -895,7 +911,7 @@ fn add_iwd_files_for_game_directory(
             }
         } else if dir_is_main && &file_name[0..3] != "iw_" {
             com::warnln!(
-                10.into(),
+                console::Channel::FILES,
                 "WARNING: Invalid IWD {} in \\main.",
                 iwd_name.display()
             );
@@ -944,7 +960,7 @@ fn add_game_directory(
                     "non-localized"
                 };
                 com::warnln!(
-                    10.into(),
+                    console::Channel::FILES,
                     "WARNING: game folder {}/{} added as both localized & non-localized. Using folder as {}",
                     base.as_ref().display(),
                     gamedir.display(),
@@ -953,7 +969,7 @@ fn add_game_directory(
             }
             if sp.is_localized() && sp.language != lang {
                 com::warnln!(
-                    10.into(),
+                    console::Channel::FILES,
                     "WARNING: game folder {}/{} re-added as localized folder with different language", 
                     base.as_ref().display(),
                     gamedir.display()
@@ -1133,7 +1149,7 @@ fn open_file_read_for_thread(
                     // fake check sum
                     if dvar::get_int("fs_debug").unwrap() != 0 {
                         com::println!(
-                            10.into(),
+                            console::Channel::FILES,
                             "fs::open_file_read from thread '{}', handle \
                              '{}', {} (found in '{}/{}')",
                             sys::get_current_thread_name(),
@@ -1191,7 +1207,7 @@ fn open_file_read_for_thread(
 
                         if dvar::get_int("fs_debug").unwrap() != 0 {
                             com::println!(
-                                10.into(),
+                                console::Channel::FILES,
                                 "fs::open_file_read from thread '{}', handle \
                                  '{}', {} (found in '{}')",
                                 sys::get_current_thread_name(),
@@ -1208,7 +1224,11 @@ fn open_file_read_for_thread(
     }
 
     if dvar::get_int("fs_debug").unwrap() != 0 && thread == Thread::Main {
-        com::println!(10.into(), "Can't find {}", filename.as_ref().display());
+        com::println!(
+            console::Channel::FILES,
+            "Can't find {}",
+            filename.as_ref().display()
+        );
     }
 
     if impure_iwd {
@@ -1231,14 +1251,14 @@ fn open_file_read_for_thread(
         && dvar::get_bool("fs_restrict").unwrap() == false
     {
         com::println!(
-            10.into(),
+            console::Channel::FILES,
             "Error: {} must be in an IWD or not in the main directory",
             filename.as_ref().display()
         );
         return Err(std::io::ErrorKind::Other.into());
     } else {
         com::println!(
-            10.into(),
+            console::Channel::FILES,
             "Error: {} must be in an IWD",
             filename.as_ref().display()
         );
@@ -1256,7 +1276,7 @@ pub fn open_file_read_current_thread(
         open_file_read_for_thread(filename, thread)
     } else {
         com::print_errorln!(
-            1.into(),
+            console::Channel::ERROR,
             "fs::open_file_read_current_thread for an unknown thread"
         );
         Err(std::io::ErrorKind::Other.into())
@@ -1283,7 +1303,11 @@ pub fn open_file_append(filename: impl AsRef<Path>) -> std::io::Result<Fd> {
         &filename,
     );
     if dvar::get_int("fs_debug").unwrap() != 0 {
-        com::println!(10.into(), "fs::open_file_append: {}", ospath.display());
+        com::println!(
+            console::Channel::FILES,
+            "fs::open_file_append: {}",
+            ospath.display()
+        );
     }
     let path = create_path(ospath)?;
     let file = file_open_append(path)?;
@@ -1376,7 +1400,7 @@ fn open_file_write_to_dir_for_thread(
     let ospath = build_os_path(homepath, gamedir, qpath.as_ref());
     if dvar::get_int("fs_debug").unwrap() != 0 {
         com::println!(
-            10.into(),
+            console::Channel::FILES,
             "fs::open_file_write_to_dir_for_thread: {}",
             ospath.clone().display()
         );
@@ -1560,7 +1584,11 @@ pub fn write_file(
 
         r
     } else {
-        com::println!(10.into(), "Failed to open {}", path.as_ref().display());
+        com::println!(
+            console::Channel::FILES,
+            "Failed to open {}",
+            path.as_ref().display()
+        );
         Err(std::io::ErrorKind::NotFound.into())
     }
 }

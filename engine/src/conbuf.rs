@@ -192,7 +192,7 @@ pub fn append_text(text: impl ToString) {
 
 #[cfg(not(windows))]
 pub fn append_text(text: &str) {
-    com::println!(0.into(), "conbuf: {}", text);
+    com::println!(console::Channel::DONT_FILTER, "conbuf: {}", text);
 }
 
 #[cfg(native)]

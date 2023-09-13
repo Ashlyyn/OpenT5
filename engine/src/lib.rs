@@ -183,7 +183,7 @@ pub fn run() {
 
     com::init();
     com::println!(
-        16.into(),
+        console::Channel::SYSTEM,
         "Working directory: {}",
         sys::cwd().as_os_str().to_string_lossy()
     );

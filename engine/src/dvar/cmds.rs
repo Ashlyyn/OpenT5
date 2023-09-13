@@ -1,6 +1,6 @@
 use core::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 
-use crate::{cmd, com, sys};
+use crate::*;
 
 use super::{
     add_flags, get_bool, get_enumeration,
@@ -109,7 +109,7 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
         }
         DvarValue::Vector2(_) => {
             com::println!(
-                0.into(),
+                console::Channel::DONT_FILTER,
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name,
             );
@@ -117,7 +117,7 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
         }
         DvarValue::Vector3(_) => {
             com::println!(
-                0.into(),
+                console::Channel::DONT_FILTER,
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name,
             );
@@ -125,7 +125,7 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
         }
         DvarValue::Vector4(_) => {
             com::println!(
-                0.into(),
+                console::Channel::DONT_FILTER,
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name,
             );
@@ -133,7 +133,7 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
         }
         DvarValue::String(_) => {
             com::println!(
-                0.into(),
+                console::Channel::DONT_FILTER,
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name,
             );
@@ -141,7 +141,7 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
         }
         DvarValue::Color(_) => {
             com::println!(
-                0.into(),
+                console::Channel::DONT_FILTER,
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name,
             );
@@ -149,7 +149,7 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
         }
         DvarValue::LinearColorRGB(_) => {
             com::println!(
-                0.into(),
+                console::Channel::DONT_FILTER,
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name,
             );
@@ -157,7 +157,7 @@ fn toggle_simple(name: &str) -> Result<(), ()> {
         }
         DvarValue::ColorXYZ(_) => {
             com::println!(
-                0.into(),
+                console::Channel::DONT_FILTER,
                 "\'toggle\' with no arguments makes no sense for dvar \'{}\'",
                 name,
             );
@@ -330,7 +330,7 @@ fn list_single(dvar: &Dvar, name: &str) {
     };
 
     com::println!(
-        0.into(),
+        console::Channel::DONT_FILTER,
         "{}{}{}{}{}{}{}{}{}{}{}{} {} \"{}\"",
         s,
         u,
@@ -361,7 +361,7 @@ fn toggle_internal() -> Result<(), ()> {
 
     if cmd::argc() < 2 {
         com::println!(
-            0.into(),
+            console::Channel::DONT_FILTER,
             "USAGE: {} <variable> <optional value sequence>",
             name,
         );
@@ -371,7 +371,11 @@ fn toggle_internal() -> Result<(), ()> {
     let argv_1 = cmd::argv(1);
 
     if !exists(&name) {
-        com::println!(0.into(), "toggle failed: dvar \'{}\' not found.", name,);
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "toggle failed: dvar \'{}\' not found.",
+            name,
+        );
         return Err(());
     }
 
@@ -422,7 +426,7 @@ fn toggle_print_f() {
 
     let name = cmd::argv(1);
     com::println!(
-        0.into(),
+        console::Channel::DONT_FILTER,
         "{} toggled to {}",
         name,
         find(&name).unwrap().current,
@@ -432,13 +436,20 @@ fn toggle_print_f() {
 fn set_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println!(0.into(), "USAGE: set <variable> <value>");
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: set <variable> <value>"
+        );
         return;
     }
 
     let name = cmd::argv(1);
     if !name_is_valid(&name) {
-        com::println!(0.into(), "invalid variable name: {}", name);
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "invalid variable name: {}",
+            name
+        );
         return;
     }
 
@@ -449,7 +460,10 @@ fn set_f() {
 fn sets_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println!(0.into(), "USAGE: sets <variable> <value>\n");
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: sets <variable> <value>\n"
+        );
     }
 
     set_f();
@@ -465,7 +479,10 @@ fn sets_f() {
 fn seta_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println!(0.into(), "USAGE: seta <variable> <value>\n");
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: seta <variable> <value>\n"
+        );
     }
 
     set_f();
@@ -481,7 +498,10 @@ fn seta_f() {
 fn set_admin_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println!(0.into(), "USAGE: setadminvar <variable> <value>\n");
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: setadminvar <variable> <value>\n"
+        );
     }
 
     let name = cmd::argv(1);
@@ -494,7 +514,7 @@ fn set_admin_f() {
     } else {
         let name = cmd::argv(1);
         com::println!(
-            0.into(),
+            console::Channel::DONT_FILTER,
             "setadmindvar failed: dvar \'{}\' not found.",
             name,
         );
@@ -509,7 +529,10 @@ fn set_mod_dvar_f() {
 fn set_from_dvar_f() {
     let argc = cmd::argc();
     if argc != 3 {
-        com::println!(0.into(), "USAGE: setfromdvar <dest_dvar> <source_dvar>");
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: setfromdvar <dest_dvar> <source_dvar>"
+        );
         return;
     }
 
@@ -521,7 +544,7 @@ fn set_from_dvar_f() {
         set_command(&dest_dvar_name, &d.current.to_string());
     } else {
         com::println!(
-            0.into(),
+            console::Channel::DONT_FILTER,
             "dvar \'{}\' doesn\'t exist\n",
             source_dvar_name,
         );
@@ -537,14 +560,18 @@ fn set_to_time_f() {
     let argc = cmd::argc();
 
     if argc < 2 {
-        com::println!(0.into(), "USAGE: set <variable>");
+        com::println!(console::Channel::DONT_FILTER, "USAGE: set <variable>");
         return;
     }
 
     let name = cmd::argv(1);
     if !name_is_valid(&name) {
         let name = cmd::argv(1);
-        com::println!(0.into(), "invalid variable name: {}\n", name);
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "invalid variable name: {}\n",
+            name
+        );
         return;
     }
 
@@ -556,7 +583,7 @@ fn set_to_time_f() {
 fn reset_f() {
     let argc = cmd::argc();
     if argc != 2 {
-        com::println!(0.into(), "USAGE: reset <variable>");
+        com::println!(console::Channel::DONT_FILTER, "USAGE: reset <variable>");
         return;
     }
 
@@ -578,7 +605,7 @@ fn list_f() {
         .values()
         .for_each(|d| list_single(d, &argv_1));
     com::println!(
-        0.into(),
+        console::Channel::DONT_FILTER,
         "\n{} total dvars",
         DVAR_COUNT_LOCAL.load(Ordering::SeqCst),
     );
@@ -592,7 +619,11 @@ fn register_bool_f() {
     let argc = cmd::argc();
     if argc != 3 {
         let cmd = cmd::argv(0);
-        com::println!(0.into(), "USAGE: {} <name> <default>", cmd);
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: {} <name> <default>",
+            cmd
+        );
     }
 
     let name = cmd::argv(1);
@@ -615,7 +646,7 @@ fn register_bool_f() {
             }
             _ => {
                 com::println!(
-                    0.into(),
+                    console::Channel::DONT_FILTER,
                     "dvar \'{}\' is not a boolean dvar",
                     name,
                 );
@@ -629,7 +660,11 @@ fn register_int_f() {
     let argc = cmd::argc();
     if argc != 5 {
         let cmd = cmd::argv(0);
-        com::println!(0.into(), "USAGE: {} <name> <default> <min> <max>", cmd,);
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: {} <name> <default> <min> <max>",
+            cmd,
+        );
         return;
     }
 
@@ -640,7 +675,7 @@ fn register_int_f() {
 
     if min > max {
         com::println!(
-            0.into(),
+            console::Channel::DONT_FILTER,
             "dvar {}: min {} should not be greater than max {}i\n",
             name,
             min.unwrap_or(0),
@@ -680,7 +715,7 @@ fn register_int_f() {
             DvarValue::Enumeration(_) => {}
             _ => {
                 com::println!(
-                    0.into(),
+                    console::Channel::DONT_FILTER,
                     "dvar \'{}\' is not an integer dvar",
                     d.name,
                 );
@@ -693,7 +728,11 @@ fn register_float_f() {
     let argc = cmd::argc();
     if argc != 5 {
         let cmd = cmd::argv(0);
-        com::println!(0.into(), "USAGE: {} <name> <default> <min> <max>", cmd,);
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: {} <name> <default> <min> <max>",
+            cmd,
+        );
         return;
     }
 
@@ -704,7 +743,7 @@ fn register_float_f() {
 
     if min > max {
         com::println!(
-            0.into(),
+            console::Channel::DONT_FILTER,
             "dvar {}: min {} should not be greater than max {}i\n",
             name,
             min.unwrap_or(0.0),
@@ -745,7 +784,7 @@ fn register_float_f() {
             DvarValue::Float(_) => {}
             _ => {
                 com::println!(
-                    0.into(),
+                    console::Channel::DONT_FILTER,
                     "dvar {} is not an integer dvar",
                     d.name,
                 );
@@ -766,7 +805,11 @@ fn register_color_f() {
     // and return
     if argc != 5 && argc != 6 {
         let cmd = cmd::argv(0);
-        com::println!(0.into(), "USAGE: {} <name> <r> <g> <b> [a]", cmd,);
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: {} <name> <r> <g> <b> [a]",
+            cmd,
+        );
         return;
     }
 
@@ -817,7 +860,10 @@ fn register_color_f() {
 fn setu_f() {
     let argc = cmd::argc();
     if argc < 3 {
-        com::println!(0.into(), "USAGE: setu <variable> <value>");
+        com::println!(
+            console::Channel::DONT_FILTER,
+            "USAGE: setu <variable> <value>"
+        );
         return;
     }
 
@@ -847,7 +893,12 @@ fn restore_dvars() {
 fn display_dvar(dvar: &Dvar, i: &mut i32) {
     if dvar.flags.contains(DvarFlags::SAVED) {
         *i += 1;
-        com::println!(0.into(), " {} \"{}\"", dvar.name, dvar);
+        com::println!(
+            console::Channel::DONT_FILTER,
+            " {} \"{}\"",
+            dvar.name,
+            dvar
+        );
     }
 }
 
@@ -864,7 +915,7 @@ fn list_saved_dvars() {
             i = j;
         });
 
-    com::println!(0.into(), "\n{} total SAVED dvars", i);
+    com::println!(console::Channel::DONT_FILTER, "\n{} total SAVED dvars", i);
 }
 
 /// Adds commands for Dvar module

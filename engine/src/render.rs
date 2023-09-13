@@ -134,14 +134,14 @@ fn init_render_thread() {
 
 pub fn init_threads() {
     com::println!(
-        8.into(),
+        console::Channel::GFX,
         "{}: Trying SMP acceleration...",
         std::thread::current().name().unwrap_or("main"),
     );
     init_render_thread();
     // init_worker_threads();
     com::println!(
-        8.into(),
+        console::Channel::GFX,
         "{}: ...succeeded",
         std::thread::current().name().unwrap_or("main"),
     );
@@ -340,7 +340,7 @@ fn register_dvars() {
 /// Should be called before any other functions from this module.
 #[allow(clippy::unnecessary_wraps)]
 fn init() -> Result<(), ()> {
-    com::println!(8.into(), "----- render::init -----");
+    com::println!(console::Channel::GFX, "----- render::init -----");
 
     register();
 
@@ -436,16 +436,16 @@ lazy_static! {
 #[doc(hidden)]
 fn _fatal_init_error_internal(error: impl ToString) -> ! {
     com::println!(
-        8.into(),
+        console::Channel::GFX,
         "********** Device returned an unrecoverable error code during \
          initialization  **********"
     );
     com::println!(
-        8.into(),
+        console::Channel::GFX,
         "********** Initialization also happens while playing if Renderer \
          loses a device **********"
     );
-    com::println!(8.into(), "{}", error.to_string());
+    com::println!(console::Channel::GFX, "{}", error.to_string());
     sys::render_fatal_error();
 }
 
@@ -1056,7 +1056,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
 
     let (dw_ex_style, dw_style) = if wnd_parms.fullscreen == false {
         com::println!(
-            8.into(),
+            console::Channel::GFX,
             "Attempting {} x {} window at ({}, {})",
             wnd_parms.display_width,
             wnd_parms.display_height,
@@ -1066,7 +1066,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         (WS_EX_LEFT, WS_SYSMENU | WS_CAPTION | WS_VISIBLE)
     } else {
         com::println!(
-            8.into(),
+            console::Channel::GFX,
             "Attempting {} x {} fullscreen with 32 bpp at {} hz",
             wnd_parms.display_width,
             wnd_parms.display_height,
@@ -1106,7 +1106,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     };
 
     if hwnd.0 == 0 {
-        com::println!(8.into(), "Couldn't create a window.");
+        com::println!(console::Channel::GFX, "Couldn't create a window.");
         wnd_parms.window_handle = None;
         Err(())
     } else {
@@ -1132,7 +1132,10 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 SetFocus(hwnd);
             }
         }
-        com::println!(8.into(), "Game window successfully created.");
+        com::println!(
+            console::Channel::GFX,
+            "Game window successfully created."
+        );
         Ok(())
     }
 }
@@ -1267,7 +1270,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
                 )
             })
         }) else {
-            com::println!(8.into(), "Couldn't create a window.");
+            com::println!(console::Channel::GFX, "Couldn't create a window.");
             wnd_parms.window_handle = None;
             return Err(());
         };
@@ -1299,7 +1302,10 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
         }
         unsafe { window.setAcceptsMouseMovedEvents(true) };
 
-        com::println!(8.into(), "Game window successfully created.");
+        com::println!(
+            console::Channel::GFX,
+            "Game window successfully created."
+        );
         Ok(())
     })
 }
@@ -1561,7 +1567,7 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
     };
 
     if window == 0 {
-        com::println!(8.into(), "Couldn't create a window.");
+        com::println!(console::Channel::GFX, "Couldn't create a window.");
         wnd_parms.window_handle = None;
         Err(())
     } else {
@@ -1590,7 +1596,10 @@ pub fn create_window_2(wnd_parms: &mut gfx::WindowParms) -> Result<(), ()> {
             XSetWMProtocols(display, window, addr_of_mut!(wm_delete_window), 1);
         }
 
-        com::println!(8.into(), "Game window successfully created.");
+        com::println!(
+            console::Channel::GFX,
+            "Game window successfully created."
+        );
         Ok(())
     }
 }
@@ -1653,7 +1662,7 @@ fn enum_display_modes() {
 #[cfg(wgpu)]
 #[allow(clippy::unnecessary_wraps)]
 fn pre_create_window() -> Result<(), ()> {
-    com::println!(8.into(), "Getting Device interface...");
+    com::println!(console::Channel::GFX, "Getting Device interface...");
     let instance = platform::render::wgpu::Instance::new();
     RENDER_GLOBALS.write().unwrap().instance = Some(instance);
 
@@ -1697,9 +1706,17 @@ fn get_direct3d_caps(adapter: Adapter) -> D3DCAPS9 {
 #[cfg(d3d9)]
 fn respond_to_missing_caps(response: DxCapsResponse, message: &'static str) {
     if response == DxCapsResponse::Warn {
-        com::warnln!(8.into(), "Video card or driver {}.", message);
+        com::warnln!(
+            console::Channel::GFX,
+            "Video card or driver {}.",
+            message
+        );
     } else {
-        com::println!(8.into(), "Video card or driver {}.", message);
+        com::println!(
+            console::Channel::GFX,
+            "Video card or driver {}.",
+            message
+        );
     }
 
     match response {
@@ -2053,13 +2070,13 @@ fn check_dx_caps(caps: &D3DCAPS9) {
 #[cfg(d3d9)]
 fn pick_renderer(caps: &D3DCAPS9) {
     com::println!(
-        8.into(),
+        console::Channel::GFX,
         "Pixel shader version is {}.{}",
         (caps.PixelShaderVersion & 0xFFFF) >> 8,
         caps.PixelShaderVersion & 0xFF
     );
     com::println!(
-        8.into(),
+        console::Channel::GFX,
         "Vertex shader version is {}.{}",
         (caps.VertexShaderVersion & 0xFFFF) >> 8,
         caps.VertexShaderVersion & 0xFF
@@ -2333,9 +2350,9 @@ fn pre_create_window() -> Result<(), ()> {
         "D3D re-initialized before being shutdown"
     );
 
-    com::println!(8.into(), "Getting Direct3D 9 interface...");
+    com::println!(console::Channel::GFX, "Getting Direct3D 9 interface...");
     let Some(d3d9) = (unsafe { Direct3DCreate9(D3D_SDK_VERSION) }) else {
-        com::println!(8.into(), "Direct3D 9 failed to initialize");
+        com::println!(console::Channel::GFX, "Direct3D 9 failed to initialize");
         return Err(());
     };
 
@@ -2536,7 +2553,7 @@ fn create_device_internal(
     behavior_flags: u32,
     d3dpp: &mut D3DPRESENT_PARAMETERS,
 ) -> Result<(), windows::core::Error> {
-    com::println!(8.into(), "Creating Direct3D device...");
+    com::println!(console::Channel::GFX, "Creating Direct3D device...");
 
     let mut d3ddm = D3DDISPLAYMODE::default();
     let mut i = 0;
@@ -2694,7 +2711,7 @@ fn setup_anti_aliasing(wnd_parms: &gfx::WindowParms) {
         }
         ms_type = D3DMULTISAMPLE_TYPE(ms_type.0 + 1);
     }
-    com::println!(8.into(), "Using {}x anti-aliasing", ms_type.0);
+    com::println!(console::Channel::GFX, "Using {}x anti-aliasing", ms_type.0);
     platform::render::d3d9::dx_mut().multi_sample_quality = 0;
 }
 
@@ -2755,7 +2772,7 @@ fn create_device(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
         &mut d3dpp,
     ) {
         com::println!(
-            8.into(),
+            console::Channel::GFX,
             "Couldn't create a Direct3D device: {}",
             e.message()
         );
@@ -2768,7 +2785,7 @@ fn create_device(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
 
 #[cfg(wgpu)]
 fn create_device_internal(_wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
-    com::println!(8.into(), "Creating Render device...");
+    com::println!(console::Channel::GFX, "Creating Render device...");
 
     let mut rg = RENDER_GLOBALS.write().unwrap();
     rg.device = block_on(Device::new(rg.adapter.as_ref().unwrap()));
@@ -2797,7 +2814,10 @@ fn create_device(wnd_parms: &gfx::WindowParms) -> Result<(), ()> {
     // depth stencil
 
     if create_device_internal(wnd_parms).is_err() {
-        com::print_errorln!(8.into(), "Couldn't create a Renderer device");
+        com::print_errorln!(
+            console::Channel::GFX,
+            "Couldn't create a Renderer device"
+        );
         return Err(());
     }
 
