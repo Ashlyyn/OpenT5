@@ -2,7 +2,10 @@
 
 // This file exists to abstract filesystem-related functionalities
 
-use crate::{util::EasierAtomic, *};
+use crate::{
+    util::{EasierAtomic, EasierAtomicBool},
+    *,
+};
 use arrayvec::ArrayVec;
 use cfg_if::cfg_if;
 use core::{str::FromStr, sync::atomic::AtomicUsize};
@@ -183,21 +186,166 @@ pub fn create_path(path: impl AsRef<Path>) -> Result<PathBuf, std::io::Error> {
     }
 }
 
+fn remove_commands() {
+    cmd::remove_command("path");
+    cmd::remove_command("fullpath");
+    cmd::remove_command("dir");
+    cmd::remove_command("fdir");
+    cmd::remove_command("touchFile");
+}
+
+fn shutdown() {
+    for fh in FSH.write().unwrap().iter_mut() {
+        *fh = None;
+    }
+
+    FS_SEARCHPATHS.write().unwrap().clear();
+    remove_commands();
+}
+
+fn set_restrictions() {
+    if dvar::get_bool("fs_restrict").unwrap() {
+        com::println!(10.into(), "\nRunning in restricted demo mode.\n");
+        shutdown();
+        startup("demomain", true);
+        for sp in FS_SEARCHPATHS.read().unwrap().iter() {
+            if use_searchpath(sp) {
+                // checksum
+            }
+        }
+    }
+}
+
 // TODO - fully implement
 
 /// Initializes the filesystem.
 ///
 /// Should be called before using any other functions from this module.
 pub fn init_filesystem(dev: bool) {
-    // FSH.write().unwrap().fill(None);
+    for fh in FSH.write().unwrap().iter_mut() {
+        *fh = None;
+    }
     startup("main", dev);
 }
 
+fn display_path(_pure: bool) {
+    todo!()
+}
+
+fn path_f() {
+    display_path(true);
+}
+
+fn full_path_f() {
+    display_path(false);
+}
+
+fn dir_f() {
+    let argc = cmd::argc();
+    if argc <= 1 || argc > 4 {
+        com::println!(0.into(), "usage: dir <directory> [extension]");
+    }
+
+    todo!()
+}
+
+fn new_dir_f() {
+    let argc = cmd::argc();
+    if argc < 2 {
+        com::println!(0.into(), "usage: fdir <filter>");
+        com::println!(0.into(), "example: fdir *q3dm*.bsp");
+        return;
+    }
+
+    todo!()
+}
+
+fn touch_file_f() {
+    let argc = cmd::argc();
+    if argc == 2 {
+        let file = cmd::argv(1);
+        let _ = touch_file(file);
+    } else {
+        com::println!(0.into(), "Usage: touchFile <file>");
+    }
+}
+
+fn add_commands() {
+    cmd::add_command_internal("path", path_f).unwrap();
+    cmd::add_command_internal("fullpath", full_path_f).unwrap();
+    cmd::add_command_internal("dir", dir_f).unwrap();
+    cmd::add_command_internal("fdir", new_dir_f).unwrap();
+    cmd::add_command_internal("touchFile", touch_file_f).unwrap();
+}
+
 // TODO - fully implement
-fn startup(_param_1: &str, _dev: bool) {
+fn startup(gamedir: impl AsRef<Path>, _dev: bool) {
     com::println!(16.into(), "----- fs::startup -----");
     register_dvars();
-    com::println!(16.into(), "-----------------------");
+    if dvar::get_bool("fs_usedevdir").unwrap() {
+        // add dev game dirs
+        if !dvar::get_string("fs_basepath").unwrap().is_empty() {}
+    }
+    if !dvar::get_string("fs_cdpath").unwrap().is_empty()
+        && dvar::get_string("fs_basepath").unwrap()
+            != dvar::get_string("fs_cdpath").unwrap()
+    {
+        let _ = add_localized_game_directory(
+            dvar::get_string("fs_cdpath").unwrap(),
+            &gamedir,
+        );
+    }
+
+    let basepath = dvar::get_string("fs_basepath").unwrap();
+
+    if !basepath.is_empty() {
+        let _ = add_localized_game_directory(&basepath, "players");
+        let _ = add_localized_game_directory(
+            &basepath,
+            format!("{}_shared", gamedir.as_ref().display()),
+        );
+        let _ = add_localized_game_directory(&basepath, &gamedir);
+    }
+
+    let homepath = dvar::get_string("fs_homepath").unwrap();
+
+    if !basepath.is_empty() && homepath != basepath {
+        let _ = add_localized_game_directory(
+            &basepath,
+            format!("{}_shared", gamedir.as_ref().display()),
+        );
+        let _ = add_localized_game_directory(&homepath, &gamedir);
+    }
+
+    let basegame = dvar::get_string("fs_basegame").unwrap();
+    let gamedir_var = dvar::get_string("fs_gameDirVar").unwrap();
+
+    if !basegame.is_empty()
+        && gamedir.as_ref() == Path::new("main")
+        && Path::new(&gamedir_var) != gamedir.as_ref()
+        && !basepath.is_empty()
+    {
+        let _ = add_game_directory(&basepath, basegame, None);
+    }
+
+    if !gamedir_var.is_empty()
+        && gamedir.as_ref() == Path::new("main")
+        && Path::new(&gamedir_var) != gamedir.as_ref()
+        && !basepath.is_empty()
+    {
+        let _ = add_game_directory(&basepath, "usermaps", None);
+        let _ = add_game_directory(basepath, gamedir_var, None);
+    }
+
+    add_commands();
+    path_f();
+    dvar::clear_modified("fs_gameDirVar").unwrap();
+    com::println!(10.into(), "-----------------------");
+    com::println!(
+        10.into(),
+        "{} files in iwd files",
+        FS_IWD_FILE_COUNT.load_relaxed()
+    )
 }
 
 fn register_dvars() {
@@ -489,7 +637,7 @@ enum Qdir {
     Iwd {
         /// Ref-counted to allow [`Qdir`] and [`Searchpath`] to use the same
         /// archive.
-        iwd: Arc<RwLock<Iwd>>,
+        iwd: Option<Arc<RwLock<Iwd>>>,
         iwd_name: PathBuf,
     },
     Dir {
@@ -512,9 +660,9 @@ impl Qdir {
         }
     }
 
-    fn iwd(&self) -> Option<Arc<RwLock<Iwd>>> {
+    fn iwd(&self) -> Option<&Arc<RwLock<Iwd>>> {
         match self {
-            Qdir::Iwd { iwd, .. } => Some(iwd.clone()),
+            Qdir::Iwd { iwd, .. } => iwd.as_ref(),
             _ => None,
         }
     }
@@ -527,6 +675,9 @@ impl Qdir {
     }
 }
 
+/// Defines a path for functions in this mddule to search within.
+///
+/// Functions analogously to $PATH on Unix-like systems.
 struct Searchpath {
     /// The directory of the [`Searchpath`]. Can be a normal dir or an IWD.
     qdir: Qdir,
@@ -576,6 +727,8 @@ fn use_searchpath(sp: &Searchpath) -> bool {
     }
 }
 
+static FS_IWD_FILE_COUNT: AtomicUsize = AtomicUsize::new(0);
+
 /// Loads a zip file using the supplied file name.
 ///
 /// Fails if the file is not a zip file, or if some underlying operation
@@ -584,15 +737,184 @@ fn load_zip_file(
     filename: impl AsRef<Path>,
     _basename: impl AsRef<Path>,
 ) -> std::io::Result<Iwd> {
-    ZipArchive::new(file_open_read(filename)?)
-        .map_err(|_| std::io::ErrorKind::Other.into())
+    let r = ZipArchive::new(file_open_read(filename)?)
+        .map_err(|_| std::io::ErrorKind::Other.into());
+
+    if r.is_ok() {
+        FS_IWD_FILE_COUNT.increment_wrapping();
+    }
+
+    r
 }
 
+const MAX_IWD_FILES_IN_GAME_DIRECTORY: usize = 1024;
+
+/// Attempts to parse the language from an IWD file's name.
+///
+/// Returns [`Some`] if it can be successfully parsed, [`None`] otherwise.
+fn iwd_file_language(iwd_path: impl AsRef<Path>) -> Option<String> {
+    let file_name = iwd_path.as_ref().file_name()?;
+
+    // All valid localized IWDs' names follow the format
+    // "localized_{}_iw{:02}.iwd".
+    //
+    // "localized_" => 10
+    // "{}" >= 1
+    // "_iw{:02}.iwd" => 9
+    //
+    // Even with a one-letter language, the name would then have to be at least
+    // 20 characters long. If it's shorter than that, it can't be valid.
+    if file_name.len() <= 20 {
+        return None;
+    }
+
+    // We can't use string manipulation functions with OsStrs, so we need to
+    // convert the file name to a String. Given how the file names must be
+    // formatted, to_string_lossy shouldn't drop any characters.
+    let file_name = file_name.to_string_lossy();
+
+    if !file_name.starts_with("localized_") {
+        return None;
+    }
+
+    if !file_name.ends_with(".iwd") {
+        return None;
+    }
+
+    // As noted above, the "localized_" prefix is 10 characters long, and the
+    // "_iw{:02}.iwd" suffix is 9 characters long, so the language string
+    // will be everything in between.
+    //
+    // We also convert it to lowercase since [`locale::lang_from_str`] expects
+    // it to be lowercase.
+    let lang_str = &file_name[10..file_name.len() - 9].to_ascii_lowercase();
+
+    let lang = locale::lang_from_str(lang_str);
+
+    lang.map(|s| s.to_string())
+}
+
+/// Adds the IWDs in a given directory to [`FS_SEARCHPATHS`].
+///
+/// If the IWD is non-localized (i.e. its name follows the format
+/// "iw_{:02}.iwd"), it is unconditionally added.
+///
+/// If the IWD is localized (i.e. its name follows the format
+/// "localized_{}_iw{:02}.iwd"), it will be added if the language matches the
+/// current language.
+///
+/// Even though it returns a [`std::io::Result`], its current implementation is
+/// infallible.
 fn add_iwd_files_for_game_directory(
-    _base: impl AsRef<Path>,
-    _gamedir: impl AsRef<Path>,
+    base: impl AsRef<Path>,
+    gamedir: impl AsRef<Path>,
 ) -> std::io::Result<()> {
-    todo!()
+    let lang_is_austrian = dvar::get_int("loc_language").unwrap()
+        == locale::Language::AUSTRIAN as i32;
+
+    let dir = build_os_path(&base, Some(&gamedir), "");
+
+    let mut iwds = sys::list_files(dir, "iwd", Option::<&str>::None, false);
+
+    if iwds.len() > MAX_IWD_FILES_IN_GAME_DIRECTORY {
+        com::warnln!(
+            10.into(),
+            "WARNING: Exceeded max number of iwd files in {}/{} ({}/{})",
+            base.as_ref().display(),
+            gamedir.as_ref().display(),
+            iwds.len(),
+            MAX_IWD_FILES_IN_GAME_DIRECTORY
+        );
+        iwds.truncate(MAX_IWD_FILES_IN_GAME_DIRECTORY);
+    }
+
+    let dir_is_main = gamedir.as_ref() == Path::new("main")
+        && base.as_ref()
+            == Path::new(&dvar::get_string("fs_basepath").unwrap());
+
+    // TODO - sort the iwds
+
+    for iwd_name in iwds {
+        let file_name = iwd_name.file_name().unwrap().to_string_lossy();
+        if &file_name[..10] == "localized_" {
+            if let Some(lang_str) = iwd_file_language(&iwd_name) {
+                if let Some(lang) = locale::lang_from_str(&lang_str) {
+                    let lang = if lang == locale::Language::GERMAN
+                        && lang_is_austrian
+                    {
+                        locale::Language::AUSTRIAN
+                    } else {
+                        lang
+                    };
+
+                    let filename =
+                        build_os_path(&base, Some(&gamedir), &iwd_name);
+                    let iwd = load_zip_file(&filename, &iwd_name)
+                        .ok()
+                        .map(|i| Arc::new(RwLock::new(i)));
+                    let sp = Searchpath {
+                        ignore: false,
+                        ignore_pure_check: false,
+                        language: Some(lang),
+                        qdir: Qdir::Iwd { iwd, iwd_name },
+                    };
+                    add_searchpath(sp);
+                } else {
+                    com::warnln!(
+                        10.into(),
+                        "WARNING: Localized assets iwd file {}/{}/{} has \
+                         invalid name (bad language name specified). Proper \
+                         naming convention is: localized_[language]_iwd#.iwd",
+                        base.as_ref().display(),
+                        gamedir.as_ref().display(),
+                        iwd_name.display()
+                    );
+
+                    static LANGUAGES_LISTED: AtomicBool =
+                        AtomicBool::new(false);
+                    if LANGUAGES_LISTED.load_relaxed() == false {
+                        com::println!(10.into(), "Supported languages are:");
+                        for i in 0..locale::Language::CZECH.as_u8() {
+                            let lang =
+                                locale::Language::try_from_u8(i).unwrap();
+                            com::println!(10.into(), "    {}", lang);
+                        }
+                        LANGUAGES_LISTED.store_relaxed(true);
+                    }
+                }
+            } else {
+                com::warnln!(
+                    10.into(),
+                    "WARNING: Localized assets iwd file {}/{}/{} has invalid \
+                     name (no language specified). Proper naming convention \
+                     is: localized_[language]_iwd#.iwd",
+                    base.as_ref().display(),
+                    gamedir.as_ref().display(),
+                    iwd_name.display(),
+                );
+            }
+        } else if dir_is_main && &file_name[0..3] != "iw_" {
+            com::warnln!(
+                10.into(),
+                "WARNING: Invalid IWD {} in \\main.",
+                iwd_name.display()
+            );
+        } else {
+            let filename = build_os_path(&base, Some(&gamedir), &iwd_name);
+            let iwd = load_zip_file(&filename, &iwd_name)
+                .ok()
+                .map(|i| Arc::new(RwLock::new(i)));
+            let sp = Searchpath {
+                ignore: false,
+                ignore_pure_check: false,
+                language: None,
+                qdir: Qdir::Iwd { iwd, iwd_name },
+            };
+            add_searchpath(sp);
+        }
+    }
+
+    Ok(())
 }
 
 /// Adds a game directory to [`FS_SEARCHPATHS`], and any IWD files within.
@@ -676,6 +998,23 @@ fn add_game_directory(
     add_searchpath(sp);
 
     add_iwd_files_for_game_directory(base, gamedir)
+}
+
+fn add_localized_game_directory(
+    base: impl AsRef<Path>,
+    gamedir: impl AsRef<Path>,
+) -> std::io::Result<()> {
+    for i in 0..=locale::Language::CZECH.as_u8() {
+        #[allow(unused_must_use)]
+        {
+            add_game_directory(
+                &base,
+                &gamedir,
+                Some(locale::Language::try_from_u8(i).unwrap()),
+            );
+        }
+    }
+    add_game_directory(base, gamedir, None)
 }
 
 fn pure_ignore_files(filename: impl AsRef<Path>) -> bool {
@@ -832,37 +1171,38 @@ fn open_file_read_for_thread(
                 }
             }
             Qdir::Iwd { iwd, iwd_name } => {
-                let mut archive = iwd.write().unwrap();
-                if let Ok(zip_file) =
-                    archive.by_name(&filename.as_ref().to_string_lossy())
-                {
-                    let archive = iwd.clone();
-                    let handle_sync = false;
-                    let file_size = zip_file.size();
-                    let streamed = false;
-                    let name = filename.as_ref().to_path_buf();
-                    let fh = FileHandleData {
-                        file: Qfile::ZipFile { archive, name },
-                        handle_sync,
-                        file_size: file_size as _,
-                        streamed,
+                if let Some(ref iwd) = iwd {
+                    let mut archive = iwd.write().unwrap();
+                    if let Ok(zip_file) =
+                        archive.by_name(&filename.as_ref().to_string_lossy())
+                    {
+                        let archive = iwd.clone();
+                        let handle_sync = false;
+                        let file_size = zip_file.size();
+                        let streamed = false;
+                        let name = filename.as_ref().to_path_buf();
+                        let fh = FileHandleData {
+                            file: Qfile::ZipFile { archive, name },
+                            handle_sync,
+                            file_size: file_size as _,
+                            streamed,
+                        };
+                        FSH.write().unwrap()[fd.as_usize()] = Some(fh);
+
+                        if dvar::get_int("fs_debug").unwrap() != 0 {
+                            com::println!(
+                                10.into(),
+                                "fs::open_file_read from thread '{}', handle \
+                                 '{}', {} (found in '{}')",
+                                sys::get_current_thread_name(),
+                                fd.as_usize(),
+                                filename.as_ref().display(),
+                                iwd_name.display()
+                            );
+                        }
+                        return Ok((fd, file_size));
                     };
-                    FSH.write().unwrap()[fd.as_usize()] = Some(fh);
-
-                    if dvar::get_int("fs_debug").unwrap() != 0 {
-                        com::println!(
-                            10.into(),
-                            "fs::open_file_read from thread '{}', handle \
-                             '{}', {} (found in '{}')",
-                            sys::get_current_thread_name(),
-                            fd.as_usize(),
-                            filename.as_ref().display(),
-                            iwd_name.display()
-                        );
-                    }
-
-                    return Ok((fd, file_size));
-                };
+                }
             }
         };
     }
@@ -1257,4 +1597,8 @@ pub fn copy_file(
         );
     }
     Ok(src_size)
+}
+
+fn touch_file(filename: impl AsRef<Path>) -> std::io::Result<bool> {
+    open_file_read(filename).map(|(_, size)| size != 0xFFFF_FFFF_FFFF_FFFF)
 }

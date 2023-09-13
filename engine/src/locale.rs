@@ -56,6 +56,10 @@ impl Display for Language {
 }
 
 impl Language {
+    pub fn as_u8(self) -> u8 {
+        self as u8
+    }
+
     pub fn try_from_u8(value: u8) -> Option<Self> {
         num::FromPrimitive::from_u8(value)
     }
@@ -78,24 +82,24 @@ pub fn get_lang() -> Language {
 }
 
 #[allow(clippy::match_same_arms)]
-pub fn lang_from_str(lang: &str) -> Language {
+pub fn lang_from_str(lang: &str) -> Option<Language> {
     match lang {
         // try to match the language string
-        "english" => Language::ENGLISH,
-        "french" => Language::FRENCH,
-        "frenchcanadian" => Language::FRENCHCANADIAN,
-        "german" => Language::GERMAN,
-        "austrian" => Language::AUSTRIAN,
-        "italian" => Language::ITALIAN,
-        "spanish" => Language::SPANISH,
-        "british" => Language::BRITISH,
-        "russian" => Language::RUSSIAN,
-        "polish" => Language::POLISH,
-        "korean" => Language::KOREAN,
-        "japanese" => Language::JAPANESE,
-        "czech" => Language::CZECH,
+        "english" => Some(Language::ENGLISH),
+        "french" => Some(Language::FRENCH),
+        "frenchcanadian" => Some(Language::FRENCHCANADIAN),
+        "german" => Some(Language::GERMAN),
+        "austrian" => Some(Language::AUSTRIAN),
+        "italian" => Some(Language::ITALIAN),
+        "spanish" => Some(Language::SPANISH),
+        "british" => Some(Language::BRITISH),
+        "russian" => Some(Language::RUSSIAN),
+        "polish" => Some(Language::POLISH),
+        "korean" => Some(Language::KOREAN),
+        "japanese" => Some(Language::JAPANESE),
+        "czech" => Some(Language::CZECH),
         // if it can't be matched, default to English
-        _ => Language::ENGLISH,
+        _ => None,
     }
 }
 
@@ -128,7 +132,7 @@ pub fn init() -> Language {
                 .map(|&s| s.to_owned().trim().to_owned())
                 .filter(|s| !s.is_empty())
                 .collect::<Vec<String>>();
-            (lang, strings)
+            (lang.unwrap_or(Language::ENGLISH), strings)
         },
     );
 

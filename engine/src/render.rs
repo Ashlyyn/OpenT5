@@ -335,6 +335,9 @@ fn register_dvars() {
     reflection_probe_register_dvars();
 }
 
+/// Initializes the renderer.
+///
+/// Should be called before any other functions from this module.
 #[allow(clippy::unnecessary_wraps)]
 fn init() -> Result<(), ()> {
     com::println!(8.into(), "----- render::init -----");
@@ -446,6 +449,9 @@ fn _fatal_init_error_internal(error: impl ToString) -> ! {
     sys::render_fatal_error();
 }
 
+/// Called when the renderer encounters a fatal error during initialization.
+///
+/// Prints an error including the supplied message, then exits the process.
 #[allow(unused_macros)]
 macro_rules! fatal_init_error {
     ($($arg:tt)*) => {{
@@ -453,6 +459,9 @@ macro_rules! fatal_init_error {
     }};
 }
 
+/// Called when the renderer encounters a fatal error during initialization.
+///
+/// Prints an error including the supplied message, then exits the process.
 #[allow(unused_macros)]
 macro_rules! fatal_init_errorln {
     ($channel:expr) => {

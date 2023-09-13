@@ -75,38 +75,36 @@ impl CmdArgs {
 
 impl CmdFunction {
     fn new(
-        name: &str,
-        auto_complete_dir: &str,
-        auto_complete_ext: &str,
+        name: impl ToString,
+        auto_complete_dir: impl ToString,
+        auto_complete_ext: impl ToString,
         function: fn(),
     ) -> Self {
         Self {
-            name: name.to_owned(),
-            auto_complete_dir: auto_complete_dir.to_owned(),
-            auto_complete_ext: auto_complete_ext.to_owned(),
+            name: name.to_string(),
+            auto_complete_dir: auto_complete_dir.to_string(),
+            auto_complete_ext: auto_complete_ext.to_string(),
             function,
         }
     }
 }
 
 lazy_static! {
-    static ref CMD_FUNCTIONS: Arc<RwLock<HashMap<String, CmdFunction>>> =
-        Arc::new(RwLock::new(HashMap::new()));
+    static ref CMD_FUNCTIONS: RwLock<HashMap<String, CmdFunction>> =
+        RwLock::new(HashMap::new());
 }
 
 pub fn find(name: &str) -> Option<CmdFunction> {
-    let lock = CMD_FUNCTIONS.clone();
-    let cmd_functions = lock.read().unwrap();
+    let cmd_functions = CMD_FUNCTIONS.read().unwrap();
     cmd_functions.get(name).cloned()
 }
 
 pub fn exists(name: &str) -> bool {
-    let lock = CMD_FUNCTIONS.clone();
-    let cmd_functions = lock.read().unwrap();
+    let cmd_functions = CMD_FUNCTIONS.read().unwrap();
     cmd_functions.contains_key(name)
 }
 
-pub fn add_internal(name: &str, function: fn()) -> Option<CmdFunction> {
+pub fn add_command_internal(name: &str, function: fn()) -> Option<CmdFunction> {
     if exists(name) {
         com::println!(
             16.into(),
@@ -116,11 +114,14 @@ pub fn add_internal(name: &str, function: fn()) -> Option<CmdFunction> {
         return None;
     }
 
-    let lock = CMD_FUNCTIONS.clone();
-    let mut cmd_functions = lock.write().unwrap();
+    let mut cmd_functions = CMD_FUNCTIONS.write().unwrap();
     cmd_functions
         .insert(name.to_owned(), CmdFunction::new(name, "", "", function));
     Some(cmd_functions.get(name).unwrap().clone())
+}
+
+pub fn remove_command(name: &str) {
+    CMD_FUNCTIONS.write().unwrap().remove(name).unwrap();
 }
 
 thread_local! {

@@ -21,7 +21,7 @@ use core::{
 };
 #[allow(unused_imports)]
 use lazy_static::lazy_static;
-use std::path::Path;
+use std::{ffi::OsStr, path::Path};
 #[allow(unused_imports)]
 use std::{
     io::{Read, Write},
@@ -195,13 +195,16 @@ fn connect_f() {
     todo!()
 }
 
+/// Initializes this module.
+///
+/// Should be called before any other functions in this module.
 pub fn init() {
-    cmd::add_internal("in_restart", in_restart_f).unwrap();
-    cmd::add_internal("net_restart", net_restart_f).unwrap();
-    cmd::add_internal("movie_start", movie_start_f).unwrap();
-    cmd::add_internal("movie_stop", movie_stop_f).unwrap();
-    cmd::add_internal("net_listen", listen_f).unwrap();
-    cmd::add_internal("net_connect", connect_f).unwrap();
+    cmd::add_command_internal("in_restart", in_restart_f).unwrap();
+    cmd::add_command_internal("net_restart", net_restart_f).unwrap();
+    cmd::add_command_internal("movie_start", movie_start_f).unwrap();
+    cmd::add_command_internal("movie_stop", movie_stop_f).unwrap();
+    cmd::add_command_internal("net_listen", listen_f).unwrap();
+    cmd::add_command_internal("net_connect", connect_f).unwrap();
 
     com::println!(16.into(), "CPU vendor is \"{}\"", get_cpu_vendor(),);
     com::println!(16.into(), "CPU name is \"{}\"", get_cpu_name());
@@ -249,6 +252,7 @@ lazy_static! {
     static ref TIME_BASE: AtomicIsize = AtomicIsize::new(0);
 }
 
+/// Returns the time in milliseconds elapsed since engine started.
 #[cfg(windows)]
 pub fn milliseconds() -> isize {
     if BASE_TIME_ACQUIRED.load(SeqCst) == false {
@@ -261,6 +265,7 @@ pub fn milliseconds() -> isize {
     now as isize - TIME_BASE.load_relaxed()
 }
 
+/// Returns the time in milliseconds elapsed since engine started.
 #[cfg(not(windows))]
 pub fn milliseconds() -> isize {
     if BASE_TIME_ACQUIRED.load(SeqCst) == false {
@@ -279,6 +284,7 @@ pub fn milliseconds() -> isize {
     time - TIME_BASE.load(SeqCst)
 }
 
+/// Returns true if `dir` contains one or more files.
 pub fn directory_has_contents(dir: impl AsRef<Path>) -> bool {
     if let Ok(mut d) = dir.as_ref().read_dir() {
         d.next().is_none()
@@ -287,10 +293,13 @@ pub fn directory_has_contents(dir: impl AsRef<Path>) -> bool {
     }
 }
 
+/// Lists all files in [`dir`] with extension [`ext`].
+///
+/// Lists all files if [`ext == ""`].
 pub fn list_files(
     dir: impl AsRef<Path>,
-    ext: impl AsRef<str>,
-    _filter: impl AsRef<str>,
+    ext: impl AsRef<OsStr>,
+    _filter: Option<impl AsRef<OsStr>>,
     _pure: bool,
 ) -> Vec<PathBuf> {
     if let Ok(d) = dir.as_ref().read_dir() {
@@ -423,13 +432,7 @@ const fn get_application_name() -> &'static str {
 
 pub fn get_semaphore_folder_path() -> Option<PathBuf> {
     let os_folder_path = fs::get_os_folder_path(fs::OsFolder::UserData)?;
-    let p: PathBuf = [
-        PathBuf::from(os_folder_path),
-        PathBuf::from("CoD").join("Activision"),
-    ]
-    .iter()
-    .collect();
-    Some(p)
+    Some(os_folder_path)
 }
 
 #[cfg(windows)]
@@ -451,6 +454,8 @@ pub fn get_semaphore_file_name() -> String {
     format!("__{}", get_executable_name())
 }
 
+/// Called when a file cannot be created (most likely because the target disk
+/// is full). Exits the process.
 pub fn no_free_files_error() -> ! {
     let msg_box_type = MessageBoxType::Ok;
     let msg_box_icon = MessageBoxIcon::Stop;
@@ -918,14 +923,23 @@ pub fn init_timing() {
     *MSEC_PER_RAW_TIMER_TICK.write().unwrap() = seconds_per_tick() * 1000.0f64;
 }
 
+/// A collection of different info about the system, including amount of RAM,
+/// CPU clock speed, core counts, and CPU and GPU descriptions.
 #[derive(Clone, Default)]
 pub struct SysInfo {
+    /// The description of the GPU (usually its name).
     pub gpu_description: String,
+    /// Number of logical, not physical, cores in the system.
     pub logical_cpu_count: usize,
+    /// Number of physical, not logical, cores in the system.
     pub physical_cpu_count: usize,
+    /// Amount of RAM installed, in MB.
     pub sys_mb: u64,
+    /// Vendor of CPU. Retrieved with [`CPUID`] on x86.
     pub cpu_vendor: String,
+    /// Name of CPU. Retrieved with [`CPUID`] on x86.
     pub cpu_name: String,
+    /// CPU clock rate in GHz.
     pub cpu_ghz: f32,
     pub configure_ghz: f32,
 }
@@ -957,6 +971,7 @@ lazy_static! {
     static ref MSEC_PER_RAW_TIMER_TICK: RwLock<f64> = RwLock::new(0.0f64);
 }
 
+/// Constructs and returns a [`SysInfo`].
 #[allow(
     clippy::cast_precision_loss,
     clippy::as_conversions,
@@ -1028,6 +1043,8 @@ pub fn enqueue_event(mut ev: Event) {
     EVENT_QUEUE.write().unwrap().push_back(ev);
 }
 
+/// Called when the renderer encounters an unrecoverable fatal error. Exits the
+/// process.
 pub fn render_fatal_error() -> ! {
     let msg_box_type = MessageBoxType::Ok;
     let msg_box_icon = MessageBoxIcon::Stop;
@@ -1744,6 +1761,10 @@ macro_rules! __sys_println {
 }
 pub use __sys_println as println;
 
+/// Creates the console.
+///
+/// The console is not the in-game "console" (DevGui), but rather a separate
+/// window. They should not be confused.
 #[cfg(windows)]
 pub fn create_console() {
     let hinstance = unsafe { GetModuleHandleA(None) }.unwrap_or_default();
@@ -1946,6 +1967,10 @@ pub fn create_console() {
     unimplemented!()
 }
 
+/// Shows the console, creating it if it hasn't been created yet.
+///
+/// The console is not the in-game "console" (DevGui), but rather a separate
+/// window. They should not be confused.
 #[cfg(windows)]
 pub fn show_console() {
     if conbuf::s_wcd().window.is_none() {
@@ -1971,6 +1996,7 @@ pub fn show_console() {
     };
 }
 
+/// Destroys the console.
 #[cfg(windows)]
 pub fn destroy_console() {
     if conbuf::s_wcd().window.is_some() {
@@ -2341,6 +2367,10 @@ lazy_static! {
         Mutex::new(VecDeque::new());
 }
 
+/// Attempts to retrieve the next [`WindowEvent`] from the main (game) window.
+///
+/// This function is non-blocking - it returns [`None`] if all events have
+/// already been handled.
 #[cfg(windows)]
 #[allow(clippy::undocumented_unsafe_blocks, clippy::cast_possible_wrap)]
 pub fn next_main_window_event() -> Option<WindowEvent> {
@@ -2587,6 +2617,7 @@ pub fn destroy_window(handle: WindowHandle) {
 
 static MODIFIERS: RwLock<Modifiers> = RwLock::new(Modifiers::empty());
 
+/// Handles a [`WindowEvent`].
 pub fn handle_main_window_event(ev: WindowEvent) {
     match ev {
         WindowEvent::Created(handle) => {

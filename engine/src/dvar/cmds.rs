@@ -869,24 +869,26 @@ fn list_saved_dvars() {
 
 /// Adds commands for Dvar module
 pub fn add_commands() {
-    cmd::add_internal("toggle", toggle_f).unwrap();
-    cmd::add_internal("togglep", toggle_print_f).unwrap();
-    cmd::add_internal("set", set_f).unwrap();
-    cmd::add_internal("sets", sets_f).unwrap();
-    cmd::add_internal("seta", seta_f).unwrap();
-    cmd::add_internal("setadminvar", set_admin_f).unwrap();
-    cmd::add_internal("setmoddvar", set_mod_dvar_f).unwrap();
-    cmd::add_internal("setfromdvar", set_from_dvar_f).unwrap();
-    cmd::add_internal("setfromlocString", set_from_localized_string_f).unwrap();
-    cmd::add_internal("reset", reset_f).unwrap();
-    cmd::add_internal("dvarlist", list_f).unwrap();
-    cmd::add_internal("dvardump", dump_f).unwrap();
-    cmd::add_internal("dvar_bool", register_bool_f).unwrap();
-    cmd::add_internal("dvar_int", register_int_f).unwrap();
-    cmd::add_internal("dvar_float", register_float_f).unwrap();
-    cmd::add_internal("dvar_color", register_color_f).unwrap();
-    cmd::add_internal("setu", setu_f).unwrap();
-    cmd::add_internal("setAllClientDvars", set_all_client_dvars_f).unwrap();
-    cmd::add_internal("restoreDvars", restore_dvars).unwrap();
-    cmd::add_internal("dvarlist_saved", list_saved_dvars).unwrap();
+    cmd::add_command_internal("toggle", toggle_f).unwrap();
+    cmd::add_command_internal("togglep", toggle_print_f).unwrap();
+    cmd::add_command_internal("set", set_f).unwrap();
+    cmd::add_command_internal("sets", sets_f).unwrap();
+    cmd::add_command_internal("seta", seta_f).unwrap();
+    cmd::add_command_internal("setadminvar", set_admin_f).unwrap();
+    cmd::add_command_internal("setmoddvar", set_mod_dvar_f).unwrap();
+    cmd::add_command_internal("setfromdvar", set_from_dvar_f).unwrap();
+    cmd::add_command_internal("setfromlocString", set_from_localized_string_f)
+        .unwrap();
+    cmd::add_command_internal("reset", reset_f).unwrap();
+    cmd::add_command_internal("dvarlist", list_f).unwrap();
+    cmd::add_command_internal("dvardump", dump_f).unwrap();
+    cmd::add_command_internal("dvar_bool", register_bool_f).unwrap();
+    cmd::add_command_internal("dvar_int", register_int_f).unwrap();
+    cmd::add_command_internal("dvar_float", register_float_f).unwrap();
+    cmd::add_command_internal("dvar_color", register_color_f).unwrap();
+    cmd::add_command_internal("setu", setu_f).unwrap();
+    cmd::add_command_internal("setAllClientDvars", set_all_client_dvars_f)
+        .unwrap();
+    cmd::add_command_internal("restoreDvars", restore_dvars).unwrap();
+    cmd::add_command_internal("dvarlist_saved", list_saved_dvars).unwrap();
 }

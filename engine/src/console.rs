@@ -46,14 +46,45 @@ lazy_static! {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[repr(usize)]
+#[repr(i32)]
 pub enum PrintMessageDest {
-    Console = 0x0,
-    Minicon = 0x1,
-    Error = 0x2,
-    Game1 = 0x3,
-    Game2 = 0x4,
-    Game3 = 0x5,
+    CONSOLE = 0x0,
+    MINICON = 0x1,
+    ERROR = 0x2,
+    GAME1 = 0x3,
+    GAME2 = 0x4,
+    GAME3 = 0x5,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[repr(i32)]
+enum Channel2 {
+    DONT_FILTER,
+    GAMENOTIFY,
+    BOLDGAME,
+    SUBTITLE,
+    LOGFILEONLY,
+    GFX,
+    SOUND,
+    FILES,
+    DEVGUI,
+    PROFILE,
+    UI,
+    CLIENT,
+    SERVER,
+    SYSTEM,
+    ANIM,
+    FX,
+    LIVE,
+    PARSER_SCRIPT,
+    TASK,
+}
+
+impl Channel2 {
+    pub const fn as_i32(self) -> i32 {
+        self as _
+    }
 }
 
 #[derive(Copy, Clone, Default, Debug)]
@@ -102,14 +133,14 @@ pub fn is_channel_visible(
         return false;
     }
 
-    if msg_dest == PrintMessageDest::Minicon {
+    if msg_dest == PrintMessageDest::MINICON {
         if channel.get() == 2 || channel.get() == 3 || channel.get() == 4 {
             return false;
         }
-        msg_dest = PrintMessageDest::Console;
+        msg_dest = PrintMessageDest::CONSOLE;
     }
 
-    if msg_dest == PrintMessageDest::Console && channel.get() == 0 {
+    if msg_dest == PrintMessageDest::CONSOLE && channel.get() == 0 {
         return true;
     }
 
