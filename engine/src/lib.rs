@@ -97,6 +97,7 @@ mod com;
 mod common;
 mod conbuf;
 mod console;
+mod db;
 mod dvar;
 mod fs;
 mod gfx;
