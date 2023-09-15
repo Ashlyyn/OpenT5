@@ -1,29 +1,44 @@
-use crate::*;
+#![allow(dead_code)]
+
+use crate::{util::EasierAtomic, *};
 use cfg_if::cfg_if;
+use nix::sys::aio::AioRead;
 
 use std::{
     path::PathBuf,
-    ptr::addr_of_mut,
-    sync::{atomic::AtomicUsize, RwLock},
+    pin::Pin,
+    sync::{
+        atomic::{AtomicIsize, AtomicUsize},
+        RwLock,
+    },
 };
 
 use lazy_static::lazy_static;
 
 cfg_if! {
     if #[cfg(windows)] {
+        use core::ptr::addr_of_mut;
         use windows::Win32::{
             Foundation::{GetLastError, ERROR_HANDLE_EOF, HANDLE},
             Storage::FileSystem::ReadFileEx,
             System::IO::OVERLAPPED,
         };
+    } else if #[cfg(unix)] {
+        use std::os::fd::RawFd;
+        use nix::{errno::Errno, sys::{signal::SigevNotify, aio::Aio}};
     }
 }
 
-static G_TOTAL_WAIT: AtomicUsize = AtomicUsize::new(0);
+static G_TOTAL_WAIT: AtomicIsize = AtomicIsize::new(0);
+static G_LOADED_SIZE: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(windows)]
 #[derive(Debug)]
 struct FileHandle(HANDLE);
+
+#[cfg(unix)]
+#[derive(Debug)]
+struct FileHandle(RawFd);
 
 unsafe impl Send for FileHandle {}
 unsafe impl Sync for FileHandle {}
@@ -31,12 +46,14 @@ unsafe impl Sync for FileHandle {}
 #[derive(Default)]
 struct LoadData<'a> {
     f: Option<FileHandle>,
-    compress_buffer: &'a mut [u8],
     outstanding_reads: usize,
     filename: PathBuf,
 
     #[cfg(windows)]
     overlapped: OVERLAPPED,
+
+    #[cfg(unix)]
+    aior: Option<Pin<Box<AioRead<'a>>>>,
 }
 
 unsafe impl<'a> Send for LoadData<'a> {}
@@ -46,6 +63,8 @@ lazy_static! {
     static ref G_LOAD: RwLock<LoadData<'static>> =
         RwLock::new(LoadData::default());
 }
+
+static mut G_FILE_BUF: [u8; 0x80000] = [0u8; 0x80000];
 
 #[cfg(windows)]
 unsafe extern "system" fn file_read_completion_dummy_callback(
@@ -60,7 +79,7 @@ fn read_data() -> Result<(), ()> {
     let mut g_load = G_LOAD.write().unwrap();
 
     let lpbuffer = unsafe {
-        g_load.compress_buffer.as_mut_ptr().add(
+        G_FILE_BUF.as_mut_ptr().add(
             g_load.overlapped.Anonymous.Anonymous.Offset as usize
                 % 0x80000usize,
         )
@@ -88,6 +107,28 @@ fn read_data() -> Result<(), ()> {
     }
 }
 
+#[cfg(unix)]
+fn read_data() -> Result<(), ()> {
+    let mut g_load = G_LOAD.write().unwrap();
+
+    let offset = (G_LOADED_SIZE.load_relaxed() & 1) * 0x40000;
+
+    g_load.aior = Some(Box::pin(AioRead::new(
+        g_load.f.as_ref().unwrap().0,
+        0,
+        unsafe { &mut G_FILE_BUF[offset..offset + 0x40000] },
+        0,
+        SigevNotify::SigevNone,
+    )));
+
+    if g_load.aior.as_mut().unwrap().as_mut().submit().is_ok() {
+        g_load.outstanding_reads += 1;
+        Ok(())
+    } else {
+        Err(())
+    }
+}
+
 #[cfg(windows)]
 fn read_xfile_stage() {
     if G_LOAD.read().unwrap().f.is_some() {
@@ -102,4 +143,43 @@ fn read_xfile_stage() {
             );
         }
     }
+}
+
+#[cfg(unix)]
+fn read_xfile_stage() {
+    if G_LOAD.read().unwrap().f.is_some() {
+        assert_eq!(G_LOAD.read().unwrap().outstanding_reads, 0);
+
+        if read_data().is_err() {
+            com::errorln!(
+                com::ErrorParm::DROP,
+                "Read error of file '{}'",
+                G_LOAD.read().unwrap().filename.display()
+            );
+        }
+    }
+}
+
+#[cfg(unix)]
+fn wait_xfile_stage() {
+    let mut g_load = G_LOAD.write().unwrap();
+
+    assert!(g_load.f.is_some());
+    assert!(g_load.outstanding_reads > 0);
+
+    g_load.outstanding_reads -= 1;
+
+    let then = sys::milliseconds();
+
+    while g_load.aior.as_mut().unwrap().as_mut().error()
+        == Err(Errno::EINPROGRESS)
+    {
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+
+    let now = sys::milliseconds();
+
+    G_TOTAL_WAIT.store_relaxed(G_TOTAL_WAIT.load_relaxed() + (now - then));
+
+    G_LOADED_SIZE.increment_wrapping();
 }
