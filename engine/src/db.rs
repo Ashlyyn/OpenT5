@@ -2,11 +2,10 @@
 
 use crate::{util::EasierAtomic, *};
 use cfg_if::cfg_if;
-use nix::sys::aio::AioRead;
 
 use std::{
+    marker::PhantomData,
     path::PathBuf,
-    pin::Pin,
     sync::{
         atomic::{AtomicIsize, AtomicUsize},
         RwLock,
@@ -24,8 +23,9 @@ cfg_if! {
             System::IO::OVERLAPPED,
         };
     } else if #[cfg(unix)] {
-        use std::os::fd::RawFd;
-        use nix::{errno::Errno, sys::{signal::SigevNotify, aio::Aio}};
+        use std::{pin::Pin, os::fd::RawFd};
+        use nix::{errno::Errno, sys::{signal::SigevNotify, aio::{Aio, AioRead}}};
+
     }
 }
 
@@ -51,6 +51,8 @@ struct LoadData<'a> {
 
     #[cfg(windows)]
     overlapped: OVERLAPPED,
+    #[cfg(windows)]
+    _p: PhantomData<&'a ()>,
 
     #[cfg(unix)]
     aior: Option<Pin<Box<AioRead<'a>>>>,
@@ -158,6 +160,28 @@ fn read_xfile_stage() {
             );
         }
     }
+}
+
+#[cfg(windows)]
+fn wait_xfile_stage() {
+    use windows::Win32::System::Threading::{SleepEx, INFINITE};
+
+    let mut g_load = G_LOAD.write().unwrap();
+
+    assert!(g_load.f.is_some());
+    assert!(g_load.outstanding_reads > 0);
+
+    g_load.outstanding_reads -= 1;
+
+    let then = sys::milliseconds();
+
+    unsafe { SleepEx(INFINITE, true) };
+
+    let now = sys::milliseconds();
+
+    G_TOTAL_WAIT.store_relaxed(G_TOTAL_WAIT.load_relaxed() + (now - then));
+
+    G_LOADED_SIZE.increment_wrapping();
 }
 
 #[cfg(unix)]
