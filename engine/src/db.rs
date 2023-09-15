@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 
 use crate::{util::EasierAtomic, *};
+use bitflags::bitflags;
 use cfg_if::cfg_if;
 
 use std::{
     marker::PhantomData,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicIsize, AtomicUsize},
         RwLock,
@@ -18,7 +19,7 @@ cfg_if! {
     if #[cfg(windows)] {
         use core::ptr::addr_of_mut;
         use windows::Win32::{
-            Foundation::{GetLastError, ERROR_HANDLE_EOF, HANDLE},
+            Foundation::{GetLastError, ERROR_HANDLE_EOF, HANDLE, CloseHandle},
             Storage::FileSystem::ReadFileEx,
             System::IO::OVERLAPPED,
         };
@@ -48,6 +49,8 @@ struct LoadData<'a> {
     f: Option<FileHandle>,
     outstanding_reads: usize,
     filename: PathBuf,
+    flags: XFileLoadFlags,
+    start_time: isize,
 
     #[cfg(windows)]
     overlapped: OVERLAPPED,
@@ -67,6 +70,13 @@ lazy_static! {
 }
 
 static mut G_FILE_BUF: [u8; 0x80000] = [0u8; 0x80000];
+
+bitflags! {
+    #[derive(Default)]
+    struct XFileLoadFlags: u32 {
+
+    }
+}
 
 #[cfg(windows)]
 unsafe extern "system" fn file_read_completion_dummy_callback(
@@ -206,4 +216,55 @@ fn wait_xfile_stage() {
     G_TOTAL_WAIT.store_relaxed(G_TOTAL_WAIT.load_relaxed() + (now - then));
 
     G_LOADED_SIZE.increment_wrapping();
+}
+
+fn cancel_load_xfile() {
+    let mut g_load = G_LOAD.write().unwrap();
+
+    while g_load.outstanding_reads != 0 {
+        wait_xfile_stage();
+    }
+
+    if let Some(h) = g_load.f.as_ref() {
+        assert_ne!(h.0 .0, 0xFFFFFFFF);
+    } else {
+        assert!(false);
+    }
+
+    unsafe { CloseHandle(g_load.f.as_mut().unwrap().0) };
+}
+
+fn load_xfile_internal() {
+    G_TOTAL_WAIT.store_relaxed(0);
+
+    assert!(G_LOAD.read().unwrap().f.is_none());
+
+    read_xfile_stage();
+    if G_LOAD.read().unwrap().outstanding_reads == 0 {
+        com::errorln!(
+            com::ErrorParm::DROP,
+            "Fastfile for zone '{}' is empty.",
+            G_LOAD.read().unwrap().filename.display()
+        );
+    }
+
+    wait_xfile_stage();
+    read_xfile_stage();
+
+    todo!()
+}
+
+fn load_xfile(
+    f: FileHandle,
+    filename: impl AsRef<Path>,
+    flags: XFileLoadFlags,
+) {
+    let mut g_load = G_LOAD.write().unwrap();
+
+    g_load.f = Some(f);
+    g_load.filename = filename.as_ref().to_path_buf();
+    g_load.flags = flags;
+    g_load.start_time = sys::milliseconds();
+
+    load_xfile_internal();
 }
