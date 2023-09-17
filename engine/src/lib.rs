@@ -6,6 +6,7 @@
 #![feature(const_trait_impl)]
 #![feature(let_chains)]
 #![feature(os_str_bytes)]
+#![feature(ptr_sub_ptr)]
 #![warn(
     clippy::all,
     clippy::restriction,
