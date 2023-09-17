@@ -1,7 +1,12 @@
 #![allow(dead_code)]
 
 use core::f32::consts::PI;
-use std::path::Path;
+use std::{
+    cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut},
+    ops::{Deref, DerefMut},
+    path::Path,
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 use core::sync::atomic::{
     AtomicBool, AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicIsize,
@@ -15,7 +20,10 @@ use raw_window_handle::{
     HasRawDisplayHandle, HasRawWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
 
-use crate::platform::{display_server::target::MonitorHandle, WindowHandle};
+use crate::{
+    platform::{display_server::target::MonitorHandle, WindowHandle},
+    sys,
+};
 
 use cfg_if::cfg_if;
 
@@ -387,6 +395,122 @@ cfg_if! {
                 (self.0 as u32).high_word()
             }
         }
+    }
+}
+
+/// Single-threaded version of [`std::sync::RwLock`].
+///
+/// Used for globals that will only ever be accessed from a single thread (e.g.
+/// those used for the Database). Implements [`Send`] and [`Sync`] to allow
+/// easy use in globals, but doesn't require its data to be [`Send`] or
+/// [`Sync`] since it'll only ever be accessed from one thread.
+///
+/// In cases where a subset of threads (e.g. [`fs`] functions) or potentially
+/// all threads (e.g. [`sys`] functions), [`RwLock`] or [`Mutex`] should still
+/// be used.
+pub struct StRwLock<T: Sized, F: Fn() -> bool = fn() -> bool> {
+    inner: RefCell<T>,
+    check_thread_fn: F,
+    thread_name: &'static str,
+}
+
+impl<T: Sized, F: Fn() -> bool> StRwLock<T, F> {
+    /// This function must be marked unsafe since it's on the caller to ensure
+    /// [`check_thread`] returns [`true`] for one thread **and only** one
+    /// thread.
+    pub const unsafe fn new(
+        data: T,
+        thread_name: &'static str,
+        check_thread: F,
+    ) -> Self {
+        Self {
+            inner: RefCell::new(data),
+            check_thread_fn: check_thread,
+            thread_name,
+        }
+    }
+
+    pub fn try_read(&self) -> Result<Ref<T>, BorrowError> {
+        if !(self.check_thread_fn)() {
+            panic!(
+                "attempted to access an StRwLock from thread {}, only valid \
+                 in thread {}",
+                sys::get_current_thread_name(),
+                self.thread_name
+            );
+        }
+
+        self.inner.try_borrow()
+    }
+
+    pub fn read(&self) -> Ref<T> {
+        while let Err(_) = self.try_read() {}
+        self.inner.borrow()
+    }
+
+    pub fn try_write(&self) -> Result<RefMut<T>, BorrowMutError> {
+        if !(self.check_thread_fn)() {
+            panic!(
+                "attempted to access an StRwLock from thread {}, only valid \
+                 in thread {}",
+                sys::get_current_thread_name(),
+                self.thread_name
+            );
+        }
+
+        self.inner.try_borrow_mut()
+    }
+
+    pub fn write(&self) -> RefMut<T> {
+        while let Err(_) = self.try_read() {}
+        self.inner.borrow_mut()
+    }
+}
+
+unsafe impl<T: Sized, F: Fn() -> bool> Send for StRwLock<T, F> {}
+unsafe impl<T: Sized, F: Fn() -> bool> Sync for StRwLock<T, F> {}
+
+pub trait RwLockExt<'a, T: ?Sized + 'a> {
+    type ReadGuard: Deref<Target = T>;
+    type WriteGuard: DerefMut<Target = T>;
+
+    fn read_with<R>(&'a self, f: impl Fn(Self::ReadGuard) -> R + 'a) -> R;
+    fn write_with<R>(&'a self, f: impl FnMut(Self::WriteGuard) -> R + 'a) -> R;
+}
+
+impl<'a, T: Sized + 'a> RwLockExt<'a, T> for RwLock<T> {
+    type ReadGuard = RwLockReadGuard<'a, T>;
+    type WriteGuard = RwLockWriteGuard<'a, T>;
+
+    fn read_with<R>(&'a self, f: impl Fn(Self::ReadGuard) -> R + 'a) -> R {
+        let r = self.read().unwrap();
+        f(r)
+    }
+
+    fn write_with<R>(
+        &'a self,
+        mut f: impl FnMut(Self::WriteGuard) -> R + 'a,
+    ) -> R {
+        let w = self.write().unwrap();
+        f(w)
+    }
+}
+
+impl<'a, T: Sized + 'a, F: Fn() -> bool> RwLockExt<'a, T> for StRwLock<T, F> {
+    type ReadGuard = Ref<'a, T>;
+    type WriteGuard = RefMut<'a, T>;
+
+    fn read_with<R>(&'a self, f: impl Fn(Self::ReadGuard) -> R + 'a) -> R {
+        let r = self.read();
+        f(r)
+    }
+
+    fn write_with<R>(
+        &'a self,
+        mut f: impl FnMut(Self::WriteGuard) -> R + 'a,
+    ) -> R {
+        let w = self.write();
+        f(w)
     }
 }
 
