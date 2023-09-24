@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![allow(private_in_public)]
 #![deny(missing_docs)]
 #![allow(
     clippy::missing_trait_methods,
