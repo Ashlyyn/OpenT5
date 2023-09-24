@@ -189,13 +189,8 @@ pub const fn make_four_cc(a: u8, b: u8, c: u8, d: u8) -> FourCC {
     )
 }
 
-#[const_trait]
-pub trait FourCCExtDX {
-    fn as_d3dfmt(self) -> D3DFORMAT;
-}
-
-impl const FourCCExtDX for FourCC {
-    fn as_d3dfmt(self) -> D3DFORMAT {
+impl FourCC {
+    const fn as_d3dfmt(self) -> D3DFORMAT {
         D3DFORMAT(self.0)
     }
 }
